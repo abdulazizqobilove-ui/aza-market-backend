@@ -15,15 +15,116 @@ def _seed():
     from app.models.user import User, UserRole
     db = SessionLocal()
     try:
-        if db.query(Category).count() == 0:
-            cats = [
-                ("Электроника", "electronics"), ("Одежда", "clothing"),
-                ("Дом и сад", "home-garden"), ("Спорт", "sport"),
-                ("Красота и здоровье", "beauty"), ("Детские товары", "kids"),
-                ("Продукты", "food"), ("Авто", "auto"),
+        if db.query(Category).filter(Category.parent_id == None).count() == 0:
+            roots = [
+                ("Электроника", "electronics"),
+                ("Одежда", "clothing"),
+                ("Обувь", "shoes"),
+                ("Аксессуары", "accessories"),
+                ("Дом и сад", "home-garden"),
+                ("Мебель", "furniture"),
+                ("Строительство и ремонт", "construction"),
+                ("Спорт и отдых", "sport"),
+                ("Красота и уход", "beauty"),
+                ("Здоровье", "health"),
+                ("Детские товары", "kids"),
+                ("Автотовары", "auto"),
+                ("Продукты питания", "food"),
+                ("Бытовая химия", "household-chem"),
+                ("Зоотовары", "pets"),
+                ("Хобби и творчество", "hobby"),
+                ("Канцтовары", "stationery"),
+                ("Книги", "books"),
+                ("Дача, сад и огород", "garden"),
             ]
-            for name, slug in cats:
-                db.add(Category(name=name, slug=slug))
+            root_objs = {}
+            for name, slug in roots:
+                c = Category(name=name, slug=slug)
+                db.add(c)
+                root_objs[slug] = c
+            db.flush()
+
+            subcats = {
+                "electronics": [
+                    ("Смартфоны", "smartphones"), ("Ноутбуки и ПК", "laptops"),
+                    ("Планшеты", "tablets"), ("Наушники и аудио", "audio"),
+                    ("Телевизоры", "tvs"), ("Фото и видео", "photo"),
+                    ("Умные часы", "smartwatches"), ("Игровые приставки", "gaming"),
+                    ("Аксессуары для техники", "tech-accessories"),
+                ],
+                "clothing": [
+                    ("Мужская одежда", "mens-clothing"), ("Женская одежда", "womens-clothing"),
+                    ("Спортивная одежда", "sport-clothing"), ("Верхняя одежда", "outerwear"),
+                    ("Нижнее бельё", "underwear"), ("Купальники", "swimwear"),
+                ],
+                "shoes": [
+                    ("Мужская обувь", "mens-shoes"), ("Женская обувь", "womens-shoes"),
+                    ("Детская обувь", "kids-shoes"), ("Спортивная обувь", "sport-shoes"),
+                    ("Сандалии и шлёпки", "sandals"),
+                ],
+                "accessories": [
+                    ("Сумки и рюкзаки", "bags"), ("Ремни", "belts"),
+                    ("Очки", "glasses"), ("Украшения", "jewelry"),
+                    ("Часы", "watches"), ("Головные уборы", "hats"),
+                ],
+                "home-garden": [
+                    ("Постельное бельё", "bedding"), ("Посуда и кухня", "kitchenware"),
+                    ("Освещение", "lighting"), ("Декор и интерьер", "decor"),
+                    ("Ванная комната", "bathroom"), ("Хранение и организация", "storage"),
+                ],
+                "furniture": [
+                    ("Диваны и кресла", "sofas"), ("Кровати и матрасы", "beds"),
+                    ("Столы и стулья", "tables"), ("Шкафы и полки", "wardrobes"),
+                    ("Детская мебель", "kids-furniture"),
+                ],
+                "construction": [
+                    ("Инструменты", "tools"), ("Краски и отделка", "paints"),
+                    ("Сантехника", "plumbing"), ("Электрика", "electrical"),
+                    ("Двери и окна", "doors-windows"),
+                ],
+                "sport": [
+                    ("Футбол", "football"), ("Фитнес и тренажёры", "fitness"),
+                    ("Туризм и рыбалка", "tourism"), ("Велоспорт", "cycling"),
+                    ("Единоборства", "martial-arts"), ("Плавание", "swimming"),
+                ],
+                "beauty": [
+                    ("Уход за лицом", "face-care"), ("Уход за волосами", "hair-care"),
+                    ("Парфюмерия", "perfume"), ("Декоративная косметика", "makeup"),
+                    ("Маникюр и педикюр", "nails"),
+                ],
+                "health": [
+                    ("Витамины и БАД", "vitamins"), ("Медицинские товары", "medical"),
+                    ("Массажёры", "massagers"), ("Весы и тонометры", "monitors"),
+                ],
+                "kids": [
+                    ("Игрушки", "toys"), ("Одежда для детей", "kids-clothing"),
+                    ("Коляски и кресла", "strollers"), ("Школьные товары", "school"),
+                    ("Питание для детей", "baby-food"),
+                ],
+                "auto": [
+                    ("Автоаксессуары", "car-accessories"), ("Автохимия", "car-chem"),
+                    ("Шины и диски", "tires"), ("Запчасти", "car-parts"),
+                    ("Видеорегистраторы", "dashcams"),
+                ],
+                "food": [
+                    ("Бакалея", "grocery"), ("Напитки", "drinks"),
+                    ("Сладости", "sweets"), ("Молочные продукты", "dairy"),
+                    ("Халяль продукты", "halal"),
+                ],
+                "pets": [
+                    ("Корм для животных", "pet-food"), ("Аксессуары для животных", "pet-accessories"),
+                    ("Ветеринарные товары", "vet"),
+                ],
+                "hobby": [
+                    ("Рисование и рукоделие", "art"), ("Музыкальные инструменты", "music"),
+                    ("Настольные игры", "board-games"), ("Коллекционирование", "collecting"),
+                ],
+            }
+            for slug, children in subcats.items():
+                parent = root_objs.get(slug)
+                if not parent: continue
+                for name, child_slug in children:
+                    db.add(Category(name=name, slug=child_slug, parent_id=parent.id))
             db.commit()
 
         if not db.query(User).filter(User.phone == "+992777777777").first():

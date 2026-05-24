@@ -17,7 +17,12 @@ router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("/categories", response_model=List[CategoryOut])
 def get_categories(db: Session = Depends(get_db)):
-    return db.query(Category).all()
+    return db.query(Category).filter(Category.parent_id == None).all()
+
+
+@router.get("/categories/{cat_id}/subcategories", response_model=List[CategoryOut])
+def get_subcategories(cat_id: int, db: Session = Depends(get_db)):
+    return db.query(Category).filter(Category.parent_id == cat_id).all()
 
 
 @router.get("", response_model=dict)
