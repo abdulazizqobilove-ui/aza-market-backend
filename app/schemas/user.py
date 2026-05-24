@@ -20,7 +20,7 @@ class UserLogin(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    email: Optional[str]
+    email: Optional[str] = None
     username: str
     full_name: Optional[str]
     phone: Optional[str]
