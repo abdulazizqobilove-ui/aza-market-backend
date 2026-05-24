@@ -51,6 +51,7 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
     for ci in cart_items:
         db.add(OrderItem(order_id=order.id, product_id=ci.product_id, quantity=ci.quantity, price=ci.product.price))
         ci.product.stock -= ci.quantity
+        ci.product.sales_count = (ci.product.sales_count or 0) + ci.quantity
 
     db.query(CartItem).filter(CartItem.id.in_(item_ids_to_delete)).delete(synchronize_session=False)
     db.commit()

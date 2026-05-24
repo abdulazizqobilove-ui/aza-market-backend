@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, text as sa_text
 from typing import List, Optional
 import os, uuid, shutil
 from app.core.database import get_db
@@ -34,7 +34,7 @@ def list_products(
     max_price: Optional[float] = Query(None),
     brand: Optional[str] = Query(None),
     min_rating: Optional[float] = Query(None),
-    sort: str = Query("newest", enum=["newest", "price_asc", "price_desc", "rating"]),
+    sort: str = Query("popular", enum=["popular", "newest", "price_asc", "price_desc", "rating"]),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
 ):
@@ -60,6 +60,11 @@ def list_products(
         query = query.filter(Product.rating >= min_rating)
 
     sort_map = {
+        # score = продажи*0.6 + рейтинг*6 + свежесть за 30 дней +5
+        "popular": sa_text(
+            "COALESCE(sales_count,0)*0.6 + COALESCE(rating,0)*6.0 "
+            "+ CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 5 ELSE 0 END DESC"
+        ),
         "newest": Product.created_at.desc(),
         "price_asc": Product.price.asc(),
         "price_desc": Product.price.desc(),

@@ -13,12 +13,16 @@ Base.metadata.create_all(bind=engine)
 from sqlalchemy import text as _sql, inspect as _inspect
 _existing_review_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_reviews")]
 _existing_user_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_users")]
+_existing_product_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_products")]
 for _stmt in (
     [] if "images" in _existing_review_cols else
     ["ALTER TABLE mkt_reviews ADD COLUMN images JSONB DEFAULT '[]'"]
 ) + (
     [] if "avatar_url" in _existing_user_cols else
     ["ALTER TABLE mkt_users ADD COLUMN avatar_url VARCHAR"]
+) + (
+    [] if "sales_count" in _existing_product_cols else
+    ["ALTER TABLE mkt_products ADD COLUMN sales_count INTEGER NOT NULL DEFAULT 0"]
 ):
     try:
         with engine.begin() as _conn:

@@ -30,6 +30,7 @@ class Product(Base):
     brand = Column(String)
     rating = Column(Float, default=0.0)
     reviews_count = Column(Integer, default=0)
+    sales_count = Column(Integer, default=0, nullable=False, server_default=text("0"))
     is_active = Column(Boolean, default=True, server_default=text("true"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
