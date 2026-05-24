@@ -9,3 +9,4 @@ from app.models.otp import OTPCode
 from app.models.waitlist import Waitlist
 from app.models.notification import Notification
 from app.models.seller_application import SellerApplication
+from app.models.banner import Banner
