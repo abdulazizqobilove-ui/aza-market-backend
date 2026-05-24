@@ -5,12 +5,12 @@ from app.core.database import Base
 
 
 class Category(Base):
-    __tablename__ = "categories"
+    __tablename__ = "mkt_categories"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
     slug = Column(String, unique=True, nullable=False)
-    parent_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    parent_id = Column(Integer, ForeignKey("mkt_categories.id"), nullable=True)
 
     parent = relationship("Category", remote_side=[id], back_populates="children")
     children = relationship("Category", back_populates="parent")
@@ -18,7 +18,7 @@ class Category(Base):
 
 
 class Product(Base):
-    __tablename__ = "products"
+    __tablename__ = "mkt_products"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False, index=True)
@@ -34,8 +34,8 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    seller_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    category_id = Column(Integer, ForeignKey("categories.id"), nullable=False)
+    seller_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
+    category_id = Column(Integer, ForeignKey("mkt_categories.id"), nullable=False)
 
     seller = relationship("User", back_populates="products")
     category = relationship("Category", back_populates="products")
@@ -48,10 +48,10 @@ class Product(Base):
 
 
 class ProductImage(Base):
-    __tablename__ = "product_images"
+    __tablename__ = "mkt_product_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("mkt_products.id"), nullable=False)
     url = Column(String, nullable=False)
     is_main = Column(Boolean, default=False)
 

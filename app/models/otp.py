@@ -4,7 +4,7 @@ from app.core.database import Base
 
 
 class OTPCode(Base):
-    __tablename__ = "otp_codes"
+    __tablename__ = "mkt_otp_codes"
 
     id = Column(Integer, primary_key=True, index=True)
     phone = Column(String, index=True, nullable=False)

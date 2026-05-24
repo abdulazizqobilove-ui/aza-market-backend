@@ -5,10 +5,10 @@ from app.core.database import Base
 
 
 class Notification(Base):
-    __tablename__ = "notifications"
+    __tablename__ = "mkt_notifications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     title = Column(String, nullable=False)
     body = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)

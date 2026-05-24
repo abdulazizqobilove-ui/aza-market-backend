@@ -12,10 +12,10 @@ class ApplicationStatus(str, enum.Enum):
 
 
 class SellerApplication(Base):
-    __tablename__ = "seller_applications"
+    __tablename__ = "mkt_seller_applications"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     shop_name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     status = Column(Enum(ApplicationStatus), default=ApplicationStatus.pending, nullable=False)

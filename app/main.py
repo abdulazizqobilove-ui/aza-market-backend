@@ -8,28 +8,6 @@ from app.api.routes import auth, products, cart, orders, seller, users, reviews,
 
 Base.metadata.create_all(bind=engine)
 
-# Add missing columns to existing tables (safe migration)
-def _migrate():
-    from sqlalchemy import text
-    with engine.connect() as conn:
-        migrations = [
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS balance FLOAT NOT NULL DEFAULT 0.0",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_name VARCHAR",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_description VARCHAR",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_banner_url VARCHAR",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS shop_logo_url VARCHAR",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS hashed_password VARCHAR",
-            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR",
-        ]
-        for sql in migrations:
-            try:
-                conn.execute(text(sql))
-            except Exception:
-                pass
-        conn.commit()
-
-_migrate()
-
 # Auto-seed categories and users if empty
 def _seed():
     from app.core.database import SessionLocal

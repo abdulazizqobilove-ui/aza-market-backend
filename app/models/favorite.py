@@ -5,11 +5,11 @@ from app.core.database import Base
 
 
 class Favorite(Base):
-    __tablename__ = "favorites"
+    __tablename__ = "mkt_favorites"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
+    product_id = Column(Integer, ForeignKey("mkt_products.id"), nullable=False)
     added_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (UniqueConstraint("user_id", "product_id"),)

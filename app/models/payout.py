@@ -12,10 +12,10 @@ class PayoutStatus(str, enum.Enum):
 
 
 class Payout(Base):
-    __tablename__ = "payouts"
+    __tablename__ = "mkt_payouts"
 
     id = Column(Integer, primary_key=True, index=True)
-    seller_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    seller_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     amount = Column(Float, nullable=False)
     bank_details = Column(Text, nullable=False)
     status = Column(Enum(PayoutStatus), default=PayoutStatus.pending, nullable=False)
