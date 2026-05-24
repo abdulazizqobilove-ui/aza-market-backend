@@ -8,6 +8,27 @@ from app.api.routes import auth, products, cart, orders, seller, users, reviews,
 
 Base.metadata.create_all(bind=engine)
 
+# Auto-seed categories if empty
+def _seed():
+    from app.core.database import SessionLocal
+    from app.models.product import Category
+    db = SessionLocal()
+    try:
+        if db.query(Category).count() == 0:
+            cats = [
+                ("Электроника", "electronics"), ("Одежда", "clothing"),
+                ("Дом и сад", "home-garden"), ("Спорт", "sport"),
+                ("Красота и здоровье", "beauty"), ("Детские товары", "kids"),
+                ("Продукты", "food"), ("Авто", "auto"),
+            ]
+            for name, slug in cats:
+                db.add(Category(name=name, slug=slug))
+            db.commit()
+    except: pass
+    finally: db.close()
+
+_seed()
+
 app = FastAPI(title="Marketplace API", version="1.0.0")
 
 app.add_middleware(
