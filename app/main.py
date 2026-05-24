@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 import os
 from app.core.database import Base, engine
 from app.core.config import settings
-from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners
-from app.models import payment_card  # ensure table is created
+from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats
+from app.models import payment_card, chat  # ensure tables are created
 
 Base.metadata.create_all(bind=engine)
 
@@ -182,6 +182,7 @@ app.include_router(notifications.router, prefix="/api")
 app.include_router(seller_applications.router, prefix="/api")
 app.include_router(shop.router, prefix="/api")
 app.include_router(banners.router, prefix="/api")
+app.include_router(chats.router, prefix="/api")
 
 
 @app.get("/api/health")
