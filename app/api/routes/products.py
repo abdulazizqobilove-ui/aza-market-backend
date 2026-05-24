@@ -33,6 +33,7 @@ def list_products(
     min_price: Optional[float] = Query(None),
     max_price: Optional[float] = Query(None),
     brand: Optional[str] = Query(None),
+    min_rating: Optional[float] = Query(None),
     sort: str = Query("newest", enum=["newest", "price_asc", "price_desc", "rating"]),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -55,6 +56,8 @@ def list_products(
         query = query.filter(Product.price <= max_price)
     if brand:
         query = query.filter(Product.brand.ilike(f"%{brand}%"))
+    if min_rating is not None:
+        query = query.filter(Product.rating >= min_rating)
 
     sort_map = {
         "newest": Product.created_at.desc(),
