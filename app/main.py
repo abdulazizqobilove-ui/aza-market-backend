@@ -8,10 +8,11 @@ from app.api.routes import auth, products, cart, orders, seller, users, reviews,
 
 Base.metadata.create_all(bind=engine)
 
-# Auto-seed categories if empty
+# Auto-seed categories and users if empty
 def _seed():
     from app.core.database import SessionLocal
     from app.models.product import Category
+    from app.models.user import User, UserRole
     db = SessionLocal()
     try:
         if db.query(Category).count() == 0:
@@ -23,6 +24,15 @@ def _seed():
             ]
             for name, slug in cats:
                 db.add(Category(name=name, slug=slug))
+            db.commit()
+
+        if not db.query(User).filter(User.phone == "+992777777777").first():
+            db.add(User(phone="+992777777777", username="admin", full_name="Администратор", role=UserRole.admin))
+            db.commit()
+
+        if not db.query(User).filter(User.phone == "+992666666666").first():
+            db.add(User(phone="+992666666666", username="demo_seller", full_name="Демо Продавец", role=UserRole.seller,
+                        shop_name="Демо Магазин"))
             db.commit()
     except: pass
     finally: db.close()
