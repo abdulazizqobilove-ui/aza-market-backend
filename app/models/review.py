@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, CheckConstraint
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, Text, CheckConstraint
+from sqlalchemy.types import JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -12,6 +13,7 @@ class Review(Base):
     user_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     rating = Column(Integer, nullable=False)
     text = Column(Text)
+    images = Column(JSON, nullable=True, server_default="[]")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (CheckConstraint("rating >= 1 AND rating <= 5"),)

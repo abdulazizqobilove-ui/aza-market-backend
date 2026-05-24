@@ -22,11 +22,12 @@ class UserOut(BaseModel):
     id: int
     email: Optional[str] = None
     username: str
-    full_name: Optional[str]
-    phone: Optional[str]
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
     role: UserRole
     is_active: bool
     balance: float = 0.0
+    avatar_url: Optional[str] = None
     created_at: datetime
     shop_name: Optional[str] = None
     shop_description: Optional[str] = None

@@ -25,6 +25,8 @@ class User(Base):
     balance = Column(Float, default=0.0, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    avatar_url = Column(String, nullable=True)
+
     # Shop profile
     shop_name = Column(String, nullable=True)
     shop_description = Column(String, nullable=True)
@@ -40,3 +42,4 @@ class User(Base):
     waitlist = relationship("Waitlist", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
     seller_applications = relationship("SellerApplication", back_populates="user")
+    payment_cards = relationship("PaymentCard", back_populates="user", cascade="all, delete-orphan")

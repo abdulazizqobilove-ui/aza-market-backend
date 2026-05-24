@@ -5,8 +5,26 @@ import os
 from app.core.database import Base, engine
 from app.core.config import settings
 from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners
+from app.models import payment_card  # ensure table is created
 
 Base.metadata.create_all(bind=engine)
+
+# Migrations — each in its own try/except so one failure doesn't block the rest
+from sqlalchemy import text as _sql, inspect as _inspect
+_existing_review_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_reviews")]
+_existing_user_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_users")]
+for _stmt in (
+    [] if "images" in _existing_review_cols else
+    ["ALTER TABLE mkt_reviews ADD COLUMN images JSONB DEFAULT '[]'"]
+) + (
+    [] if "avatar_url" in _existing_user_cols else
+    ["ALTER TABLE mkt_users ADD COLUMN avatar_url VARCHAR"]
+):
+    try:
+        with engine.begin() as _conn:
+            _conn.execute(_sql(_stmt))
+    except Exception:
+        pass
 
 # Auto-seed categories and users if empty
 def _seed():
@@ -152,6 +170,7 @@ app.include_router(orders.router, prefix="/api")
 app.include_router(seller.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(reviews.router, prefix="/api")
+app.include_router(reviews.router_products, prefix="/api")
 app.include_router(favorites.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
 app.include_router(waitlist.router, prefix="/api")
