@@ -55,24 +55,28 @@ def verify_otp(data: PhoneVerifyRequest, db: Session = Depends(get_db)):
     if otp.code != data.code.strip() and data.code.strip() != "1234":
         raise HTTPException(status_code=400, detail="Неверный код")
 
-    db.delete(otp)
+    try:
+        db.delete(otp)
 
-    user = db.query(User).filter(User.phone == phone).first()
-    if not user:
-        digits = re.sub(r"\D", "", phone)
-        username = f"user_{digits}"
-        counter = 1
-        while db.query(User).filter(User.username == username).first():
-            username = f"user_{digits}_{counter}"
-            counter += 1
-        user = User(phone=phone, username=username, role=UserRole.buyer)
-        db.add(user)
+        user = db.query(User).filter(User.phone == phone).first()
+        if not user:
+            digits = re.sub(r"\D", "", phone)
+            username = f"user_{digits}"
+            counter = 1
+            while db.query(User).filter(User.username == username).first():
+                username = f"user_{digits}_{counter}"
+                counter += 1
+            user = User(phone=phone, username=username, role=UserRole.buyer)
+            db.add(user)
 
-    db.commit()
-    db.refresh(user)
+        db.commit()
+        db.refresh(user)
 
-    token = create_access_token({"sub": str(user.id)})
-    return Token(access_token=token, user=UserOut.model_validate(user))
+        token = create_access_token({"sub": str(user.id)})
+        return Token(access_token=token, user=UserOut.model_validate(user))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
 
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
