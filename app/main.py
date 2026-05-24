@@ -15,35 +15,26 @@ def _seed():
     from app.models.user import User, UserRole
     db = SessionLocal()
     try:
+        # Seed root categories
         if db.query(Category).filter(Category.parent_id == None).count() == 0:
             roots = [
-                ("Электроника", "electronics"),
-                ("Одежда", "clothing"),
-                ("Обувь", "shoes"),
-                ("Аксессуары", "accessories"),
-                ("Дом и сад", "home-garden"),
-                ("Мебель", "furniture"),
-                ("Строительство и ремонт", "construction"),
-                ("Спорт и отдых", "sport"),
-                ("Красота и уход", "beauty"),
-                ("Здоровье", "health"),
-                ("Детские товары", "kids"),
-                ("Автотовары", "auto"),
-                ("Продукты питания", "food"),
-                ("Бытовая химия", "household-chem"),
-                ("Зоотовары", "pets"),
-                ("Хобби и творчество", "hobby"),
-                ("Канцтовары", "stationery"),
-                ("Книги", "books"),
+                ("Электроника", "electronics"), ("Одежда", "clothing"),
+                ("Обувь", "shoes"), ("Аксессуары", "accessories"),
+                ("Дом и сад", "home-garden"), ("Мебель", "furniture"),
+                ("Строительство и ремонт", "construction"), ("Спорт и отдых", "sport"),
+                ("Красота и уход", "beauty"), ("Здоровье", "health"),
+                ("Детские товары", "kids"), ("Автотовары", "auto"),
+                ("Продукты питания", "food"), ("Бытовая химия", "household-chem"),
+                ("Зоотовары", "pets"), ("Хобби и творчество", "hobby"),
+                ("Канцтовары", "stationery"), ("Книги", "books"),
                 ("Дача, сад и огород", "garden"),
             ]
-            root_objs = {}
             for name, slug in roots:
-                c = Category(name=name, slug=slug)
-                db.add(c)
-                root_objs[slug] = c
-            db.flush()
+                db.add(Category(name=name, slug=slug))
+            db.commit()
 
+        # Seed subcategories (runs independently — safe to add even if roots exist)
+        if db.query(Category).filter(Category.parent_id != None).count() == 0:
             subcats = {
                 "electronics": [
                     ("Смартфоны", "smartphones"), ("Ноутбуки и ПК", "laptops"),
@@ -121,10 +112,11 @@ def _seed():
                 ],
             }
             for slug, children in subcats.items():
-                parent = root_objs.get(slug)
+                parent = db.query(Category).filter(Category.slug == slug).first()
                 if not parent: continue
                 for name, child_slug in children:
-                    db.add(Category(name=name, slug=child_slug, parent_id=parent.id))
+                    if not db.query(Category).filter(Category.slug == child_slug).first():
+                        db.add(Category(name=name, slug=child_slug, parent_id=parent.id))
             db.commit()
 
         if not db.query(User).filter(User.phone == "+992777777777").first():
