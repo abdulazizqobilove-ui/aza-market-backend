@@ -31,6 +31,8 @@ export default function TabsLayout() {
         <Tabs.Screen name="seller-products" options={{ href: null }} />
         <Tabs.Screen name="seller-orders" options={{ href: null }} />
         <Tabs.Screen name="seller-analytics" options={{ href: null }} />
+        <Tabs.Screen name="seller-shop" options={{ href: null }} />
+        <Tabs.Screen name="seller-stats" options={{ href: null }} />
       </Tabs>
     );
   }
@@ -46,6 +48,8 @@ export default function TabsLayout() {
         <Tabs.Screen name="seller-products" options={{ href: null }} />
         <Tabs.Screen name="seller-orders" options={{ href: null }} />
         <Tabs.Screen name="seller-analytics" options={{ href: null }} />
+        <Tabs.Screen name="seller-shop" options={{ href: null }} />
+        <Tabs.Screen name="seller-stats" options={{ href: null }} />
       </Tabs>
     );
   }
@@ -77,6 +81,8 @@ export default function TabsLayout() {
       <Tabs.Screen name="seller-products" options={{ href: null }} />
       <Tabs.Screen name="seller-orders" options={{ href: null }} />
       <Tabs.Screen name="seller-analytics" options={{ href: null }} />
+      <Tabs.Screen name="seller-shop" options={{ href: null }} />
+      <Tabs.Screen name="seller-stats" options={{ href: null }} />
     </Tabs>
   );
 }
