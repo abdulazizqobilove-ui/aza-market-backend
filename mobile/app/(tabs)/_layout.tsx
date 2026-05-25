@@ -1,5 +1,5 @@
 ﻿import { Tabs, Redirect } from "expo-router";
-import { Home, LayoutGrid, ShoppingCart, User, Package, ClipboardList, TrendingUp, Shield, Users } from "lucide-react-native";
+import { Home, LayoutGrid, ShoppingCart, User, Package, ClipboardList, TrendingUp, Shield, Users, Store } from "lucide-react-native";
 import { View, Text } from "react-native";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
@@ -59,7 +59,8 @@ export default function TabsLayout() {
         <Tabs.Screen name="admin-tab" options={{ href: null }} />
         <Tabs.Screen name="seller-products" options={{ title: "Товары", tabBarIcon: ({ color }) => <Package size={22} color={color} /> }} />
         <Tabs.Screen name="seller-orders" options={{ title: "Заказы", tabBarIcon: ({ color }) => <ClipboardList size={22} color={color} /> }} />
-        <Tabs.Screen name="seller-analytics" options={{ title: "Аналитика", tabBarIcon: ({ color }) => <TrendingUp size={22} color={color} /> }} />
+        <Tabs.Screen name="seller-shop" options={{ title: "Магазин", tabBarIcon: ({ color }) => <Store size={22} color={color} /> }} />
+        <Tabs.Screen name="seller-analytics" options={{ title: "Финансы", tabBarIcon: ({ color }) => <TrendingUp size={22} color={color} /> }} />
         <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
       </Tabs>
     );

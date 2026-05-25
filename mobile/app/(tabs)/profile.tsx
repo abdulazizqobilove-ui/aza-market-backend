@@ -199,7 +199,7 @@ export default function ProfileScreen() {
                 <Row label="Сообщения" sub="Чат с покупателями" icon={MessageSquare} color="#8b5cf6" onPress={() => router.push("/chats" as any)} />
               </Section>
               <Section>
-                <Row label="Оформление магазина" sub="Баннер, логотип, описание" icon={Store} color="#f59e0b" onPress={() => router.push("/seller/shop" as any)} />
+                <Row label="Оформление магазина" sub="Баннер, логотип, описание" icon={Store} color="#f59e0b" onPress={() => router.push("/(tabs)/seller-shop" as any)} />
                 <Row label="Вывод средств" sub={`Баланс: ${sellerStats.balance.toLocaleString()} сом.`} icon={Wallet} color="#16a34a" onPress={() => router.push("/(tabs)/seller-analytics" as any)} />
               </Section>
             </>
