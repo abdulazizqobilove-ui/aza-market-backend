@@ -65,7 +65,10 @@ def create_banner(
 ):
     image_url = None
     if image and image.filename:
-        image_url = cloud_upload(image, folder="banners")
+        try:
+            image_url = cloud_upload(image, folder="banners")
+        except Exception:
+            pass
 
     banner = Banner(
         title=title, subtitle=subtitle, image_url=image_url,
@@ -108,7 +111,10 @@ def upload_banner_image(
     if not banner:
         raise HTTPException(status_code=404, detail="Banner not found")
 
-    banner.image_url = cloud_upload(file, folder="banners")
+    try:
+        banner.image_url = cloud_upload(file, folder="banners")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Supabase не настроен — добавьте SUPABASE_URL и SUPABASE_SERVICE_KEY в Render")
     db.commit()
     db.refresh(banner)
     return banner
