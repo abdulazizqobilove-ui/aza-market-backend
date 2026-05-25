@@ -14,6 +14,7 @@ from sqlalchemy import text as _sql, inspect as _inspect
 _existing_review_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_reviews")]
 _existing_user_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_users")]
 _existing_product_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_products")]
+_existing_banner_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_banners")]
 for _stmt in (
     [] if "images" in _existing_review_cols else
     ["ALTER TABLE mkt_reviews ADD COLUMN images JSONB DEFAULT '[]'"]
@@ -44,6 +45,12 @@ for _stmt in (
 ) + (
     [] if "shop_logo_url" in _existing_user_cols else
     ["ALTER TABLE mkt_users ADD COLUMN shop_logo_url VARCHAR"]
+) + (
+    [] if "link_url" in _existing_banner_cols else
+    ["ALTER TABLE mkt_banners ADD COLUMN link_url VARCHAR"]
+) + (
+    [] if "image_url" in _existing_banner_cols else
+    ["ALTER TABLE mkt_banners ADD COLUMN image_url VARCHAR"]
 ):
     try:
         with engine.begin() as _conn:
