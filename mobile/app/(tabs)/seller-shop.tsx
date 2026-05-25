@@ -68,10 +68,9 @@ export default function SellerShopScreen() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       updateUser(res.data);
-      const savedUrl = type === "banner" ? res.data.shop_banner_url : res.data.shop_logo_url;
-      Toast.show({ type: "success", text1: type === "banner" ? "Баннер обновлён" : "Логотип обновлён", text2: savedUrl || "URL пустой!" });
+      Toast.show({ type: "success", text1: type === "banner" ? "Баннер обновлён" : "Логотип обновлён" });
     } catch (e: any) {
-      Toast.show({ type: "error", text1: "Ошибка загрузки фото", text2: e?.response?.data?.detail || String(e) });
+      Toast.show({ type: "error", text1: "Ошибка загрузки фото", text2: e?.response?.data?.detail || "" });
     } finally {
       if (type === "banner") setUploadingBanner(false);
       else setUploadingLogo(false);
