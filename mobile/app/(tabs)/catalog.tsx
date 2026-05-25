@@ -4,7 +4,7 @@ import {
   ActivityIndicator, ScrollView, Dimensions, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Search, ArrowLeft, SlidersHorizontal, X, Star } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import api, { Product, ProductsResponse, Category } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -92,6 +92,7 @@ const RATINGS = [
 
 export default function CatalogScreen() {
   const router = useRouter();
+  const { cat_slug } = useLocalSearchParams<{ cat_slug?: string }>();
   const [apiBanners, setApiBanners] = useState<ApiBanner[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [active, setActive] = useState<ActiveCat | null>(null);
@@ -113,9 +114,18 @@ export default function CatalogScreen() {
   const activeFilterCount = [filters.minPrice, filters.maxPrice, filters.brand, filters.minRating != null ? "1" : ""].filter(Boolean).length;
 
   useEffect(() => {
-    api.get<Category[]>("/products/categories").then((r) => setCategories(r.data)).catch(() => {});
+    api.get<Category[]>("/products/categories").then((r) => {
+      setCategories(r.data);
+      if (cat_slug) {
+        const matched = r.data.find((c: Category) => c.slug === cat_slug);
+        if (matched) {
+          setActive({ label: matched.name, slug: matched.slug });
+          setActiveCatId(matched.id);
+        }
+      }
+    }).catch(() => {});
     api.get<ApiBanner[]>("/banners").then((r) => setApiBanners(r.data)).catch(() => {});
-  }, []);
+  }, [cat_slug]);
 
   const loadProducts = useCallback(async (
     reset: boolean,

@@ -24,7 +24,8 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 interface Banner {
   id: number; title: string; subtitle?: string;
-  bg_color: string; accent_color: string; emoji?: string; image_url?: string | null;
+  bg_color: string; accent_color: string; emoji?: string;
+  image_url?: string | null; link_url?: string | null;
 }
 
 const FALLBACK_BANNERS: Banner[] = [
@@ -34,9 +35,18 @@ const FALLBACK_BANNERS: Banner[] = [
 ];
 
 function BannerCarousel({ banners }: { banners: Banner[] }) {
+  const router = useRouter();
   const [active, setActive] = useState(0);
   const scrollRef = useRef<ScrollView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval>>();
+
+  const handleBannerPress = (linkUrl?: string | null) => {
+    if (!linkUrl) return;
+    if (linkUrl.startsWith("category:")) {
+      const slug = linkUrl.replace("category:", "");
+      router.push(`/(tabs)/catalog?cat_slug=${slug}` as any);
+    }
+  };
 
   useEffect(() => {
     if (banners.length < 2) return;
@@ -67,37 +77,41 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
         style={{ width: SW - 24 }}
       >
         {banners.map((b) => (
-          <View
+          <TouchableOpacity
             key={b.id}
+            activeOpacity={b.link_url ? 0.85 : 1}
+            onPress={() => handleBannerPress(b.link_url)}
             style={{ width: SW - 24, borderRadius: 20, overflow: "hidden", backgroundColor: b.bg_color }}
           >
             {b.image_url ? (
-              /* Image banner */
               <View style={{ height: 160 }}>
                 <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                 <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.38)", padding: 20, justifyContent: "flex-end" }}>
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4 }}>{b.title}</Text>
                   {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{b.subtitle}</Text>}
-                  <View style={{ marginTop: 12, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
-                    <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
-                  </View>
+                  {b.link_url && (
+                    <View style={{ marginTop: 12, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
+                      <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+                    </View>
+                  )}
                 </View>
               </View>
             ) : (
-              /* Color banner */
               <View style={{ padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: b.accent_color, fontSize: 11, fontWeight: "600", marginBottom: 4, letterSpacing: 0.5 }}>AZA MARKET</Text>
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 6 }}>{b.title}</Text>
                   {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{b.subtitle}</Text>}
-                  <View style={{ marginTop: 14, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
-                    <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
-                  </View>
+                  {b.link_url && (
+                    <View style={{ marginTop: 14, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
+                      <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+                    </View>
+                  )}
                 </View>
                 {b.emoji && <Text style={{ fontSize: 64, marginLeft: 12 }}>{b.emoji}</Text>}
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         ))}
       </ScrollView>
       {banners.length > 1 && (

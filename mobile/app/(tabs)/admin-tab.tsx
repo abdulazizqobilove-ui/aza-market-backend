@@ -76,15 +76,24 @@ const COLOR_PRESETS = [
 ];
 const EMOJI_PICKS = ["🔥", "💥", "🎉", "⚡", "🛒", "📦", "👗", "💎", "🏷️", "🎁", "📱", "👟"];
 
+interface ApiCategory { id: number; name: string; slug: string; }
+
 function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [emoji, setEmoji] = useState("🔥");
   const [preset, setPreset] = useState(0);
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [linkType, setLinkType] = useState<"none" | "category">("none");
+  const [linkSlug, setLinkSlug] = useState<string | null>(null);
+  const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [saving, setSaving] = useState(false);
 
   const { bg, accent } = COLOR_PRESETS[preset];
+
+  useEffect(() => {
+    api.get<ApiCategory[]>("/products/categories").then((r) => setApiCategories(r.data)).catch(() => {});
+  }, []);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -105,6 +114,7 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
 
   const save = async () => {
     if (!title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
+    if (linkType === "category" && !linkSlug) { Toast.show({ type: "error", text1: "Выберите категорию" }); return; }
     setSaving(true);
     try {
       const form = new FormData();
@@ -114,6 +124,7 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
       form.append("accent_color", accent);
       form.append("emoji", emoji);
       form.append("sort_order", "0");
+      if (linkType === "category" && linkSlug) form.append("link_url", `category:${linkSlug}`);
       if (imageUri) {
         const ext = imageUri.split(".").pop() || "jpg";
         form.append("image", { uri: imageUri, name: `banner.${ext}`, type: `image/${ext}` } as any);
@@ -218,6 +229,43 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Link destination */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>КУДА ВЕДЁТ БАННЕР</Text>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
+        <TouchableOpacity onPress={() => { setLinkType("none"); setLinkSlug(null); }}
+          style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: linkType === "none" ? "#f3f4f6" : "#fff", borderWidth: 1.5, borderColor: linkType === "none" ? "#6b7280" : "#e5e7eb", alignItems: "center" }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: linkType === "none" ? "#374151" : "#9ca3af" }}>Никуда</Text>
+          <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>только показ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => setLinkType("category")}
+          style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: linkType === "category" ? "#f5f3ff" : "#fff", borderWidth: 1.5, borderColor: linkType === "category" ? P : "#e5e7eb", alignItems: "center" }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: linkType === "category" ? P : "#9ca3af" }}>Категория</Text>
+          <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>открыть раздел</Text>
+        </TouchableOpacity>
+      </View>
+
+      {linkType === "category" && (
+        <View style={{ marginBottom: 20 }}>
+          <Text style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Выберите категорию:</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {apiCategories.map((c) => (
+              <TouchableOpacity key={c.id} onPress={() => setLinkSlug(c.slug)}
+                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: linkSlug === c.slug ? P : "#f3f4f6", borderWidth: linkSlug === c.slug ? 0 : 1, borderColor: "#e5e7eb" }}>
+                <Text style={{ fontSize: 12, fontWeight: "600", color: linkSlug === c.slug ? "#fff" : "#374151" }}>{c.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {linkSlug && (
+            <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#f0fdf4", borderRadius: 10, padding: 10 }}>
+              <CheckCircle size={14} color="#16a34a" />
+              <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>
+                Выбрано: {apiCategories.find(c => c.slug === linkSlug)?.name}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Buttons */}
       <TouchableOpacity onPress={save} disabled={saving}
