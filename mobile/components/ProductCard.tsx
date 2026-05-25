@@ -114,7 +114,7 @@ export default function ProductCard({ product }: { product: Product }) {
           </View>
         )}
 
-        <TouchableOpacity onPress={handleFav} className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow">
+        <TouchableOpacity onPress={handleFav} style={{ position: "absolute", top: 8, right: 8, width: 32, height: 32, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 16, alignItems: "center", justifyContent: "center" }}>
           <Animated.View style={{ transform: [{ scale }] }}>
             <Heart size={15} color={faved ? "#ef4444" : "#9ca3af"} fill={faved ? "#ef4444" : "transparent"} />
           </Animated.View>
@@ -139,19 +139,19 @@ export default function ProductCard({ product }: { product: Product }) {
 
         {product.stock > 0 ? (
           inCart ? (
-            <View className="mt-1.5 flex-row items-center justify-between border-2 border-violet-500 rounded-xl overflow-hidden">
-              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity - 1)} className="w-9 h-9 items-center justify-center">
+            <View style={{ marginTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderWidth: 2, borderColor: "#8B5CF6", borderRadius: 12, overflow: "hidden" }}>
+              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity - 1)} style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
                 <Minus size={15} color="#8B5CF6" strokeWidth={2.5} />
               </TouchableOpacity>
-              <Text className="text-sm font-bold text-violet-500">{cartItem!.quantity}</Text>
-              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity + 1)} className="w-9 h-9 items-center justify-center">
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#8B5CF6" }}>{cartItem!.quantity}</Text>
+              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity + 1)} style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
                 <Plus size={15} color="#8B5CF6" strokeWidth={2.5} />
               </TouchableOpacity>
             </View>
           ) : (
-            <TouchableOpacity onPress={handleAdd} disabled={adding} className="mt-1.5 bg-violet-500 rounded-xl py-2.5 flex-row items-center justify-center gap-1.5">
+            <TouchableOpacity onPress={handleAdd} disabled={adding} style={{ marginTop: 6, backgroundColor: "#8B5CF6", borderRadius: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
               {adding ? <ActivityIndicator size="small" color="white" /> : <ShoppingCart size={13} color="white" />}
-              <Text className="text-xs font-semibold text-white">В корзину</Text>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: "#fff" }}>В корзину</Text>
             </TouchableOpacity>
           )
         ) : (
