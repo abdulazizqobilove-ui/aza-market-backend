@@ -302,16 +302,16 @@ export default function AdminTabScreen() {
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, backgroundColor: P, borderRadius: 16, padding: 16, gap: 4 }}>
                     <Text style={{ fontSize: 11, color: "#e9d5ff", fontWeight: "600" }}>Общая выручка</Text>
-                    <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue.total ?? 0).toLocaleString()} с.</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue?.total ?? 0).toLocaleString()} с.</Text>
                   </View>
                   <View style={{ flex: 1, gap: 8 }}>
                     <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
                       <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 7 дней</Text>
-                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue.last_7d ?? 0).toLocaleString()} с.</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue?.last_7d ?? 0).toLocaleString()} с.</Text>
                     </View>
                     <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
                       <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 30 дней</Text>
-                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue.last_30d ?? 0).toLocaleString()} с.</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue?.last_30d ?? 0).toLocaleString()} с.</Text>
                     </View>
                   </View>
                 </View>
