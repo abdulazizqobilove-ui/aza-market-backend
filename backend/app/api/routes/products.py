@@ -190,7 +190,7 @@ def upload_image(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    url = cloud_upload(file, folder="marketplace/products")
+    url = cloud_upload(file, folder="products")
 
     is_main = not bool(product.images)
     image = ProductImage(product_id=product.id, url=url, is_main=is_main)

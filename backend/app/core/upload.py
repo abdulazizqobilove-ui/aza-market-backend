@@ -4,7 +4,7 @@ from fastapi import UploadFile, HTTPException
 from app.core.config import settings
 
 
-def upload_image(file: UploadFile, folder: str = "products") -> str:
+def upload_image(file: UploadFile, folder: str = "imgs") -> str:
     """Upload image to Supabase Storage, return public URL."""
     if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_KEY:
         raise HTTPException(status_code=500, detail="Storage not configured")

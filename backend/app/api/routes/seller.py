@@ -202,7 +202,7 @@ def upload_banner(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    seller.shop_banner_url = cloud_upload(file, folder="marketplace/banners")
+    seller.shop_banner_url = cloud_upload(file, folder="banners")
     db.commit()
     db.refresh(seller)
     return seller
@@ -214,7 +214,7 @@ def upload_logo(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    seller.shop_logo_url = cloud_upload(file, folder="marketplace/logos")
+    seller.shop_logo_url = cloud_upload(file, folder="logos")
     db.commit()
     db.refresh(seller)
     return seller
