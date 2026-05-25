@@ -51,6 +51,9 @@ for _stmt in (
 ) + (
     [] if "image_url" in _existing_banner_cols else
     ["ALTER TABLE mkt_banners ADD COLUMN image_url VARCHAR"]
+) + (
+    [] if "sku" in _existing_product_cols else
+    ["ALTER TABLE mkt_products ADD COLUMN sku VARCHAR"]
 ):
     try:
         with engine.begin() as _conn:
