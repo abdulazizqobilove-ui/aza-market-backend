@@ -26,7 +26,6 @@ class Product(Base):
     price = Column(Float, nullable=False)
     original_price = Column(Float)
     stock = Column(Integer, default=0)
-    sku = Column(String, unique=True)
     brand = Column(String)
     about = Column(Text, nullable=True)
     attributes = Column(JSON, nullable=True, default={})
