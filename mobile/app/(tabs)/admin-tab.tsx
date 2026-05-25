@@ -7,7 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
-  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2,
+  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import Toast from "react-native-toast-message";
@@ -61,19 +61,37 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
   );
 }
 
+const COLOR_PRESETS = [
+  { bg: "#7C3AED", accent: "#C4B5FD", label: "Фиолетовый" },
+  { bg: "#DC2626", accent: "#FCA5A5", label: "Красный" },
+  { bg: "#059669", accent: "#6EE7B7", label: "Зелёный" },
+  { bg: "#2563EB", accent: "#93C5FD", label: "Синий" },
+  { bg: "#D97706", accent: "#FCD34D", label: "Жёлтый" },
+  { bg: "#DB2777", accent: "#F9A8D4", label: "Розовый" },
+  { bg: "#0F172A", accent: "#94A3B8", label: "Тёмный" },
+  { bg: "#0E7490", accent: "#67E8F9", label: "Бирюза" },
+];
+const EMOJI_PICKS = ["🔥", "💥", "🎉", "⚡", "🛒", "📦", "👗", "💎", "🏷️", "🎁", "📱", "👟"];
+
 function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
-  const [form, setForm] = useState({ title: "", subtitle: "", bg_color: "#7C3AED", accent_color: "#C4B5FD", emoji: "", sort_order: "0" });
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [emoji, setEmoji] = useState("🔥");
+  const [preset, setPreset] = useState(0);
   const [saving, setSaving] = useState(false);
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const { bg, accent } = COLOR_PRESETS[preset];
 
   const save = async () => {
-    if (!form.title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
+    if (!title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
     setSaving(true);
     try {
       await api.post("/banners", {
-        title: form.title.trim(), subtitle: form.subtitle.trim() || undefined,
-        bg_color: form.bg_color, accent_color: form.accent_color,
-        emoji: form.emoji.trim() || undefined, sort_order: parseInt(form.sort_order) || 0,
+        title: title.trim(),
+        subtitle: subtitle.trim() || undefined,
+        bg_color: bg, accent_color: accent,
+        emoji: emoji || undefined,
+        sort_order: 0,
       });
       Toast.show({ type: "success", text1: "Баннер создан" });
       onSave();
@@ -82,35 +100,72 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
   };
 
   return (
-    <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36 }}>
-      <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827", marginBottom: 16 }}>Новый баннер</Text>
-      {[
-        { label: "Заголовок *", key: "title", placeholder: "Скидки до 50%" },
-        { label: "Подзаголовок", key: "subtitle", placeholder: "На все категории" },
-        { label: "Фон (hex)", key: "bg_color", placeholder: "#7C3AED" },
-        { label: "Акцент (hex)", key: "accent_color", placeholder: "#C4B5FD" },
-        { label: "Эмодзи", key: "emoji", placeholder: "📱" },
-        { label: "Порядок сортировки", key: "sort_order", placeholder: "0", numeric: true },
-      ].map(({ label, key, placeholder, numeric }: any) => (
-        <View key={key} style={{ marginBottom: 12 }}>
-          <Text style={{ fontSize: 12, color: "#6b7280", marginBottom: 4, fontWeight: "500" }}>{label}</Text>
-          <TextInput
-            value={(form as any)[key]} onChangeText={(v) => set(key, v)}
-            placeholder={placeholder} placeholderTextColor="#d1d5db"
-            keyboardType={numeric ? "numeric" : "default"}
-            style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#111827", borderWidth: 1, borderColor: "#f3f4f6" }}
-          />
-        </View>
-      ))}
-      <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
-        <TouchableOpacity onPress={onClose} style={{ flex: 1, backgroundColor: "#f3f4f6", borderRadius: 14, paddingVertical: 13, alignItems: "center" }}>
-          <Text style={{ fontWeight: "600", color: "#6b7280" }}>Отмена</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={save} disabled={saving} style={{ flex: 1, backgroundColor: P, borderRadius: 14, paddingVertical: 13, alignItems: "center" }}>
-          {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff" }}>Создать</Text>}
+    <ScrollView style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+      {/* Header */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Новый баннер</Text>
+        <TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+          <X size={16} color="#6b7280" />
         </TouchableOpacity>
       </View>
-    </View>
+
+      {/* Live preview */}
+      <View style={{ height: 110, borderRadius: 18, backgroundColor: bg, overflow: "hidden", marginBottom: 20, padding: 18, justifyContent: "center" }}>
+        <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: accent, opacity: 0.25 }} />
+        <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: accent, opacity: 0.15 }} />
+        <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>
+        <Text style={{ fontSize: 16, fontWeight: "900", color: "#fff" }} numberOfLines={1}>{title || "Заголовок баннера"}</Text>
+        {subtitle ? <Text style={{ fontSize: 12, color: accent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
+      </View>
+
+      {/* Text inputs */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ЗАГОЛОВОК *</Text>
+      <TextInput
+        value={title} onChangeText={setTitle}
+        placeholder="Скидки до 50%"
+        placeholderTextColor="#d1d5db"
+        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: title ? P : "#f3f4f6", marginBottom: 12 }}
+      />
+
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ПОДЗАГОЛОВОК</Text>
+      <TextInput
+        value={subtitle} onChangeText={setSubtitle}
+        placeholder="На все категории"
+        placeholderTextColor="#d1d5db"
+        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6", marginBottom: 16 }}
+      />
+
+      {/* Emoji picker */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЭМОДЗИ</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {EMOJI_PICKS.map((e) => (
+            <TouchableOpacity key={e} onPress={() => setEmoji(e)}
+              style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: emoji === e ? bg : "#f3f4f6", alignItems: "center", justifyContent: "center", borderWidth: emoji === e ? 2 : 0, borderColor: bg }}>
+              <Text style={{ fontSize: 22 }}>{e}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Color presets */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЦВЕТ БАННЕРА</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
+        {COLOR_PRESETS.map((c, i) => (
+          <TouchableOpacity key={i} onPress={() => setPreset(i)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: preset === i ? c.bg : "#f3f4f6", borderWidth: preset === i ? 0 : 1, borderColor: "#e5e7eb" }}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: preset === i ? c.accent : c.bg }} />
+            <Text style={{ fontSize: 12, fontWeight: "600", color: preset === i ? "#fff" : "#374151" }}>{c.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Buttons */}
+      <TouchableOpacity onPress={save} disabled={saving}
+        style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
+        {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff", fontSize: 15 }}>Создать баннер</Text>}
+      </TouchableOpacity>
+    </ScrollView>
   );
 }
 
