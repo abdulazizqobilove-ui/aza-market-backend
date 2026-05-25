@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+﻿import { useEffect, useState, useRef, useCallback } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   ActivityIndicator, ScrollView, Keyboard,
@@ -8,7 +8,7 @@ import { useRouter } from "expo-router";
 import { Search, Clock, X, ArrowLeft, TrendingUp } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api, { Product, ProductsResponse, API_URL } from "@/lib/api";
+import api, { Product, ProductsResponse, API_URL, imgUrl } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import { useFavoritesStore } from "@/store/favorites";
 
@@ -179,7 +179,7 @@ export default function SearchScreen() {
                 return (
                   <TouchableOpacity key={p.id} onPress={() => router.push(`/products/${p.id}` as any)} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 12, borderBottomWidth: 0.5, borderBottomColor: "#f9fafb" }}>
                     <View style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", backgroundColor: "#f3f4f6" }}>
-                      {image ? <Image source={{ uri: `${API_URL}${image.url}` }} style={{ width: 52, height: 52 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22 }}>📦</Text></View>}
+                      {image ? <Image source={{ uri: imgUrl(image.url) ?? "" }} style={{ width: 52, height: 52 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 22 }}>📦</Text></View>}
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 13, color: "#111827", fontWeight: "500" }} numberOfLines={1}>{p.title}</Text>
@@ -230,7 +230,7 @@ export default function SearchScreen() {
                     return (
                       <TouchableOpacity key={p.id} onPress={async () => { await saveRecent(query.trim()); setRecent(await getRecent()); router.push(`/products/${p.id}` as any); }} style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 12, borderBottomWidth: 0.5, borderBottomColor: "#f9fafb" }}>
                         <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", backgroundColor: "#f3f4f6" }}>
-                          {image ? <Image source={{ uri: `${API_URL}${image.url}` }} style={{ width: 44, height: 44 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 18 }}>📦</Text></View>}
+                          {image ? <Image source={{ uri: imgUrl(image.url) ?? "" }} style={{ width: 44, height: 44 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 18 }}>📦</Text></View>}
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 13, color: "#111827" }} numberOfLines={1}>{p.title}</Text>
@@ -282,7 +282,7 @@ export default function SearchScreen() {
             return (
               <TouchableOpacity onPress={() => router.push(`/products/${item.id}` as any)} style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
                 <View style={{ height: 160, backgroundColor: "#f3f4f6" }}>
-                  {image ? <Image source={{ uri: `${API_URL}${image.url}` }} style={{ width: "100%", height: 160 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 40 }}>📦</Text></View>}
+                  {image ? <Image source={{ uri: imgUrl(image.url) ?? "" }} style={{ width: "100%", height: 160 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 40 }}>📦</Text></View>}
                 </View>
                 <View style={{ padding: 10 }}>
                   <Text style={{ fontSize: 12, color: "#374151" }} numberOfLines={2}>{item.title}</Text>

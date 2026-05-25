@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, ActivityIndicator, TouchableOpacity, RefreshControl,
 } from "react-native";
@@ -8,7 +8,7 @@ import {
   TrendingUp, Package, ShoppingBag, Star, BarChart2,
   CheckCircle, Clock, Truck, XCircle, ChevronRight,
 } from "lucide-react-native";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useRouter } from "expo-router";
 
@@ -189,7 +189,7 @@ export default function SellerStatsScreen() {
                   {/* Image */}
                   <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: "#f3f4f6", overflow: "hidden" }}>
                     {p.image_url
-                      ? <Image source={{ uri: `${API_URL}${p.image_url}` }} style={{ width: 46, height: 46 }} contentFit="cover" />
+                      ? <Image source={{ uri: imgUrl(p.image_url) ?? "" }} style={{ width: 46, height: 46 }} contentFit="cover" />
                       : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 20 }}>📦</Text></View>
                     }
                   </View>

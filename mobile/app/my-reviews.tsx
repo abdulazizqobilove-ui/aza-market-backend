@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ChevronLeft, Star, MessageSquarePlus, CheckCircle } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 
 interface ReviewableItem {
   product_id: number;
@@ -86,7 +86,7 @@ export default function MyReviewsScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", padding: 14, gap: 12 }}>
                 <View style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: "#f3f4f6", overflow: "hidden" }}>
                   {item.product_image ? (
-                    <Image source={{ uri: `${API_URL}${item.product_image}` }} style={{ width: 64, height: 64 }} contentFit="cover" />
+                    <Image source={{ uri: imgUrl(item.product_image) ?? "" }} style={{ width: 64, height: 64 }} contentFit="cover" />
                   ) : (
                     <View style={{ width: 64, height: 64, alignItems: "center", justifyContent: "center" }}>
                       <Text style={{ fontSize: 28 }}>📦</Text>

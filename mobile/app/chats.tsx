@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ChevronLeft, MessageSquare, Package } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 interface ChatOut {
@@ -95,7 +95,7 @@ export default function ChatsScreen() {
                 <View style={{ position: "relative" }}>
                   <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: "#e0e7ff", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                     {chat.other_avatar ? (
-                      <Image source={{ uri: `${API_URL}${chat.other_avatar}` }} style={{ width: 52, height: 52 }} contentFit="cover" />
+                      <Image source={{ uri: imgUrl(chat.other_avatar) ?? "" }} style={{ width: 52, height: 52 }} contentFit="cover" />
                     ) : (
                       <Text style={{ fontSize: 20, fontWeight: "800", color: "#4f46e5" }}>{initials}</Text>
                     )}

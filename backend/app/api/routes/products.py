@@ -4,6 +4,7 @@ from sqlalchemy import or_, func, text as sa_text
 from typing import List, Optional
 import os, uuid, shutil
 from app.core.database import get_db
+from app.core.upload import upload_image as cloud_upload
 from app.core.config import settings
 from app.api.deps import get_current_user, require_seller
 from app.models.product import Product, Category, ProductImage
@@ -189,16 +190,10 @@ def upload_image(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    url = cloud_upload(file, folder="marketplace/products")
 
     is_main = not bool(product.images)
-    image = ProductImage(product_id=product.id, url=f"/uploads/{filename}", is_main=is_main)
+    image = ProductImage(product_id=product.id, url=url, is_main=is_main)
     db.add(image)
     db.commit()
 

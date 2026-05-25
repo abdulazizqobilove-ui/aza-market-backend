@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as ImagePicker from "expo-image-picker";
 import { Camera, ImageIcon, Pencil, Check, Store, X } from "lucide-react-native";
 import Toast from "react-native-toast-message";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 const P = "#8B5CF6";
@@ -81,8 +81,8 @@ export default function SellerShopScreen() {
     }
   };
 
-  const bannerUri = user?.shop_banner_url ? `${API_URL}${user.shop_banner_url}` : null;
-  const logoUri = user?.shop_logo_url ? `${API_URL}${user.shop_logo_url}` : null;
+  const bannerUri = user?.shop_banner_url ? imgUrl(user.shop_banner_url) ?? "" : null;
+  const logoUri = user?.shop_logo_url ? imgUrl(user.shop_logo_url) ?? "" : null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }} edges={["top"]}>

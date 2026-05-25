@@ -24,6 +24,13 @@ api.interceptors.response.use(
 
 export default api;
 
+/** Returns a full image URL — works for both Cloudinary (https://...) and legacy local (/uploads/...) URLs */
+export function imgUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${API_URL}${url}`;
+}
+
 export interface Category { id: number; name: string; slug: string; parent_id: number | null; }
 export interface ProductImage { id: number; url: string; is_main: boolean; }
 export interface Product {

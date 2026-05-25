@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Package, MapPin, ChevronRight, Clock, CheckCircle2, Truck, Star } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import api, { Order, API_URL } from "@/lib/api";
+import api, { Order, API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", confirmed: "Подтверждён", processing: "В обработке", shipped: "В пути", delivered: "Доставлен", cancelled: "Отменён" };
@@ -78,7 +78,7 @@ export default function OrdersScreen() {
                         const img = item.product.images?.find((i) => i.is_main) || item.product.images?.[0];
                         return (
                           <View key={item.id} className="w-12 h-12 rounded-xl overflow-hidden bg-gray-100">
-                            {img ? <Image source={{ uri: `${API_URL}${img.url}` }} className="w-full h-full" contentFit="cover" /> : <View className="flex-1 items-center justify-center"><Text>📦</Text></View>}
+                            {img ? <Image source={{ uri: imgUrl(img.url) ?? "" }} className="w-full h-full" contentFit="cover" /> : <View className="flex-1 items-center justify-center"><Text>📦</Text></View>}
                           </View>
                         );
                       })}

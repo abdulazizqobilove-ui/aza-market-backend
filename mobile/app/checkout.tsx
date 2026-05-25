@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, TextInput,
   ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, MapPin, Phone, Banknote, CreditCard, CheckCircle2, Package } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 
@@ -120,7 +120,7 @@ export default function CheckoutScreen() {
               return (
                 <View key={item.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 }}>
                   <View style={{ width: 48, height: 48, borderRadius: 12, overflow: "hidden", backgroundColor: "#f3f4f6" }}>
-                    {img ? <Image source={{ uri: `${API_URL}${img.url}` }} style={{ width: 48, height: 48 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 18 }}>📦</Text></View>}
+                    {img ? <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width: 48, height: 48 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 18 }}>📦</Text></View>}
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, color: "#374151", fontWeight: "500" }} numberOfLines={1}>{item.product.title}</Text>

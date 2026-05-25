@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { Heart, Star, ShoppingCart, Plus, Minus } from "lucide-react-native";
 import { useState, useRef } from "react";
 import Toast from "react-native-toast-message";
-import { Product, API_URL } from "@/lib/api";
+import { Product, API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useFavoritesStore } from "@/store/favorites";
 import { useCartStore } from "@/store/cart";
@@ -68,7 +68,7 @@ export default function ProductCard({ product }: { product: Product }) {
               }}
               renderItem={({ item: img }) => (
                 <Image
-                  source={{ uri: `${API_URL}${img.url}` }}
+                  source={{ uri: imgUrl(img.url) ?? "" }}
                   style={{ width: cardWidth, height: cardWidth * (4 / 3) }}
                   contentFit="cover"
                 />

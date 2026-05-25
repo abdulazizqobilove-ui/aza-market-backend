@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 import os, uuid, shutil
 from app.core.database import get_db
+from app.core.upload import upload_image as cloud_upload
 from app.api.deps import require_seller
 from app.models.product import Product
 from app.models.order import Order, OrderItem, OrderStatus
@@ -201,13 +202,7 @@ def upload_banner(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"banner_{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    seller.shop_banner_url = f"/uploads/{filename}"
+    seller.shop_banner_url = cloud_upload(file, folder="marketplace/banners")
     db.commit()
     db.refresh(seller)
     return seller
@@ -219,13 +214,7 @@ def upload_logo(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"logo_{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    seller.shop_logo_url = f"/uploads/{filename}"
+    seller.shop_logo_url = cloud_upload(file, folder="marketplace/logos")
     db.commit()
     db.refresh(seller)
     return seller

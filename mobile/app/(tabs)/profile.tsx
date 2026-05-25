@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/auth";
 import { useFavoritesStore } from "@/store/favorites";
-import api, { API_URL, User } from "@/lib/api";
+import api, { API_URL, imgUrl, User } from "@/lib/api";
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
   buyer:  { bg: "#eff6ff", text: "#8B5CF6", label: "Покупатель" },
@@ -131,7 +131,7 @@ export default function ProfileScreen() {
             <TouchableOpacity onPress={() => router.push("/edit-profile" as any)}>
               <View style={{ width: 68, height: 68, borderRadius: 34, backgroundColor: avatarColor + "18", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: avatarColor + "40", overflow: "hidden" }}>
                 {user.avatar_url ? (
-                  <Image source={{ uri: `${API_URL}${user.avatar_url}` }} style={{ width: 68, height: 68 }} contentFit="cover" />
+                  <Image source={{ uri: imgUrl(user.avatar_url) ?? "" }} style={{ width: 68, height: 68 }} contentFit="cover" />
                 ) : (
                   <Text style={{ color: avatarColor, fontSize: 26, fontWeight: "900" }}>{initials}</Text>
                 )}

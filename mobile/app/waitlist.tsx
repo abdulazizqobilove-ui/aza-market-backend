@@ -5,7 +5,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import { ChevronLeft, Clock, X, ShoppingBag } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 
 interface WaitlistItem {
   id: number;
@@ -74,7 +74,7 @@ export default function WaitlistScreen() {
               >
                 <View style={{ width: 64, height: 64, borderRadius: 12, backgroundColor: "#f9fafb", overflow: "hidden" }}>
                   {img ? (
-                    <Image source={{ uri: `${API_URL}${img}` }} style={{ width: 64, height: 64 }} contentFit="cover" />
+                    <Image source={{ uri: imgUrl(img) ?? "" }} style={{ width: 64, height: 64 }} contentFit="cover" />
                   ) : (
                     <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
                       <ShoppingBag size={24} color="#d1d5db" />

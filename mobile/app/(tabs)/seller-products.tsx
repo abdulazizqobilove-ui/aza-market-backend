@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, RefreshControl, TextInput } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Plus, Package, Eye, EyeOff, Pencil, Trash2, Search, X } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
-import api, { Product, API_URL } from "@/lib/api";
+import api, { Product, API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 const P = "#8B5CF6";
@@ -157,7 +157,7 @@ export default function SellerProductsScreen() {
                 <View style={{ flexDirection: "row", gap: 12, padding: 12, alignItems: "center" }}>
                   <View style={{ width: 68, height: 68, borderRadius: 14, overflow: "hidden", backgroundColor: "#f9fafb" }}>
                     {img
-                      ? <Image source={{ uri: `${API_URL}${img.url}` }} style={{ width: 68, height: 68 }} contentFit="cover" />
+                      ? <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width: 68, height: 68 }} contentFit="cover" />
                       : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 28 }}>📦</Text></View>
                     }
                   </View>

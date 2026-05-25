@@ -5,7 +5,7 @@ import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
-import { API_URL } from "@/lib/api";
+import { API_URL, imgUrl } from "@/lib/api";
 import { useState, useEffect } from "react";
 
 export default function CartScreen() {
@@ -74,7 +74,7 @@ export default function CartScreen() {
                     </TouchableOpacity>
                   )}
                   <TouchableOpacity onPress={() => router.push(`/products/${item.product.id}`)} className="w-20 h-20 rounded-xl overflow-hidden bg-gray-100">
-                    {img ? <Image source={{ uri: `${API_URL}${img.url}` }} className="w-full h-full" contentFit="cover" /> : <View className="flex-1 items-center justify-center"><Text className="text-2xl">📦</Text></View>}
+                    {img ? <Image source={{ uri: imgUrl(img.url) ?? "" }} className="w-full h-full" contentFit="cover" /> : <View className="flex-1 items-center justify-center"><Text className="text-2xl">📦</Text></View>}
                   </TouchableOpacity>
                   <View className="flex-1">
                     <Text className="text-sm text-gray-800" numberOfLines={2}>{item.product.title}</Text>

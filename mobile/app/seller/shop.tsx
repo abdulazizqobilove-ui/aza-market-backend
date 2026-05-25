@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, Camera, Store } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
-import api, { API_URL } from "@/lib/api";
+import api, { API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 
 interface ShopProfile {
@@ -63,8 +63,8 @@ export default function SellerShopScreen() {
     } finally { setSaving(false); }
   };
 
-  const logoUri = newLogo ? newLogo.uri : profile.shop_logo_url ? `${API_URL}${profile.shop_logo_url}` : null;
-  const bannerUri = newBanner ? newBanner.uri : profile.shop_banner_url ? `${API_URL}${profile.shop_banner_url}` : null;
+  const logoUri = newLogo ? newLogo.uri : profile.shop_logo_url ? imgUrl(profile.shop_logo_url) ?? "" : null;
+  const bannerUri = newBanner ? newBanner.uri : profile.shop_banner_url ? imgUrl(profile.shop_banner_url) ?? "" : null;
 
   if (loading) {
     return <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center"><ActivityIndicator color="#8B5CF6" /></SafeAreaView>;
