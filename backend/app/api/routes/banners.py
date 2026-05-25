@@ -29,6 +29,16 @@ class BannerOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class BannerCreate(BaseModel):
+    title: str = " "
+    subtitle: Optional[str] = None
+    bg_color: str = "#7C3AED"
+    accent_color: str = "#C4B5FD"
+    emoji: Optional[str] = None
+    link_url: Optional[str] = None
+    sort_order: int = 0
+
+
 class BannerUpdate(BaseModel):
     title: Optional[str] = None
     subtitle: Optional[str] = None
@@ -38,6 +48,19 @@ class BannerUpdate(BaseModel):
     link_url: Optional[str] = None
     sort_order: Optional[int] = None
     is_active: Optional[bool] = None
+
+
+@router.post("/create-json", response_model=BannerOut, status_code=201)
+def create_banner_json(
+    data: BannerCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    banner = Banner(**data.model_dump())
+    db.add(banner)
+    db.commit()
+    db.refresh(banner)
+    return banner
 
 
 @router.get("", response_model=List[BannerOut])
