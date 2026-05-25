@@ -1,4 +1,4 @@
-﻿import { View, Text, ActivityIndicator, Animated, FlatList, TouchableOpacity as RNTouchableOpacity } from "react-native";
+﻿import { View, Text, ActivityIndicator, Animated, FlatList } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -114,11 +114,11 @@ export default function ProductCard({ product }: { product: Product }) {
           </View>
         )}
 
-        <RNTouchableOpacity onPress={handleFav} className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow">
+        <TouchableOpacity onPress={handleFav} className="absolute top-2 right-2 w-8 h-8 bg-white/90 rounded-full items-center justify-center shadow">
           <Animated.View style={{ transform: [{ scale }] }}>
             <Heart size={15} color={faved ? "#ef4444" : "#9ca3af"} fill={faved ? "#ef4444" : "transparent"} />
           </Animated.View>
-        </RNTouchableOpacity>
+        </TouchableOpacity>
       </View>
 
       <View className="p-2.5 gap-1">
@@ -140,19 +140,19 @@ export default function ProductCard({ product }: { product: Product }) {
         {product.stock > 0 ? (
           inCart ? (
             <View className="mt-1.5 flex-row items-center justify-between border-2 border-violet-500 rounded-xl overflow-hidden">
-              <RNTouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity - 1)} className="w-9 h-9 items-center justify-center">
+              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity - 1)} className="w-9 h-9 items-center justify-center">
                 <Minus size={15} color="#8B5CF6" strokeWidth={2.5} />
-              </RNTouchableOpacity>
+              </TouchableOpacity>
               <Text className="text-sm font-bold text-violet-500">{cartItem!.quantity}</Text>
-              <RNTouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity + 1)} className="w-9 h-9 items-center justify-center">
+              <TouchableOpacity onPress={() => updateQty(cartItem!.id, cartItem!.quantity + 1)} className="w-9 h-9 items-center justify-center">
                 <Plus size={15} color="#8B5CF6" strokeWidth={2.5} />
-              </RNTouchableOpacity>
+              </TouchableOpacity>
             </View>
           ) : (
-            <RNTouchableOpacity onPress={handleAdd} disabled={adding} className="mt-1.5 bg-violet-500 rounded-xl py-2.5 flex-row items-center justify-center gap-1.5">
+            <TouchableOpacity onPress={handleAdd} disabled={adding} className="mt-1.5 bg-violet-500 rounded-xl py-2.5 flex-row items-center justify-center gap-1.5">
               {adding ? <ActivityIndicator size="small" color="white" /> : <ShoppingCart size={13} color="white" />}
               <Text className="text-xs font-semibold text-white">В корзину</Text>
-            </RNTouchableOpacity>
+            </TouchableOpacity>
           )
         ) : (
           <View className="mt-1.5 bg-gray-100 rounded-xl py-2.5 items-center">

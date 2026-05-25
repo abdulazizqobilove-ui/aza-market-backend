@@ -1,23 +1,33 @@
-﻿import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, RefreshControl, TextInput } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Plus, Package, Eye, EyeOff, Pencil, Trash2, TrendingUp } from "lucide-react-native";
+import { Plus, Package, Eye, EyeOff, Pencil, Trash2, Search, X } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import api, { Product, API_URL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+
+const P = "#8B5CF6";
 
 export default function SellerProductsScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "active" | "hidden" | "sold">("all");
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!user) return;
-    api.get<Product[]>("/seller/products").then((r) => setProducts(r.data)).catch(() => {}).finally(() => setLoading(false));
+    api.get<Product[]>("/seller/products")
+      .then((r) => setProducts(r.data))
+      .catch(() => {})
+      .finally(() => { setLoading(false); setRefreshing(false); });
   }, [user]);
+
+  useEffect(() => { load(); }, []);
 
   const toggleActive = async (product: Product) => {
     try {
@@ -28,7 +38,7 @@ export default function SellerProductsScreen() {
   };
 
   const deleteProduct = (product: Product) => {
-    Alert.alert("Удалить товар?", `«${product.title}»`, [
+    Alert.alert("Удалить товар?", `«${product.title}»\nЭто действие нельзя отменить`, [
       { text: "Отмена", style: "cancel" },
       { text: "Удалить", style: "destructive", onPress: async () => {
         try {
@@ -40,88 +50,145 @@ export default function SellerProductsScreen() {
     ]);
   };
 
+  const filtered = products.filter((p) => {
+    const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+    const matchFilter =
+      filter === "all" ? true :
+      filter === "active" ? p.is_active :
+      filter === "hidden" ? !p.is_active :
+      filter === "sold" ? p.stock === 0 : true;
+    return matchSearch && matchFilter;
+  });
+
   const activeCount = products.filter((p) => p.is_active).length;
+  const soldOut = products.filter((p) => p.stock === 0).length;
   const totalStock = products.reduce((s, p) => s + p.stock, 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="bg-white px-4 pt-4 pb-3 flex-row items-center justify-between border-b border-gray-100">
-        <View>
-          <Text className="text-xl font-bold text-gray-900">Мои товары</Text>
-          <Text className="text-xs text-gray-400 mt-0.5">{products.length} товаров · {activeCount} активных</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }} edges={["top"]}>
+      {/* Header */}
+      <View style={{ backgroundColor: "#fff", paddingHorizontal: 16, paddingTop: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <View>
+            <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Мои товары</Text>
+            <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>{products.length} товаров · {activeCount} активных</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => router.push("/seller/new-product" as any)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: P, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 }}
+          >
+            <Plus size={15} color="#fff" />
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Добавить</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-violet-500 flex-row items-center gap-1.5 px-4 py-2.5 rounded-2xl">
-          <Plus size={16} color="white" />
-          <Text className="text-white font-semibold text-sm">Добавить</Text>
-        </TouchableOpacity>
+
+        {/* Search */}
+        <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#f3f4f6", borderRadius: 12, paddingHorizontal: 12, gap: 8, marginBottom: 10 }}>
+          <Search size={15} color="#9ca3af" />
+          <TextInput
+            value={search} onChangeText={setSearch}
+            placeholder="Поиск по товарам..." placeholderTextColor="#9ca3af"
+            style={{ flex: 1, paddingVertical: 9, fontSize: 13, color: "#111827" }}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <X size={15} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Filter chips */}
+        <View style={{ flexDirection: "row", gap: 6 }}>
+          {([["all", "Все"], ["active", "Активные"], ["hidden", "Скрытые"], ["sold", "Нет в наличии"]] as const).map(([key, label]) => (
+            <TouchableOpacity
+              key={key} onPress={() => setFilter(key)}
+              style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: filter === key ? P : "#f3f4f6" }}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "600", color: filter === key ? "#fff" : "#6b7280" }}>{label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      {/* Stats */}
+      {/* Stats strip */}
       {products.length > 0 && (
-        <View className="flex-row gap-3 px-4 py-3">
+        <View style={{ flexDirection: "row", backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}>
           {[
-            { label: "Всего", value: products.length, color: "#3b82f6", bg: "#eff6ff" },
-            { label: "Активных", value: activeCount, color: "#22c55e", bg: "#f0fdf4" },
-            { label: "В наличии", value: totalStock, color: "#a855f7", bg: "#faf5ff" },
-          ].map(({ label, value, color, bg }) => (
-            <View key={label} className="flex-1 rounded-2xl p-3" style={{ backgroundColor: bg }}>
-              <Text className="text-xl font-bold" style={{ color }}>{value}</Text>
-              <Text className="text-xs text-gray-500 mt-0.5">{label}</Text>
+            { label: "Товаров", value: products.length, color: P },
+            { label: "Активных", value: activeCount, color: "#16a34a" },
+            { label: "В наличии", value: totalStock, color: "#f59e0b" },
+            { label: "Нет в наличии", value: soldOut, color: "#ef4444" },
+          ].map(({ label, value, color }, i, arr) => (
+            <View key={label} style={{ flex: 1, alignItems: "center", paddingVertical: 10, borderRightWidth: i < arr.length - 1 ? 0.5 : 0, borderRightColor: "#f3f4f6" }}>
+              <Text style={{ fontSize: 16, fontWeight: "800", color }}>{value}</Text>
+              <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 1 }}>{label}</Text>
             </View>
           ))}
         </View>
       )}
 
-      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
+      {loading ? <ActivityIndicator color={P} style={{ marginTop: 60 }} /> : (
         <FlatList
-          data={products}
+          data={filtered}
           keyExtractor={(p) => String(p.id)}
-          contentContainerStyle={{ padding: 12, gap: 8, paddingBottom: 24 }}
+          contentContainerStyle={{ padding: 12, gap: 8, paddingBottom: 32 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} tintColor={P} />}
           ListEmptyComponent={
-            <View className="items-center py-20">
-              <Package size={48} color="#e5e7eb" />
-              <Text className="text-lg font-semibold text-gray-700 mt-4 mb-1">Товаров пока нет</Text>
-              <Text className="text-gray-400 text-sm mb-6">Добавьте первый товар</Text>
-              <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-violet-500 px-6 py-3 rounded-2xl flex-row items-center gap-2">
-                <Plus size={16} color="white" />
-                <Text className="text-white font-bold">Добавить товар</Text>
-              </TouchableOpacity>
+            <View style={{ alignItems: "center", paddingTop: 80 }}>
+              <Package size={52} color="#e5e7eb" />
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151", marginTop: 16, marginBottom: 6 }}>
+                {search ? "Ничего не найдено" : "Товаров пока нет"}
+              </Text>
+              <Text style={{ fontSize: 13, color: "#9ca3af", marginBottom: 24 }}>
+                {search ? "Попробуйте другой запрос" : "Добавьте первый товар в каталог"}
+              </Text>
+              {!search && (
+                <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} style={{ backgroundColor: P, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <Plus size={16} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "700" }}>Добавить товар</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           renderItem={({ item: p }) => {
             const img = p.images.find((i) => i.is_main) || p.images[0];
             return (
-              <View className={`bg-white rounded-2xl overflow-hidden shadow-sm ${!p.is_active ? "opacity-70" : ""}`}>
-                <View className="flex-row gap-3 p-3 items-center">
-                  <View className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50">
-                    {img ? <Image source={{ uri: `${API_URL}${img.url}` }} className="w-full h-full" contentFit="contain" /> : <View className="flex-1 items-center justify-center"><Text className="text-2xl">📦</Text></View>}
+              <View style={{ backgroundColor: "#fff", borderRadius: 18, overflow: "hidden", opacity: p.is_active ? 1 : 0.75, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 6, elevation: 2 }}>
+                <View style={{ flexDirection: "row", gap: 12, padding: 12, alignItems: "center" }}>
+                  <View style={{ width: 68, height: 68, borderRadius: 14, overflow: "hidden", backgroundColor: "#f9fafb" }}>
+                    {img
+                      ? <Image source={{ uri: `${API_URL}${img.url}` }} style={{ width: 68, height: 68 }} contentFit="cover" />
+                      : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 28 }}>📦</Text></View>
+                    }
                   </View>
-                  <View className="flex-1">
-                    <Text className="font-semibold text-sm text-gray-800" numberOfLines={1}>{p.title}</Text>
-                    <Text className="text-violet-500 font-bold text-sm mt-0.5">{p.price.toLocaleString()} сом.</Text>
-                    <View className="flex-row items-center gap-2 mt-1">
-                      <Text className="text-xs text-gray-400">{p.stock} шт.</Text>
-                      <View className={`px-2 py-0.5 rounded-full ${p.is_active ? "bg-green-100" : "bg-gray-100"}`}>
-                        <Text className={`text-xs font-semibold ${p.is_active ? "text-green-700" : "text-gray-500"}`}>{p.is_active ? "Активен" : "Скрыт"}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827", lineHeight: 18 }} numberOfLines={2}>{p.title}</Text>
+                    <Text style={{ fontSize: 15, fontWeight: "800", color: P, marginTop: 4 }}>{p.price.toLocaleString()} сом.</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 }}>
+                      <Text style={{ fontSize: 11, color: "#9ca3af" }}>В наличии: {p.stock} шт.</Text>
+                      <View style={{ backgroundColor: p.is_active ? "#dcfce7" : "#f3f4f6", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: p.is_active ? "#16a34a" : "#9ca3af" }}>
+                          {p.stock === 0 ? "Нет в наличии" : p.is_active ? "Активен" : "Скрыт"}
+                        </Text>
                       </View>
                     </View>
                   </View>
                 </View>
 
-                <View className="flex-row border-t border-gray-50">
-                  <TouchableOpacity onPress={() => router.push(`/seller/edit-product/${p.id}` as any)} className="flex-1 flex-row items-center justify-center gap-1.5 py-3">
-                    <Pencil size={15} color="#8B5CF6" />
-                    <Text className="text-xs font-semibold text-violet-500">Изменить</Text>
+                <View style={{ flexDirection: "row", borderTopWidth: 0.5, borderTopColor: "#f3f4f6" }}>
+                  <TouchableOpacity onPress={() => router.push(`/seller/edit-product/${p.id}` as any)} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 }}>
+                    <Pencil size={14} color={P} />
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: P }}>Изменить</Text>
                   </TouchableOpacity>
-                  <View className="w-px bg-gray-50" />
-                  <TouchableOpacity onPress={() => toggleActive(p)} className="flex-1 flex-row items-center justify-center gap-1.5 py-3">
-                    {p.is_active ? <EyeOff size={15} color="#f97316" /> : <Eye size={15} color="#22c55e" />}
-                    <Text className={`text-xs font-semibold ${p.is_active ? "text-orange-500" : "text-green-600"}`}>{p.is_active ? "Скрыть" : "Показать"}</Text>
+                  <View style={{ width: 0.5, backgroundColor: "#f3f4f6" }} />
+                  <TouchableOpacity onPress={() => toggleActive(p)} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 }}>
+                    {p.is_active ? <EyeOff size={14} color="#f97316" /> : <Eye size={14} color="#16a34a" />}
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: p.is_active ? "#f97316" : "#16a34a" }}>{p.is_active ? "Скрыть" : "Показать"}</Text>
                   </TouchableOpacity>
-                  <View className="w-px bg-gray-50" />
-                  <TouchableOpacity onPress={() => deleteProduct(p)} className="flex-1 flex-row items-center justify-center gap-1.5 py-3">
-                    <Trash2 size={15} color="#f87171" />
-                    <Text className="text-xs font-semibold text-red-400">Удалить</Text>
+                  <View style={{ width: 0.5, backgroundColor: "#f3f4f6" }} />
+                  <TouchableOpacity onPress={() => deleteProduct(p)} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 11 }}>
+                    <Trash2 size={14} color="#f87171" />
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: "#f87171" }}>Удалить</Text>
                   </TouchableOpacity>
                 </View>
               </View>

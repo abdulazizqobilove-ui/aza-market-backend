@@ -1,13 +1,54 @@
-﻿import { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
+import { useEffect, useState, useCallback } from "react";
+import {
+  View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
+  TextInput, Modal, RefreshControl, Alert,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react-native";
+import {
+  Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
+  Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
+  ChevronRight, UserCheck, UserX, Store, RefreshCw,
+} from "lucide-react-native";
 import Toast from "react-native-toast-message";
 import api from "@/lib/api";
 
-interface Stats { users_count: number; products_count: number; orders_count: number; revenue: number; }
+const P = "#8B5CF6";
+const SECTIONS = ["Обзор", "Пользователи", "Заявки", "Выплаты", "Баннеры"] as const;
+type Section = typeof SECTIONS[number];
+
+interface Stats { users: number; products: number; orders: number; sellers: number; }
+interface AppUser { id: number; username?: string; phone?: string; full_name?: string; role: string; is_active: boolean; created_at: string; }
 interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; created_at: string; }
-interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; link_url?: string; is_active: boolean; sort_order: number; }
+interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; }
+interface Payout { id: number; seller_id: number; amount: number; status: string; comment?: string; created_at: string; }
+
+const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
+const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#7c3aed" };
+const STATUS_COLORS: Record<string, string> = { pending: "#f59e0b", approved: "#16a34a", rejected: "#ef4444", paid: "#16a34a", cancelled: "#ef4444" };
+const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", approved: "Одобрено", rejected: "Отклонено", paid: "Выплачено", cancelled: "Отменено" };
+
+function SectionTab({ active, onPress, label }: { active: boolean; onPress: () => void; label: string }) {
+  return (
+    <TouchableOpacity onPress={onPress} style={{
+      paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
+      backgroundColor: active ? P : "#f3f4f6", marginRight: 8,
+    }}>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#fff" : "#6b7280" }}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
+  return (
+    <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, padding: 14, gap: 8 }}>
+      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: color + "18", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={18} color={color} />
+      </View>
+      <Text style={{ fontSize: 22, fontWeight: "900", color: "#111827" }}>{value}</Text>
+      <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "500" }}>{label}</Text>
+    </View>
+  );
+}
 
 function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
   const [form, setForm] = useState({ title: "", subtitle: "", bg_color: "#7C3AED", accent_color: "#C4B5FD", emoji: "", sort_order: "0" });
@@ -18,14 +59,11 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
     if (!form.title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
     setSaving(true);
     try {
-      const fd = new FormData();
-      fd.append("title", form.title.trim());
-      if (form.subtitle.trim()) fd.append("subtitle", form.subtitle.trim());
-      fd.append("bg_color", form.bg_color);
-      fd.append("accent_color", form.accent_color);
-      if (form.emoji.trim()) fd.append("emoji", form.emoji.trim());
-      fd.append("sort_order", form.sort_order || "0");
-      await api.post("/banners", fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.post("/banners", {
+        title: form.title.trim(), subtitle: form.subtitle.trim() || undefined,
+        bg_color: form.bg_color, accent_color: form.accent_color,
+        emoji: form.emoji.trim() || undefined, sort_order: parseInt(form.sort_order) || 0,
+      });
       Toast.show({ type: "success", text1: "Баннер создан" });
       onSave();
     } catch { Toast.show({ type: "error", text1: "Ошибка сохранения" }); }
@@ -33,34 +71,32 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
   };
 
   return (
-    <View className="bg-white rounded-3xl p-5 mx-4 gap-3">
-      <Text className="text-base font-bold text-gray-900 mb-1">Новый баннер</Text>
+    <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36 }}>
+      <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827", marginBottom: 16 }}>Новый баннер</Text>
       {[
         { label: "Заголовок *", key: "title", placeholder: "Скидки до 50%" },
         { label: "Подзаголовок", key: "subtitle", placeholder: "На все категории" },
         { label: "Фон (hex)", key: "bg_color", placeholder: "#7C3AED" },
         { label: "Акцент (hex)", key: "accent_color", placeholder: "#C4B5FD" },
         { label: "Эмодзи", key: "emoji", placeholder: "📱" },
-        { label: "Порядок", key: "sort_order", placeholder: "0" },
-      ].map(({ label, key, placeholder }) => (
-        <View key={key}>
-          <Text className="text-xs text-gray-500 mb-1">{label}</Text>
+        { label: "Порядок сортировки", key: "sort_order", placeholder: "0", numeric: true },
+      ].map(({ label, key, placeholder, numeric }: any) => (
+        <View key={key} style={{ marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: "#6b7280", marginBottom: 4, fontWeight: "500" }}>{label}</Text>
           <TextInput
-            value={(form as any)[key]}
-            onChangeText={(v) => set(key, v)}
-            placeholder={placeholder}
-            placeholderTextColor="#9ca3af"
-            className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-900"
-            keyboardType={key === "sort_order" ? "numeric" : "default"}
+            value={(form as any)[key]} onChangeText={(v) => set(key, v)}
+            placeholder={placeholder} placeholderTextColor="#d1d5db"
+            keyboardType={numeric ? "numeric" : "default"}
+            style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#111827", borderWidth: 1, borderColor: "#f3f4f6" }}
           />
         </View>
       ))}
-      <View className="flex-row gap-3 mt-2">
-        <TouchableOpacity onPress={onClose} className="flex-1 bg-gray-100 py-3 rounded-2xl items-center">
-          <Text className="font-semibold text-gray-600">Отмена</Text>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: 4 }}>
+        <TouchableOpacity onPress={onClose} style={{ flex: 1, backgroundColor: "#f3f4f6", borderRadius: 14, paddingVertical: 13, alignItems: "center" }}>
+          <Text style={{ fontWeight: "600", color: "#6b7280" }}>Отмена</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={save} disabled={saving} className="flex-1 bg-violet-500 py-3 rounded-2xl items-center">
-          {saving ? <ActivityIndicator color="white" size="small" /> : <Text className="font-semibold text-white">Сохранить</Text>}
+        <TouchableOpacity onPress={save} disabled={saving} style={{ flex: 1, backgroundColor: P, borderRadius: 14, paddingVertical: 13, alignItems: "center" }}>
+          {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff" }}>Создать</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -68,162 +104,333 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
 }
 
 export default function AdminTabScreen() {
+  const [section, setSection] = useState<Section>("Обзор");
   const [stats, setStats] = useState<Stats | null>(null);
+  const [users, setUsers] = useState<AppUser[]>([]);
   const [apps, setApps] = useState<SellerApp[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showBannerForm, setShowBannerForm] = useState(false);
 
-  const loadAll = () => {
-    setLoading(true);
-    Promise.all([
-      api.get<Stats>("/admin/stats").then((r) => setStats(r.data)).catch(() => {}),
-      api.get<SellerApp[]>("/seller-applications").then((r) => setApps(r.data)).catch(() => {}),
-      api.get<Banner[]>("/banners/all").then((r) => setBanners(r.data)).catch(() => {}),
-    ]).finally(() => setLoading(false));
-  };
+  const loadAll = useCallback(async () => {
+    try {
+      const [sRes, uRes, aRes, bRes, pRes] = await Promise.allSettled([
+        api.get<Stats>("/admin/stats"),
+        api.get<AppUser[]>("/admin/users"),
+        api.get<SellerApp[]>("/seller-applications"),
+        api.get<Banner[]>("/banners/all"),
+        api.get<Payout[]>("/admin/payouts"),
+      ]);
+      if (sRes.status === "fulfilled") setStats(sRes.value.data);
+      if (uRes.status === "fulfilled") setUsers(uRes.value.data);
+      if (aRes.status === "fulfilled") setApps(aRes.value.data);
+      if (bRes.status === "fulfilled") setBanners(bRes.value.data);
+      if (pRes.status === "fulfilled") setPayouts(pRes.value.data);
+    } finally { setLoading(false); setRefreshing(false); }
+  }, []);
 
   useEffect(() => { loadAll(); }, []);
+
+  const onRefresh = () => { setRefreshing(true); loadAll(); };
 
   const reviewApp = async (id: number, action: "approve" | "reject") => {
     try {
       await api.patch(`/seller-applications/${id}`, { status: action === "approve" ? "approved" : "rejected" });
       setApps((prev) => prev.filter((a) => a.id !== id));
-      Toast.show({ type: "success", text1: action === "approve" ? "Заявка одобрена" : "Заявка отклонена" });
+      Toast.show({ type: "success", text1: action === "approve" ? "Заявка одобрена" : "Отклонена" });
     } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
   };
 
   const toggleBanner = async (b: Banner) => {
     try {
-      const fd = new FormData();
-      fd.append("is_active", String(!b.is_active));
-      await api.patch(`/banners/${b.id}`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      await api.patch(`/banners/${b.id}`, { is_active: !b.is_active });
       setBanners((prev) => prev.map((x) => x.id === b.id ? { ...x, is_active: !x.is_active } : x));
     } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
   };
 
-  const deleteBanner = async (id: number) => {
-    try {
-      await api.delete(`/banners/${id}`);
-      setBanners((prev) => prev.filter((b) => b.id !== id));
-      Toast.show({ type: "success", text1: "Баннер удалён" });
-    } catch { Toast.show({ type: "error", text1: "Ошибка удаления" }); }
+  const deleteBanner = (id: number) => {
+    Alert.alert("Удалить баннер?", "", [
+      { text: "Отмена", style: "cancel" },
+      { text: "Удалить", style: "destructive", onPress: async () => {
+        try {
+          await api.delete(`/banners/${id}`);
+          setBanners((prev) => prev.filter((b) => b.id !== id));
+          Toast.show({ type: "success", text1: "Удалён" });
+        } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+      }},
+    ]);
   };
 
-  const statCards = stats ? [
-    { label: "Пользователей", value: stats.users_count, icon: Users, color: "#8B5CF6", bg: "#eff6ff" },
-    { label: "Товаров", value: stats.products_count, icon: Package, color: "#22c55e", bg: "#f0fdf4" },
-    { label: "Заказов", value: stats.orders_count, icon: ShoppingBag, color: "#a855f7", bg: "#faf5ff" },
-    { label: "Выручка", value: `${stats.revenue.toLocaleString()} сом.`, icon: TrendingUp, color: "#f97316", bg: "#fff7ed" },
-  ] : [];
+  const toggleUser = async (u: AppUser) => {
+    try {
+      await api.patch(`/admin/users/${u.id}/active`, { is_active: !u.is_active });
+      setUsers((prev) => prev.map((x) => x.id === u.id ? { ...x, is_active: !x.is_active } : x));
+      Toast.show({ type: "success", text1: u.is_active ? "Пользователь заблокирован" : "Разблокирован" });
+    } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+  };
+
+  const changeRole = (u: AppUser) => {
+    const roles: Array<"buyer" | "seller" | "admin"> = ["buyer", "seller", "admin"];
+    const options = roles.filter((r) => r !== u.role).map((r) => ({
+      text: ROLE_LABELS[r], onPress: async () => {
+        try {
+          await api.patch(`/admin/users/${u.id}/role`, { role: r });
+          setUsers((prev) => prev.map((x) => x.id === u.id ? { ...x, role: r } : x));
+          Toast.show({ type: "success", text1: `Роль изменена на ${ROLE_LABELS[r]}` });
+        } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+      }
+    }));
+    Alert.alert("Изменить роль", `${u.username || u.phone}`, [
+      ...options,
+      { text: "Отмена", style: "cancel" },
+    ]);
+  };
+
+  const reviewPayout = (p: Payout, status: "paid" | "cancelled") => {
+    Alert.alert(status === "paid" ? "Подтвердить выплату?" : "Отклонить выплату?",
+      `${p.amount.toLocaleString()} сом.`, [
+        { text: "Отмена", style: "cancel" },
+        { text: status === "paid" ? "Выплатить" : "Отклонить", style: status === "paid" ? "default" : "destructive",
+          onPress: async () => {
+            try {
+              await api.patch(`/admin/payouts/${p.id}`, { status });
+              setPayouts((prev) => prev.map((x) => x.id === p.id ? { ...x, status } : x));
+              Toast.show({ type: "success", text1: status === "paid" ? "Выплата подтверждена" : "Выплата отклонена" });
+            } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+          }
+        },
+      ]);
+  };
+
+  const pendingApps = apps.filter((a) => a.status === "pending");
+  const pendingPayouts = payouts.filter((p) => p.status === "pending");
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="bg-white px-4 py-4 border-b border-gray-100">
-        <Text className="text-xl font-bold text-gray-900">Панель администратора</Text>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f3ff" }} edges={["top"]}>
+      {/* Header */}
+      <View style={{ backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+              <Shield size={18} color={P} />
+            </View>
+            <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Панель администратора</Text>
+          </View>
+          <TouchableOpacity onPress={onRefresh} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+            <RefreshCw size={16} color="#6b7280" />
+          </TouchableOpacity>
+        </View>
+        {/* Tabs */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12 }} contentContainerStyle={{ paddingRight: 4 }}>
+          {SECTIONS.map((s) => (
+            <SectionTab key={s} label={s + (s === "Заявки" && pendingApps.length > 0 ? ` (${pendingApps.length})` : s === "Выплаты" && pendingPayouts.length > 0 ? ` (${pendingPayouts.length})` : "")} active={section === s} onPress={() => setSection(s)} />
+          ))}
+        </ScrollView>
       </View>
 
-      <Modal visible={showBannerForm} transparent animationType="slide">
-        <View className="flex-1 justify-end bg-black/40 pb-8">
-          <BannerForm onClose={() => setShowBannerForm(false)} onSave={() => { setShowBannerForm(false); loadAll(); }} />
-        </View>
-      </Modal>
+      {loading ? (
+        <ActivityIndicator color={P} style={{ marginTop: 60 }} />
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={P} />}
+        >
 
-      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
-        <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-          {/* Stats */}
-          <View className="gap-3">
-            <Text className="font-semibold text-gray-700">Статистика</Text>
-            <View className="flex-row flex-wrap gap-3">
-              {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-                <View key={label} className="bg-white rounded-2xl p-4 flex-row items-center gap-3" style={{ width: "47%" }}>
-                  <View className="w-10 h-10 rounded-xl items-center justify-center" style={{ backgroundColor: bg }}>
-                    <Icon size={20} color={color} />
+          {/* ── ОБЗОР ── */}
+          {section === "Обзор" && (
+            <>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <StatCard label="Пользователей" value={stats?.users ?? 0} icon={Users} color="#8B5CF6" />
+                <StatCard label="Продавцов" value={stats?.sellers ?? 0} icon={Store} color="#16a34a" />
+              </View>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <StatCard label="Товаров" value={stats?.products ?? 0} icon={Package} color="#f59e0b" />
+                <StatCard label="Заказов" value={stats?.orders ?? 0} icon={ShoppingBag} color="#ef4444" />
+              </View>
+
+              {/* Быстрые действия */}
+              <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                {[
+                  { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#8B5CF6", sec: "Пользователи" as Section },
+                  { label: "Заявки продавцов", sub: pendingApps.length > 0 ? `${pendingApps.length} ожидают` : "Новых нет", icon: UserCheck, color: "#f59e0b", sec: "Заявки" as Section },
+                  { label: "Выплаты", sub: pendingPayouts.length > 0 ? `${pendingPayouts.length} ожидают` : "Новых нет", icon: Wallet, color: "#16a34a", sec: "Выплаты" as Section },
+                  { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#6366f1", sec: "Баннеры" as Section },
+                ].map(({ label, sub, icon: Icon, color, sec }, i, arr) => (
+                  <TouchableOpacity key={label} onPress={() => setSection(sec)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: i < arr.length - 1 ? 0.5 : 0, borderBottomColor: "#f3f4f6" }}>
+                    <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: color + "15", alignItems: "center", justifyContent: "center" }}>
+                      <Icon size={18} color={color} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{label}</Text>
+                      <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }}>{sub}</Text>
+                    </View>
+                    <ChevronRight size={16} color="#d1d5db" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
+          )}
+
+          {/* ── ПОЛЬЗОВАТЕЛИ ── */}
+          {section === "Пользователи" && (
+            <>
+              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{users.length} пользователей</Text>
+              {users.map((u) => (
+                <View key={u.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: (ROLE_COLORS[u.role] || P) + "18", alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: ROLE_COLORS[u.role] || P }}>{(u.full_name || u.username || u.phone || "?")[0].toUpperCase()}</Text>
                   </View>
-                  <View>
-                    <Text className="text-lg font-bold text-gray-900">{value}</Text>
-                    <Text className="text-xs text-gray-400">{label}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: u.is_active ? "#111827" : "#9ca3af" }} numberOfLines={1}>{u.full_name || u.username || u.phone}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
+                      <View style={{ backgroundColor: (ROLE_COLORS[u.role] || P) + "18", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: ROLE_COLORS[u.role] || P }}>{ROLE_LABELS[u.role] || u.role}</Text>
+                      </View>
+                      {!u.is_active && (
+                        <View style={{ backgroundColor: "#fef2f2", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                          <Text style={{ fontSize: 10, fontWeight: "700", color: "#ef4444" }}>Заблокирован</Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                      <UserCheck size={16} color={P} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => toggleUser(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: u.is_active ? "#fef2f2" : "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
+                      {u.is_active ? <UserX size={16} color="#ef4444" /> : <UserCheck size={16} color="#16a34a" />}
+                    </TouchableOpacity>
                   </View>
                 </View>
               ))}
-            </View>
-          </View>
+            </>
+          )}
 
-          {/* Banners */}
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="font-semibold text-gray-700">Баннеры ({banners.length})</Text>
-              <TouchableOpacity onPress={() => setShowBannerForm(true)} className="flex-row items-center gap-1.5 bg-violet-500 px-3 py-1.5 rounded-xl">
-                <Plus size={14} color="white" />
-                <Text className="text-xs font-semibold text-white">Добавить</Text>
+          {/* ── ЗАЯВКИ ── */}
+          {section === "Заявки" && (
+            <>
+              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{pendingApps.length} ожидают рассмотрения</Text>
+              {apps.length === 0 ? (
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <CheckCircle size={44} color="#e5e7eb" />
+                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Заявок нет</Text>
+                </View>
+              ) : apps.map((app) => (
+                <View key={app.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>{app.shop_name}</Text>
+                      <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{app.username}{app.phone ? ` · ${app.phone}` : ""}</Text>
+                      {app.description && <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }} numberOfLines={3}>{app.description}</Text>}
+                      <Text style={{ fontSize: 11, color: "#d1d5db", marginTop: 6 }}>{new Date(app.created_at).toLocaleDateString("ru-RU")}</Text>
+                    </View>
+                    <View style={{ backgroundColor: STATUS_COLORS[app.status] + "18", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: STATUS_COLORS[app.status] }}>{STATUS_LABELS[app.status] || app.status}</Text>
+                    </View>
+                  </View>
+                  {app.status === "pending" && (
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity onPress={() => reviewApp(app.id, "approve")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingVertical: 11, borderRadius: 12 }}>
+                        <CheckCircle size={15} color="#16a34a" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Одобрить</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => reviewApp(app.id, "reject")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 11, borderRadius: 12 }}>
+                        <XCircle size={15} color="#ef4444" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#ef4444" }}>Отклонить</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* ── ВЫПЛАТЫ ── */}
+          {section === "Выплаты" && (
+            <>
+              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{payouts.length} выплат</Text>
+              {payouts.length === 0 ? (
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Wallet size={44} color="#e5e7eb" />
+                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Выплат нет</Text>
+                </View>
+              ) : payouts.map((p) => (
+                <View key={p.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                    <View>
+                      <Text style={{ fontSize: 18, fontWeight: "800", color: "#111827" }}>{p.amount.toLocaleString()} сом.</Text>
+                      <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>ID продавца: {p.seller_id} · {new Date(p.created_at).toLocaleDateString("ru-RU")}</Text>
+                      {p.comment && <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>{p.comment}</Text>}
+                    </View>
+                    <View style={{ backgroundColor: (STATUS_COLORS[p.status] || "#9ca3af") + "18", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: STATUS_COLORS[p.status] || "#9ca3af" }}>{STATUS_LABELS[p.status] || p.status}</Text>
+                    </View>
+                  </View>
+                  {p.status === "pending" && (
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity onPress={() => reviewPayout(p, "paid")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingVertical: 11, borderRadius: 12 }}>
+                        <CheckCircle size={15} color="#16a34a" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Выплатить</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => reviewPayout(p, "cancelled")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 11, borderRadius: 12 }}>
+                        <XCircle size={15} color="#ef4444" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#ef4444" }}>Отклонить</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* ── БАННЕРЫ ── */}
+          {section === "Баннеры" && (
+            <>
+              <TouchableOpacity onPress={() => setShowBannerForm(true)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
+                <Plus size={16} color="#fff" />
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Добавить баннер</Text>
               </TouchableOpacity>
-            </View>
-            {banners.length === 0 ? (
-              <View className="bg-white rounded-2xl p-6 items-center">
-                <Text className="text-gray-400 text-sm">Баннеров нет</Text>
-              </View>
-            ) : banners.map((b) => (
-              <View key={b.id} className="bg-white rounded-2xl p-4 flex-row items-center gap-3">
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: b.bg_color, alignItems: "center", justifyContent: "center" }}>
-                  <Text style={{ fontSize: 22 }}>{b.emoji || "🖼️"}</Text>
-                </View>
-                <View className="flex-1">
-                  <Text className="font-semibold text-gray-800 text-sm" numberOfLines={1}>{b.title}</Text>
-                  {b.subtitle && <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={1}>{b.subtitle}</Text>}
-                  <Text className="text-xs mt-0.5" style={{ color: b.is_active ? "#16a34a" : "#9ca3af" }}>
-                    {b.is_active ? "Активен" : "Отключён"} · #{b.sort_order}
-                  </Text>
-                </View>
-                <View className="flex-row items-center gap-2">
-                  <TouchableOpacity onPress={() => toggleBanner(b)} className="w-8 h-8 items-center justify-center">
-                    {b.is_active
-                      ? <ToggleRight size={24} color="#8B5CF6" />
-                      : <ToggleLeft size={24} color="#9ca3af" />}
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => deleteBanner(b.id)} className="w-8 h-8 items-center justify-center">
-                    <Trash2 size={18} color="#ef4444" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
 
-          {/* Seller Applications */}
-          <View className="gap-3">
-            <Text className="font-semibold text-gray-700">Заявки на продавца {apps.length > 0 && `(${apps.length})`}</Text>
-            {apps.length === 0 ? (
-              <View className="bg-white rounded-2xl p-6 items-center">
-                <CheckCircle size={40} color="#e5e7eb" />
-                <Text className="text-gray-400 mt-2 text-sm">Новых заявок нет</Text>
-              </View>
-            ) : apps.map((app) => (
-              <View key={app.id} className="bg-white rounded-2xl p-4 gap-3">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1 mr-3">
-                    <Text className="font-semibold text-gray-800">{app.shop_name}</Text>
-                    <Text className="text-xs text-gray-500 mt-0.5">{app.username}{app.phone ? ` · ${app.phone}` : ""}</Text>
-                    {app.description && <Text className="text-xs text-gray-400 mt-0.5" numberOfLines={2}>{app.description}</Text>}
-                    <Text className="text-xs text-gray-300 mt-1">{new Date(app.created_at).toLocaleDateString("ru-RU")}</Text>
+              {banners.length === 0 ? (
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Text style={{ color: "#9ca3af", fontWeight: "500" }}>Баннеров нет</Text>
+                </View>
+              ) : banners.map((b) => (
+                <View key={b.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b.bg_color, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 24 }}>{b.emoji || "🖼️"}</Text>
                   </View>
-                  <View className="px-2.5 py-1 rounded-full bg-yellow-100">
-                    <Text className="text-xs font-semibold text-yellow-700">Ожидает</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{b.title}</Text>
+                    {b.subtitle && <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }} numberOfLines={1}>{b.subtitle}</Text>}
+                    <Text style={{ fontSize: 11, marginTop: 3, color: b.is_active ? "#16a34a" : "#9ca3af", fontWeight: "500" }}>
+                      {b.is_active ? "● Активен" : "○ Отключён"}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 6 }}>
+                    <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                      {b.is_active ? <ToggleRight size={20} color={P} /> : <ToggleLeft size={20} color="#9ca3af" />}
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => deleteBanner(b.id)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <View className="flex-row gap-2">
-                  <TouchableOpacity onPress={() => reviewApp(app.id, "approve")} className="flex-1 flex-row items-center justify-center gap-2 bg-green-50 py-2.5 rounded-xl">
-                    <CheckCircle size={16} color="#16a34a" />
-                    <Text className="text-sm font-semibold text-green-700">Одобрить</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => reviewApp(app.id, "reject")} className="flex-1 flex-row items-center justify-center gap-2 bg-red-50 py-2.5 rounded-xl">
-                    <XCircle size={16} color="#ef4444" />
-                    <Text className="text-sm font-semibold text-red-500">Отклонить</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
+              ))}
+            </>
+          )}
         </ScrollView>
       )}
+
+      {/* Banner Form Modal */}
+      <Modal visible={showBannerForm} transparent animationType="slide" onRequestClose={() => setShowBannerForm(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setShowBannerForm(false)} />
+        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
+          <BannerForm onClose={() => setShowBannerForm(false)} onSave={() => { setShowBannerForm(false); loadAll(); }} />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

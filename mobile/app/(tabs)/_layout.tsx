@@ -37,15 +37,15 @@ export default function TabsLayout() {
 
   if (user.role === "admin") {
     return (
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { borderTopColor: "#f3f4f6" }, tabBarLabelStyle: { fontSize: 10 } }}>
+      <Tabs initialRouteName="admin-tab" screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { borderTopColor: "#f3f4f6" }, tabBarLabelStyle: { fontSize: 10 } }}>
+        <Tabs.Screen name="admin-tab" options={{ title: "Панель", tabBarIcon: ({ color }) => <Shield size={22} color={color} /> }} />
+        <Tabs.Screen name="catalog" options={{ title: "Каталог", tabBarIcon: ({ color }) => <LayoutGrid size={22} color={color} /> }} />
+        <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
         <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="catalog" options={{ href: null }} />
         <Tabs.Screen name="cart" options={{ href: null }} />
         <Tabs.Screen name="seller-products" options={{ href: null }} />
         <Tabs.Screen name="seller-orders" options={{ href: null }} />
         <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-        <Tabs.Screen name="admin-tab" options={{ title: "Панель", tabBarIcon: ({ color }) => <Shield size={22} color={color} /> }} />
-        <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
       </Tabs>
     );
   }
