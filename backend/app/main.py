@@ -32,6 +32,18 @@ for _stmt in (
 ) + (
     [] if "attributes" in _existing_product_cols else
     ["ALTER TABLE mkt_products ADD COLUMN attributes JSONB DEFAULT '{}'::jsonb"]
+) + (
+    [] if "shop_name" in _existing_user_cols else
+    ["ALTER TABLE mkt_users ADD COLUMN shop_name VARCHAR"]
+) + (
+    [] if "shop_description" in _existing_user_cols else
+    ["ALTER TABLE mkt_users ADD COLUMN shop_description VARCHAR"]
+) + (
+    [] if "shop_banner_url" in _existing_user_cols else
+    ["ALTER TABLE mkt_users ADD COLUMN shop_banner_url VARCHAR"]
+) + (
+    [] if "shop_logo_url" in _existing_user_cols else
+    ["ALTER TABLE mkt_users ADD COLUMN shop_logo_url VARCHAR"]
 ):
     try:
         with engine.begin() as _conn:
