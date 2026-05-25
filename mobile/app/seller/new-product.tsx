@@ -30,6 +30,8 @@ export default function NewProductScreen() {
   const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85 });
     if (!result.canceled) {
       const picked = result.assets.map((a) => ({

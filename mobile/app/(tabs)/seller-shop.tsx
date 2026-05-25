@@ -42,6 +42,11 @@ export default function SellerShopScreen() {
   }, []));
 
   const pickAndUpload = async (type: "banner" | "logo") => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Toast.show({ type: "error", text1: "Нет доступа к галерее", text2: "Разрешите доступ в настройках" });
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       quality: 0.85,

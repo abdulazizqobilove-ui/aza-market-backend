@@ -42,6 +42,8 @@ export default function EditProductScreen() {
   const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85 });
     if (!result.canceled) {
       const picked = result.assets.map((a) => ({ uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, type: a.mimeType || "image/jpeg" }));
