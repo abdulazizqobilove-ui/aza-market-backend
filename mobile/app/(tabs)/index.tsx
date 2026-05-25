@@ -7,10 +7,11 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { Search, Bell, ChevronRight, MapPin, ChevronDown, X } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api, { Product, ProductsResponse, Category } from "@/lib/api";
+import api, { Product, ProductsResponse, Category, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 
 const CITIES = ["Душанбе", "Худжанд", "Бохтар", "Куляб", "Хорог", "Истаравшан", "Турсунзаде", "Пенджикент", "Канибадам", "Вахдат"];
 
@@ -20,8 +21,6 @@ const CATEGORY_ICONS: Record<string, string> = {
   electronics: "📱", clothing: "👕", "home-garden": "🏠",
   sport: "⚽", beauty: "💄", kids: "🧸", food: "🛒", auto: "🚗",
 };
-
-import { Image } from "expo-image";
 
 interface Banner {
   id: number; title: string; subtitle?: string;
@@ -75,7 +74,7 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
             {b.image_url ? (
               /* Image banner */
               <View style={{ height: 160 }}>
-                <Image source={{ uri: b.image_url }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                 <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.38)", padding: 20, justifyContent: "flex-end" }}>
                   <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4 }}>{b.title}</Text>
                   {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{b.subtitle}</Text>}
