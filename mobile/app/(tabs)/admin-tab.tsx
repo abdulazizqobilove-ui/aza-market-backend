@@ -7,16 +7,27 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
-  ChevronRight, UserCheck, UserX, Store, RefreshCw,
+  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2,
 } from "lucide-react-native";
+import { Image } from "expo-image";
 import Toast from "react-native-toast-message";
 import api from "@/lib/api";
 
 const P = "#8B5CF6";
-const SECTIONS = ["Обзор", "Пользователи", "Заявки", "Выплаты", "Баннеры"] as const;
+const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры"] as const;
 type Section = typeof SECTIONS[number];
 
-interface Stats { users: number; products: number; orders: number; sellers: number; }
+interface Stats {
+  users: number; products: number; orders: number; sellers: number;
+  new_users_7d: number; new_users_30d: number;
+  revenue: { total: number; last_7d: number; last_30d: number };
+  orders_by_status: Record<string, number>;
+  orders_7d: number; orders_30d: number;
+  avg_rating: number; total_reviews: number;
+  top_products: { id: number; title: string; price: number; sales_count: number; stock: number; image_url: string | null }[];
+  top_sellers: { id: number; username: string; shop_name: string; revenue: number; products: number }[];
+  chart_7d: { date: string; revenue: number }[];
+}
 interface AppUser { id: number; username?: string; phone?: string; full_name?: string; role: string; is_active: boolean; created_at: string; }
 interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; created_at: string; }
 interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; }
@@ -253,6 +264,7 @@ export default function AdminTabScreen() {
               {/* Быстрые действия */}
               <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
                 {[
+                  { label: "Статистика", sub: `Выручка: ${(stats?.revenue?.total ?? 0).toLocaleString()} с.`, icon: BarChart2, color: P, sec: "Статистика" as Section },
                   { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#8B5CF6", sec: "Пользователи" as Section },
                   { label: "Заявки продавцов", sub: pendingApps.length > 0 ? `${pendingApps.length} ожидают` : "Новых нет", icon: UserCheck, color: "#f59e0b", sec: "Заявки" as Section },
                   { label: "Выплаты", sub: pendingPayouts.length > 0 ? `${pendingPayouts.length} ожидают` : "Новых нет", icon: Wallet, color: "#16a34a", sec: "Выплаты" as Section },
@@ -272,6 +284,140 @@ export default function AdminTabScreen() {
               </View>
             </>
           )}
+
+          {/* ── СТАТИСТИКА ── */}
+          {section === "Статистика" && (() => {
+            const chart = stats?.chart_7d ?? [];
+            const maxRev = Math.max(...chart.map((d) => d.revenue), 1);
+            const ORDER_STATUS: Record<string, { label: string; color: string }> = {
+              pending: { label: "Ожидает", color: "#f59e0b" },
+              processing: { label: "В обработке", color: "#3b82f6" },
+              shipped: { label: "Отправлен", color: "#8b5cf6" },
+              delivered: { label: "Доставлен", color: "#16a34a" },
+              cancelled: { label: "Отменён", color: "#ef4444" },
+            };
+            return (
+              <>
+                {/* Revenue cards */}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, backgroundColor: P, borderRadius: 16, padding: 16, gap: 4 }}>
+                    <Text style={{ fontSize: 11, color: "#e9d5ff", fontWeight: "600" }}>Общая выручка</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue.total ?? 0).toLocaleString()} с.</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 8 }}>
+                    <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 7 дней</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue.last_7d ?? 0).toLocaleString()} с.</Text>
+                    </View>
+                    <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 30 дней</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue.last_30d ?? 0).toLocaleString()} с.</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Bar chart */}
+                {chart.length > 0 && (
+                  <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827", marginBottom: 14 }}>Выручка за 7 дней</Text>
+                    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 80 }}>
+                      {chart.map((d, i) => (
+                        <View key={i} style={{ flex: 1, alignItems: "center", gap: 4 }}>
+                          <View style={{ flex: 1, width: "100%", justifyContent: "flex-end" }}>
+                            <View style={{
+                              width: "100%",
+                              height: Math.max(4, (d.revenue / maxRev) * 68),
+                              backgroundColor: i === chart.length - 1 ? P : "#e9d5ff",
+                              borderRadius: 6,
+                            }} />
+                          </View>
+                          <Text style={{ fontSize: 9, color: "#9ca3af", fontWeight: "500" }}>{d.date}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Stat cards row */}
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <StatCard label="Заказов (7д)" value={stats?.orders_7d ?? 0} icon={ShoppingBag} color="#3b82f6" />
+                  <StatCard label="Новых юзеров (7д)" value={stats?.new_users_7d ?? 0} icon={Users} color="#16a34a" />
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <StatCard label="Рейтинг платф." value={stats?.avg_rating ?? 0} icon={Star} color="#f59e0b" />
+                  <StatCard label="Отзывов" value={stats?.total_reviews ?? 0} icon={BarChart2} color="#8b5cf6" />
+                </View>
+
+                {/* Orders by status */}
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827", marginBottom: 4 }}>Заказы по статусам</Text>
+                  {Object.entries(ORDER_STATUS).map(([key, { label, color }]) => {
+                    const count = stats?.orders_by_status?.[key] ?? 0;
+                    const total = stats?.orders ?? 1;
+                    const pct = Math.round((count / total) * 100);
+                    return (
+                      <View key={key} style={{ gap: 4 }}>
+                        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                          <Text style={{ fontSize: 12, color: "#374151", fontWeight: "500" }}>{label}</Text>
+                          <Text style={{ fontSize: 12, color, fontWeight: "700" }}>{count} ({pct}%)</Text>
+                        </View>
+                        <View style={{ height: 5, backgroundColor: "#f3f4f6", borderRadius: 4 }}>
+                          <View style={{ height: 5, width: `${pct}%`, backgroundColor: color, borderRadius: 4 }} />
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+
+                {/* Top sellers */}
+                {(stats?.top_sellers?.length ?? 0) > 0 && (
+                  <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>Топ продавцов</Text>
+                    </View>
+                    {stats!.top_sellers.map((s, i) => (
+                      <View key={s.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: "#f3f4f6" }}>
+                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : "#9ca3af", width: 20, textAlign: "center" }}>#{i + 1}</Text>
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                          <Store size={16} color={P} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }} numberOfLines={1}>{s.shop_name}</Text>
+                          <Text style={{ fontSize: 11, color: "#9ca3af" }}>{s.products} товаров</Text>
+                        </View>
+                        <Text style={{ fontSize: 13, fontWeight: "800", color: P }}>{s.revenue.toLocaleString()} с.</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Top products */}
+                {(stats?.top_products?.length ?? 0) > 0 && (
+                  <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                    <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>Топ товаров</Text>
+                    </View>
+                    {stats!.top_products.map((p, i) => (
+                      <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: "#f3f4f6" }}>
+                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : "#9ca3af", width: 20, textAlign: "center" }}>#{i + 1}</Text>
+                        {p.image_url
+                          ? <Image source={{ uri: p.image_url }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" />
+                          : <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}><Package size={18} color="#d1d5db" /></View>
+                        }
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{p.title}</Text>
+                          <Text style={{ fontSize: 11, color: "#9ca3af" }}>{p.price.toLocaleString()} с. · склад: {p.stock}</Text>
+                        </View>
+                        <View style={{ backgroundColor: "#f5f3ff", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 12, fontWeight: "700", color: P }}>{p.sales_count} прод.</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </>
+            );
+          })()}
 
           {/* ── ПОЛЬЗОВАТЕЛИ ── */}
           {section === "Пользователи" && (
