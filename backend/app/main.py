@@ -31,7 +31,7 @@ for _stmt in (
     ["ALTER TABLE mkt_products ADD COLUMN about TEXT"]
 ) + (
     [] if "attributes" in _existing_product_cols else
-    ["ALTER TABLE mkt_products ADD COLUMN attributes JSON DEFAULT '{}'"]
+    ["ALTER TABLE mkt_products ADD COLUMN attributes JSONB DEFAULT '{}'::jsonb"]
 ):
     try:
         with engine.begin() as _conn:
