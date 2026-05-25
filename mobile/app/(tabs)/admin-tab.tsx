@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
-  TextInput, Modal, RefreshControl, Alert,
+  TextInput, Modal, RefreshControl, Alert, Dimensions,
 } from "react-native";
+
+const SW = Dimensions.get("window").width;
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
@@ -646,6 +648,43 @@ export default function AdminTabScreen() {
           {/* ── БАННЕРЫ ── */}
           {section === "Баннеры" && (
             <>
+              {/* Preview carousel */}
+              {banners.filter(b => b.is_active).length > 0 && (
+                <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 14, gap: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: "#9ca3af", textTransform: "uppercase", letterSpacing: 0.5 }}>Предпросмотр — как видит покупатель</Text>
+                  <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ borderRadius: 14, overflow: "hidden" }}>
+                    {banners.filter(b => b.is_active).map((b) => (
+                      <View key={b.id} style={{ width: SW - 60, borderRadius: 14, overflow: "hidden", backgroundColor: b.bg_color, marginRight: 8 }}>
+                        {b.image_url ? (
+                          <View style={{ height: 120 }}>
+                            <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                            <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", padding: 14, justifyContent: "flex-end" }}>
+                              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "900" }} numberOfLines={1}>{b.title}</Text>
+                              {b.subtitle ? <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, marginTop: 2 }} numberOfLines={1}>{b.subtitle}</Text> : null}
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={{ padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: b.accent_color, fontSize: 10, fontWeight: "600", marginBottom: 3 }}>AZA MARKET</Text>
+                              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "900" }} numberOfLines={1}>{b.title}</Text>
+                              {b.subtitle ? <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 11, marginTop: 2 }} numberOfLines={1}>{b.subtitle}</Text> : null}
+                              <View style={{ marginTop: 10, backgroundColor: "#fff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, alignSelf: "flex-start" }}>
+                                <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 10 }}>Смотреть →</Text>
+                              </View>
+                            </View>
+                            {b.emoji ? <Text style={{ fontSize: 44, marginLeft: 8 }}>{b.emoji}</Text> : null}
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </ScrollView>
+                  {banners.filter(b => b.is_active).length > 1 && (
+                    <Text style={{ fontSize: 11, color: "#9ca3af", textAlign: "center" }}>← листайте →</Text>
+                  )}
+                </View>
+              )}
+
               <TouchableOpacity onPress={() => setShowBannerForm(true)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
                 <Plus size={16} color="#fff" />
                 <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Добавить баннер</Text>
@@ -657,8 +696,11 @@ export default function AdminTabScreen() {
                 </View>
               ) : banners.map((b) => (
                 <View key={b.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b.bg_color, alignItems: "center", justifyContent: "center" }}>
-                    <Text style={{ fontSize: 24 }}>{b.emoji || "🖼️"}</Text>
+                  <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b.bg_color, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                    {b.image_url
+                      ? <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: 48, height: 48 }} contentFit="cover" />
+                      : <Text style={{ fontSize: 24 }}>{b.emoji || "🖼️"}</Text>
+                    }
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{b.title}</Text>
