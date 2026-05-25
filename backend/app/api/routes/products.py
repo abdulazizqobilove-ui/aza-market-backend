@@ -185,9 +185,9 @@ def delete_product(
 
 
 @router.post("/{product_id}/images", response_model=ProductOut)
-def upload_image(
+def upload_images(
     product_id: int,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
@@ -195,11 +195,14 @@ def upload_image(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    url = cloud_upload(file, folder="products")
-
-    is_main = not bool(product.images)
-    image = ProductImage(product_id=product.id, url=url, is_main=is_main)
-    db.add(image)
+    has_main = bool(product.images)
+    for i, file in enumerate(files):
+        try:
+            url = cloud_upload(file, folder="products")
+            is_main = not has_main and i == 0
+            db.add(ProductImage(product_id=product.id, url=url, is_main=is_main))
+        except Exception:
+            pass
     db.commit()
 
     return db.query(Product).options(
