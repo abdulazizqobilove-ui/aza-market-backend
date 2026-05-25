@@ -7,11 +7,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
-  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X,
+  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus,
 } from "lucide-react-native";
 import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import api, { imgUrl } from "@/lib/api";
 import Toast from "react-native-toast-message";
-import api from "@/lib/api";
 
 const P = "#8B5CF6";
 const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры"] as const;
@@ -78,21 +79,44 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
   const [subtitle, setSubtitle] = useState("");
   const [emoji, setEmoji] = useState("🔥");
   const [preset, setPreset] = useState(0);
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const { bg, accent } = COLOR_PRESETS[preset];
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Toast.show({ type: "error", text1: "Нет доступа к галерее" });
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.85,
+      allowsEditing: true,
+      aspect: [16, 6],
+    });
+    if (!result.canceled && result.assets[0]) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
 
   const save = async () => {
     if (!title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
     setSaving(true);
     try {
-      await api.post("/banners", {
-        title: title.trim(),
-        subtitle: subtitle.trim() || undefined,
-        bg_color: bg, accent_color: accent,
-        emoji: emoji || undefined,
-        sort_order: 0,
-      });
+      const form = new FormData();
+      form.append("title", title.trim());
+      if (subtitle.trim()) form.append("subtitle", subtitle.trim());
+      form.append("bg_color", bg);
+      form.append("accent_color", accent);
+      form.append("emoji", emoji);
+      form.append("sort_order", "0");
+      if (imageUri) {
+        const ext = imageUri.split(".").pop() || "jpg";
+        form.append("image", { uri: imageUri, name: `banner.${ext}`, type: `image/${ext}` } as any);
+      }
+      await api.post("/banners", form, { headers: { "Content-Type": "multipart/form-data" } });
       Toast.show({ type: "success", text1: "Баннер создан" });
       onSave();
     } catch { Toast.show({ type: "error", text1: "Ошибка сохранения" }); }
@@ -110,13 +134,42 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
       </View>
 
       {/* Live preview */}
-      <View style={{ height: 110, borderRadius: 18, backgroundColor: bg, overflow: "hidden", marginBottom: 20, padding: 18, justifyContent: "center" }}>
-        <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: accent, opacity: 0.25 }} />
-        <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: accent, opacity: 0.15 }} />
-        <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>
-        <Text style={{ fontSize: 16, fontWeight: "900", color: "#fff" }} numberOfLines={1}>{title || "Заголовок баннера"}</Text>
-        {subtitle ? <Text style={{ fontSize: 12, color: accent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
+      <View style={{ height: 120, borderRadius: 18, backgroundColor: bg, overflow: "hidden", marginBottom: 20 }}>
+        {imageUri
+          ? <Image source={{ uri: imageUri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+          : <>
+              <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: accent, opacity: 0.25 }} />
+              <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: accent, opacity: 0.15 }} />
+            </>
+        }
+        {/* Overlay text always shown */}
+        <View style={{ position: "absolute", inset: 0, padding: 18, justifyContent: "flex-end" }}>
+          {!imageUri && <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>}
+          <Text style={{ fontSize: 16, fontWeight: "900", color: "#fff" }} numberOfLines={1}>{title || "Заголовок баннера"}</Text>
+          {subtitle ? <Text style={{ fontSize: 12, color: imageUri ? "#fff" : accent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
+        </View>
       </View>
+
+      {/* Image picker */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ФОТО БАННЕРА (необязательно)</Text>
+      <TouchableOpacity onPress={pickImage} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: imageUri ? "#f0fdf4" : "#f9fafb", borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: imageUri ? "#86efac" : "#f3f4f6", marginBottom: 16 }}>
+        <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: imageUri ? "#dcfce7" : "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+          <ImagePlus size={20} color={imageUri ? "#16a34a" : "#9ca3af"} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: imageUri ? "#16a34a" : "#374151" }}>
+            {imageUri ? "Фото выбрано" : "Выбрать фото"}
+          </Text>
+          <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>
+            {imageUri ? "Нажмите чтобы заменить" : "Перекроет цвет и эмодзи"}
+          </Text>
+        </View>
+        {imageUri && (
+          <TouchableOpacity onPress={() => setImageUri(null)} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
+            <X size={13} color="#ef4444" />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
 
       {/* Text inputs */}
       <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ЗАГОЛОВОК *</Text>
@@ -135,18 +188,22 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
         style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6", marginBottom: 16 }}
       />
 
-      {/* Emoji picker */}
-      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЭМОДЗИ</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          {EMOJI_PICKS.map((e) => (
-            <TouchableOpacity key={e} onPress={() => setEmoji(e)}
-              style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: emoji === e ? bg : "#f3f4f6", alignItems: "center", justifyContent: "center", borderWidth: emoji === e ? 2 : 0, borderColor: bg }}>
-              <Text style={{ fontSize: 22 }}>{e}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      {/* Emoji picker — hidden when image is set */}
+      {!imageUri && (
+        <>
+          <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЭМОДЗИ</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {EMOJI_PICKS.map((e) => (
+                <TouchableOpacity key={e} onPress={() => setEmoji(e)}
+                  style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: emoji === e ? bg : "#f3f4f6", alignItems: "center", justifyContent: "center", borderWidth: emoji === e ? 2 : 0, borderColor: bg }}>
+                  <Text style={{ fontSize: 22 }}>{e}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </>
+      )}
 
       {/* Color presets */}
       <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЦВЕТ БАННЕРА</Text>
