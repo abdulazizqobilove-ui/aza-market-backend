@@ -9,9 +9,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     UPLOAD_DIR: str = "uploads"
 
-    CLOUDINARY_CLOUD_NAME: str = ""
-    CLOUDINARY_API_KEY: str = ""
-    CLOUDINARY_API_SECRET: str = ""
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_BUCKET: str = "marketplace"
 
     class Config:
         env_file = ".env"

@@ -1,24 +1,33 @@
-import cloudinary
-import cloudinary.uploader
-from fastapi import UploadFile
+import uuid
+import requests
+from fastapi import UploadFile, HTTPException
 from app.core.config import settings
 
 
-def _configure():
-    cloudinary.config(
-        cloud_name=settings.CLOUDINARY_CLOUD_NAME,
-        api_key=settings.CLOUDINARY_API_KEY,
-        api_secret=settings.CLOUDINARY_API_SECRET,
-        secure=True,
+def upload_image(file: UploadFile, folder: str = "products") -> str:
+    """Upload image to Supabase Storage, return public URL."""
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_KEY:
+        raise HTTPException(status_code=500, detail="Storage not configured")
+
+    ext = (file.filename or "image.jpg").rsplit(".", 1)[-1].lower()
+    path = f"{folder}/{uuid.uuid4()}.{ext}"
+
+    url = f"{settings.SUPABASE_URL}/storage/v1/object/{settings.SUPABASE_BUCKET}/{path}"
+
+    file.file.seek(0)
+    data = file.file.read()
+
+    resp = requests.post(
+        url,
+        headers={
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY}",
+            "Content-Type": f"image/{ext}",
+            "x-upsert": "true",
+        },
+        data=data,
     )
 
+    if resp.status_code not in (200, 201):
+        raise HTTPException(status_code=500, detail=f"Upload failed: {resp.text}")
 
-def upload_image(file: UploadFile, folder: str = "marketplace") -> str:
-    """Upload file to Cloudinary, return public URL."""
-    _configure()
-    result = cloudinary.uploader.upload(
-        file.file,
-        folder=folder,
-        resource_type="image",
-    )
-    return result["secure_url"]
+    return f"{settings.SUPABASE_URL}/storage/v1/object/public/{settings.SUPABASE_BUCKET}/{path}"

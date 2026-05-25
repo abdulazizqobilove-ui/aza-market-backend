@@ -15,4 +15,4 @@ pydantic-settings==2.5.2
 email-validator==2.2.0
 python-dotenv==1.0.1
 aiofiles==24.1.0
-cloudinary==1.41.0
+requests==2.32.3
