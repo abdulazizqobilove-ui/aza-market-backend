@@ -175,31 +175,38 @@ export default function HomeScreen() {
     }
   }, []);
 
+  const loadBanners = useCallback(async () => {
+    try {
+      const res = await api.get<Banner[]>("/banners");
+      if (res.data.length > 0) setBanners(res.data);
+    } catch {}
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const [pRes, cRes, bRes] = await Promise.all([
+      const [pRes, cRes] = await Promise.all([
         api.get<ProductsResponse>("/products?limit=6&sort=popular"),
         api.get<Category[]>("/products/categories"),
-        api.get<Banner[]>("/banners").catch(() => ({ data: [] as Banner[] })),
       ]);
       setPopular(pRes.data.items);
       setCategories(cRes.data);
-      if (bRes.data.length > 0) setBanners(bRes.data);
     } catch {} finally { setRefreshing(false); }
   }, []);
 
   useEffect(() => {
     fetchProducts(true);
+    load();
   }, []);
 
   useFocusEffect(useCallback(() => {
-    load();
-  }, []));
+    loadBanners();
+  }, [loadBanners]));
 
   const onRefresh = () => {
     setRefreshing(true);
     pageRef.current = 1;
     load();
+    loadBanners();
     fetchProducts(true);
   };
 
