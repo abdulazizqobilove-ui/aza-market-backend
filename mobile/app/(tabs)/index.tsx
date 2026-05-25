@@ -21,9 +21,11 @@ const CATEGORY_ICONS: Record<string, string> = {
   sport: "⚽", beauty: "💄", kids: "🧸", food: "🛒", auto: "🚗",
 };
 
+import { Image } from "expo-image";
+
 interface Banner {
   id: number; title: string; subtitle?: string;
-  bg_color: string; accent_color: string; emoji?: string;
+  bg_color: string; accent_color: string; emoji?: string; image_url?: string | null;
 }
 
 const FALLBACK_BANNERS: Banner[] = [
@@ -68,17 +70,34 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
         {banners.map((b) => (
           <View
             key={b.id}
-            style={{ width: SW - 24, backgroundColor: b.bg_color, borderRadius: 20, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            style={{ width: SW - 24, borderRadius: 20, overflow: "hidden", backgroundColor: b.bg_color }}
           >
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: b.accent_color, fontSize: 11, fontWeight: "600", marginBottom: 4, letterSpacing: 0.5 }}>AZA MARKET</Text>
-              <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 6 }}>{b.title}</Text>
-              {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{b.subtitle}</Text>}
-              <View style={{ marginTop: 14, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
-                <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+            {b.image_url ? (
+              /* Image banner */
+              <View style={{ height: 160 }}>
+                <Image source={{ uri: b.image_url }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.38)", padding: 20, justifyContent: "flex-end" }}>
+                  <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4 }}>{b.title}</Text>
+                  {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{b.subtitle}</Text>}
+                  <View style={{ marginTop: 12, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
+                    <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+                  </View>
+                </View>
               </View>
-            </View>
-            {b.emoji && <Text style={{ fontSize: 64, marginLeft: 12 }}>{b.emoji}</Text>}
+            ) : (
+              /* Color banner */
+              <View style={{ padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: b.accent_color, fontSize: 11, fontWeight: "600", marginBottom: 4, letterSpacing: 0.5 }}>AZA MARKET</Text>
+                  <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 6 }}>{b.title}</Text>
+                  {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 13 }}>{b.subtitle}</Text>}
+                  <View style={{ marginTop: 14, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
+                    <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+                  </View>
+                </View>
+                {b.emoji && <Text style={{ fontSize: 64, marginLeft: 12 }}>{b.emoji}</Text>}
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>
@@ -171,9 +190,12 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => {
-    load();
     fetchProducts(true);
   }, []);
+
+  useFocusEffect(useCallback(() => {
+    load();
+  }, []));
 
   const onRefresh = () => {
     setRefreshing(true);
