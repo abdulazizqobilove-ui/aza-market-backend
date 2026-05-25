@@ -21,6 +21,7 @@ def upload_image(file: UploadFile, folder: str = "products") -> str:
         url,
         headers={
             "Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY}",
+            "apikey": settings.SUPABASE_SERVICE_KEY,
             "Content-Type": f"image/{ext}",
             "x-upsert": "true",
         },
