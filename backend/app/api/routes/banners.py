@@ -3,10 +3,9 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
-import os, uuid, shutil
 
 from app.core.database import get_db
-from app.core.config import settings
+from app.core.upload import upload_image as cloud_upload
 from app.api.deps import require_admin
 from app.models.banner import Banner
 from app.models.user import User
@@ -28,6 +27,17 @@ class BannerOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class BannerUpdate(BaseModel):
+    title: Optional[str] = None
+    subtitle: Optional[str] = None
+    bg_color: Optional[str] = None
+    accent_color: Optional[str] = None
+    emoji: Optional[str] = None
+    link_url: Optional[str] = None
+    sort_order: Optional[int] = None
+    is_active: Optional[bool] = None
 
 
 @router.get("", response_model=List[BannerOut])
@@ -54,13 +64,8 @@ def create_banner(
     admin: User = Depends(require_admin),
 ):
     image_url = None
-    if image:
-        ext = os.path.splitext(image.filename or "banner.jpg")[1] or ".jpg"
-        fname = f"banner_{uuid.uuid4().hex}{ext}"
-        path = os.path.join(settings.UPLOAD_DIR, fname)
-        with open(path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
-        image_url = f"/uploads/{fname}"
+    if image and image.filename:
+        image_url = cloud_upload(image, folder="banners")
 
     banner = Banner(
         title=title, subtitle=subtitle, image_url=image_url,
@@ -76,15 +81,7 @@ def create_banner(
 @router.patch("/{banner_id}", response_model=BannerOut)
 def update_banner(
     banner_id: int,
-    title: Optional[str] = Form(None),
-    subtitle: Optional[str] = Form(None),
-    bg_color: Optional[str] = Form(None),
-    accent_color: Optional[str] = Form(None),
-    emoji: Optional[str] = Form(None),
-    link_url: Optional[str] = Form(None),
-    sort_order: Optional[int] = Form(None),
-    is_active: Optional[bool] = Form(None),
-    image: Optional[UploadFile] = File(None),
+    data: BannerUpdate,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
@@ -92,23 +89,26 @@ def update_banner(
     if not banner:
         raise HTTPException(status_code=404, detail="Banner not found")
 
-    if title is not None: banner.title = title
-    if subtitle is not None: banner.subtitle = subtitle
-    if bg_color is not None: banner.bg_color = bg_color
-    if accent_color is not None: banner.accent_color = accent_color
-    if emoji is not None: banner.emoji = emoji
-    if link_url is not None: banner.link_url = link_url
-    if sort_order is not None: banner.sort_order = sort_order
-    if is_active is not None: banner.is_active = is_active
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(banner, field, value)
 
-    if image:
-        ext = os.path.splitext(image.filename or "banner.jpg")[1] or ".jpg"
-        fname = f"banner_{uuid.uuid4().hex}{ext}"
-        path = os.path.join(settings.UPLOAD_DIR, fname)
-        with open(path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
-        banner.image_url = f"/uploads/{fname}"
+    db.commit()
+    db.refresh(banner)
+    return banner
 
+
+@router.post("/{banner_id}/image", response_model=BannerOut)
+def upload_banner_image(
+    banner_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    banner = db.query(Banner).filter(Banner.id == banner_id).first()
+    if not banner:
+        raise HTTPException(status_code=404, detail="Banner not found")
+
+    banner.image_url = cloud_upload(file, folder="banners")
     db.commit()
     db.refresh(banner)
     return banner
