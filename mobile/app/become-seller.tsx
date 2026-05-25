@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -43,7 +43,7 @@ export default function BecomeSellerScreen() {
           </View>
           <Text className="text-xl font-bold text-gray-900 text-center">Заявка отправлена!</Text>
           <Text className="text-gray-500 text-center text-sm leading-5">Мы рассмотрим вашу заявку в течение 24 часов и сообщим о результате.</Text>
-          <TouchableOpacity onPress={() => router.back()} className="bg-blue-600 px-8 py-3 rounded-2xl mt-4">
+          <TouchableOpacity onPress={() => router.back()} className="bg-violet-500 px-8 py-3 rounded-2xl mt-4">
             <Text className="text-white font-bold">На главную</Text>
           </TouchableOpacity>
         </View>
@@ -62,7 +62,7 @@ export default function BecomeSellerScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
         {/* Header card */}
-        <View className="bg-blue-600 rounded-2xl p-6 items-center gap-3">
+        <View className="bg-violet-500 rounded-2xl p-6 items-center gap-3">
           <View className="w-16 h-16 rounded-full bg-white/20 items-center justify-center">
             <Store size={32} color="white" />
           </View>
@@ -103,7 +103,7 @@ export default function BecomeSellerScreen() {
           </View>
         </View>
 
-        <TouchableOpacity onPress={submit} disabled={loading} className="bg-blue-600 py-4 rounded-2xl items-center">
+        <TouchableOpacity onPress={submit} disabled={loading} className="bg-violet-500 py-4 rounded-2xl items-center">
           {loading ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-base">Отправить заявку</Text>}
         </TouchableOpacity>
 

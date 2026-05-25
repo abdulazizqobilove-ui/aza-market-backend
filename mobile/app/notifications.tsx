@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ChevronLeft, Bell, MessageSquare, Package, CheckCheck } from "lucide-react-native";
@@ -30,7 +30,7 @@ function NotifIcon({ title }: { title: string }) {
     return <MessageSquare size={20} color="#8b5cf6" />;
   }
   if (title.toLowerCase().includes("заказ")) {
-    return <Package size={20} color="#2563eb" />;
+    return <Package size={20} color="#8B5CF6" />;
   }
   return <Bell size={20} color="#f59e0b" />;
 }
@@ -82,14 +82,14 @@ export default function NotificationsScreen() {
         <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827", flex: 1 }}>Уведомления</Text>
         {unread > 0 && (
           <TouchableOpacity onPress={markAllRead} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-            <CheckCheck size={16} color="#2563eb" />
-            <Text style={{ fontSize: 13, color: "#2563eb", fontWeight: "600" }}>Прочитать все</Text>
+            <CheckCheck size={16} color="#8B5CF6" />
+            <Text style={{ fontSize: 13, color: "#8B5CF6", fontWeight: "600" }}>Прочитать все</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#2563eb" style={{ marginTop: 60 }} />
+        <ActivityIndicator color="#8B5CF6" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
           data={items}
@@ -130,7 +130,7 @@ export default function NotificationsScreen() {
                 <Text style={{ fontSize: 13, color: "#6b7280" }} numberOfLines={2}>{item.body}</Text>
               </View>
               {!item.is_read && (
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#2563eb", marginTop: 4 }} />
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#8B5CF6", marginTop: 4 }} />
               )}
             </TouchableOpacity>
           )}

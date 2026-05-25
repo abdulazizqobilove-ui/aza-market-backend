@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Heart, ShoppingBag } from "lucide-react-native";
@@ -51,7 +51,7 @@ export default function FavoritesScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#2563EB" style={{ marginTop: 60 }} />
+        <ActivityIndicator color="#8B5CF6" style={{ marginTop: 60 }} />
       ) : products.length === 0 ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 40 }}>
           <View style={{ width: 96, height: 96, borderRadius: 32, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -10,8 +10,8 @@ import { useAuthStore } from "@/store/auth";
 const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", confirmed: "Подтверждён", processing: "В обработке", shipped: "В пути", delivered: "Доставлен", cancelled: "Отменён" };
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   pending: { bg: "#fef3c7", text: "#d97706" },
-  confirmed: { bg: "#dbeafe", text: "#2563eb" },
-  processing: { bg: "#dbeafe", text: "#2563eb" },
+  confirmed: { bg: "#dbeafe", text: "#8B5CF6" },
+  processing: { bg: "#dbeafe", text: "#8B5CF6" },
   shipped: { bg: "#e0e7ff", text: "#4f46e5" },
   delivered: { bg: "#dcfce7", text: "#16a34a" },
   cancelled: { bg: "#fee2e2", text: "#ef4444" },
@@ -46,7 +46,7 @@ export default function OrdersScreen() {
         <Text className="text-lg font-bold text-gray-900">Мои заказы</Text>
       </View>
 
-      {loading ? <ActivityIndicator color="#2563EB" className="mt-10" /> : (
+      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
         <FlatList
           data={orders}
           keyExtractor={(o) => String(o.id)}

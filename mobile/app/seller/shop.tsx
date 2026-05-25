@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -67,7 +67,7 @@ export default function SellerShopScreen() {
   const bannerUri = newBanner ? newBanner.uri : profile.shop_banner_url ? `${API_URL}${profile.shop_banner_url}` : null;
 
   if (loading) {
-    return <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center"><ActivityIndicator color="#2563EB" /></SafeAreaView>;
+    return <SafeAreaView className="flex-1 bg-gray-50 items-center justify-center"><ActivityIndicator color="#8B5CF6" /></SafeAreaView>;
   }
 
   return (
@@ -77,7 +77,7 @@ export default function SellerShopScreen() {
           <ArrowLeft size={18} color="#4b5563" />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-gray-900 flex-1">Настройки магазина</Text>
-        <TouchableOpacity onPress={save} disabled={saving} className="bg-blue-600 px-4 py-2 rounded-xl">
+        <TouchableOpacity onPress={save} disabled={saving} className="bg-violet-500 px-4 py-2 rounded-xl">
           {saving ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-bold text-sm">Сохранить</Text>}
         </TouchableOpacity>
       </View>
@@ -88,7 +88,7 @@ export default function SellerShopScreen() {
           <TouchableOpacity onPress={pickBanner} className="relative h-36 bg-blue-100 items-center justify-center">
             {bannerUri
               ? <Image source={{ uri: bannerUri }} className="w-full h-full" contentFit="cover" />
-              : <View className="items-center gap-2"><Camera size={28} color="#93c5fd" /><Text className="text-blue-400 text-sm">Баннер магазина</Text></View>}
+              : <View className="items-center gap-2"><Camera size={28} color="#C4B5FD" /><Text className="text-blue-400 text-sm">Баннер магазина</Text></View>}
             <View className="absolute bottom-3 right-3 w-8 h-8 bg-black/40 rounded-full items-center justify-center">
               <Camera size={16} color="white" />
             </View>
@@ -100,8 +100,8 @@ export default function SellerShopScreen() {
               <TouchableOpacity onPress={pickLogo} className="relative w-20 h-20 rounded-2xl border-4 border-white overflow-hidden bg-blue-100 items-center justify-center shadow">
                 {logoUri
                   ? <Image source={{ uri: logoUri }} className="w-full h-full" contentFit="cover" />
-                  : <Text className="text-blue-600 text-2xl font-bold">{(form.shop_name || user?.username || "?")[0]?.toUpperCase()}</Text>}
-                <View className="absolute bottom-0 right-0 w-6 h-6 bg-blue-600 rounded-tl-lg items-center justify-center">
+                  : <Text className="text-violet-500 text-2xl font-bold">{(form.shop_name || user?.username || "?")[0]?.toUpperCase()}</Text>}
+                <View className="absolute bottom-0 right-0 w-6 h-6 bg-violet-500 rounded-tl-lg items-center justify-center">
                   <Camera size={12} color="white" />
                 </View>
               </TouchableOpacity>
@@ -113,7 +113,7 @@ export default function SellerShopScreen() {
         {/* Info */}
         <View className="bg-white rounded-2xl p-4 gap-3">
           <View className="flex-row items-center gap-2 mb-1">
-            <Store size={18} color="#2563EB" />
+            <Store size={18} color="#8B5CF6" />
             <Text className="font-semibold text-gray-700">Информация о магазине</Text>
           </View>
           <View>

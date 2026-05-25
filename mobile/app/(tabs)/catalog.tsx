@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+﻿import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View, Text, FlatList, TouchableOpacity, TextInput,
   ActivityIndicator, ScrollView, Dimensions, Modal, KeyboardAvoidingView, Platform,
@@ -33,7 +33,7 @@ const SUBCAT_EMOJI: Record<string, string> = {
 };
 
 const FEATURED = [
-  { id: "abroad",   label: "Товары из-за рубежа",    emoji: "✈️",  bg: "#1d4ed8", slug: null },
+  { id: "abroad",   label: "Товары из-за рубежа",    emoji: "✈️",  bg: "#7C3AED", slug: null },
   { id: "farm",     label: "Для коз и овец",           emoji: "🐑",  bg: "#16a34a", slug: null },
   { id: "sale",     label: "Летняя распродажа",        emoji: "☀️",  bg: "#ea580c", slug: null },
   { id: "football", label: "Футбол",                   emoji: "⚽",  bg: "#15803d", slug: "sport" },
@@ -304,7 +304,7 @@ export default function CatalogScreen() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, gap: 8, paddingBottom: 8 }}>
             {filters.minPrice || filters.maxPrice ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#eff6ff", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 }}>
-                <Text style={{ fontSize: 12, color: "#2563eb", fontWeight: "600" }}>
+                <Text style={{ fontSize: 12, color: "#8B5CF6", fontWeight: "600" }}>
                   {filters.minPrice ? `${Number(filters.minPrice).toLocaleString()} сом.` : "0"} — {filters.maxPrice ? `${Number(filters.maxPrice).toLocaleString()} сом.` : "∞"}
                 </Text>
               </View>
@@ -370,7 +370,7 @@ export default function CatalogScreen() {
           onEndReachedThreshold={0.3}
           ListEmptyComponent={
             loading
-              ? <ActivityIndicator color="#2563EB" style={{ marginTop: 40 }} />
+              ? <ActivityIndicator color="#8B5CF6" style={{ marginTop: 40 }} />
               : (
                 <View style={{ alignItems: "center", paddingTop: 60 }}>
                   <Text style={{ fontSize: 40, marginBottom: 8 }}>📦</Text>
@@ -385,7 +385,7 @@ export default function CatalogScreen() {
                 </View>
               )
           }
-          ListFooterComponent={loadingMore ? <ActivityIndicator color="#2563EB" style={{ paddingVertical: 16 }} /> : null}
+          ListFooterComponent={loadingMore ? <ActivityIndicator color="#8B5CF6" style={{ paddingVertical: 16 }} /> : null}
           renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
         />
 

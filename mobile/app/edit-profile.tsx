@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   View, Text, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView,
@@ -22,7 +22,7 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
 
-  const avatarColor = user?.role === "admin" ? "#7c3aed" : user?.role === "seller" ? "#16a34a" : "#2563eb";
+  const avatarColor = user?.role === "admin" ? "#7c3aed" : user?.role === "seller" ? "#16a34a" : "#8B5CF6";
   const initials = (user?.full_name || user?.username || "?")[0].toUpperCase();
 
   const pickAvatar = async () => {

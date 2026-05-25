@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react-native";
@@ -10,7 +10,7 @@ interface SellerApp { id: number; user_id: number; username?: string; phone?: st
 interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; link_url?: string; is_active: boolean; sort_order: number; }
 
 function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
-  const [form, setForm] = useState({ title: "", subtitle: "", bg_color: "#1d4ed8", accent_color: "#93c5fd", emoji: "", sort_order: "0" });
+  const [form, setForm] = useState({ title: "", subtitle: "", bg_color: "#7C3AED", accent_color: "#C4B5FD", emoji: "", sort_order: "0" });
   const [saving, setSaving] = useState(false);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -38,8 +38,8 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
       {[
         { label: "Заголовок *", key: "title", placeholder: "Скидки до 50%" },
         { label: "Подзаголовок", key: "subtitle", placeholder: "На все категории" },
-        { label: "Фон (hex)", key: "bg_color", placeholder: "#1d4ed8" },
-        { label: "Акцент (hex)", key: "accent_color", placeholder: "#93c5fd" },
+        { label: "Фон (hex)", key: "bg_color", placeholder: "#7C3AED" },
+        { label: "Акцент (hex)", key: "accent_color", placeholder: "#C4B5FD" },
         { label: "Эмодзи", key: "emoji", placeholder: "📱" },
         { label: "Порядок", key: "sort_order", placeholder: "0" },
       ].map(({ label, key, placeholder }) => (
@@ -59,7 +59,7 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
         <TouchableOpacity onPress={onClose} className="flex-1 bg-gray-100 py-3 rounded-2xl items-center">
           <Text className="font-semibold text-gray-600">Отмена</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={save} disabled={saving} className="flex-1 bg-blue-600 py-3 rounded-2xl items-center">
+        <TouchableOpacity onPress={save} disabled={saving} className="flex-1 bg-violet-500 py-3 rounded-2xl items-center">
           {saving ? <ActivityIndicator color="white" size="small" /> : <Text className="font-semibold text-white">Сохранить</Text>}
         </TouchableOpacity>
       </View>
@@ -111,7 +111,7 @@ export default function AdminTabScreen() {
   };
 
   const statCards = stats ? [
-    { label: "Пользователей", value: stats.users_count, icon: Users, color: "#2563EB", bg: "#eff6ff" },
+    { label: "Пользователей", value: stats.users_count, icon: Users, color: "#8B5CF6", bg: "#eff6ff" },
     { label: "Товаров", value: stats.products_count, icon: Package, color: "#22c55e", bg: "#f0fdf4" },
     { label: "Заказов", value: stats.orders_count, icon: ShoppingBag, color: "#a855f7", bg: "#faf5ff" },
     { label: "Выручка", value: `${stats.revenue.toLocaleString()} сом.`, icon: TrendingUp, color: "#f97316", bg: "#fff7ed" },
@@ -129,7 +129,7 @@ export default function AdminTabScreen() {
         </View>
       </Modal>
 
-      {loading ? <ActivityIndicator color="#2563EB" className="mt-10" /> : (
+      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
           {/* Stats */}
           <View className="gap-3">
@@ -153,7 +153,7 @@ export default function AdminTabScreen() {
           <View className="gap-3">
             <View className="flex-row items-center justify-between">
               <Text className="font-semibold text-gray-700">Баннеры ({banners.length})</Text>
-              <TouchableOpacity onPress={() => setShowBannerForm(true)} className="flex-row items-center gap-1.5 bg-blue-600 px-3 py-1.5 rounded-xl">
+              <TouchableOpacity onPress={() => setShowBannerForm(true)} className="flex-row items-center gap-1.5 bg-violet-500 px-3 py-1.5 rounded-xl">
                 <Plus size={14} color="white" />
                 <Text className="text-xs font-semibold text-white">Добавить</Text>
               </TouchableOpacity>
@@ -177,7 +177,7 @@ export default function AdminTabScreen() {
                 <View className="flex-row items-center gap-2">
                   <TouchableOpacity onPress={() => toggleBanner(b)} className="w-8 h-8 items-center justify-center">
                     {b.is_active
-                      ? <ToggleRight size={24} color="#2563EB" />
+                      ? <ToggleRight size={24} color="#8B5CF6" />
                       : <ToggleLeft size={24} color="#9ca3af" />}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => deleteBanner(b.id)} className="w-8 h-8 items-center justify-center">

@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
+﻿import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react-native";
@@ -24,7 +24,7 @@ export default function CartScreen() {
       <ShoppingBag size={64} color="#e5e7eb" />
       <Text className="text-lg font-bold text-gray-700 mt-4 mb-1">Корзина пуста</Text>
       <Text className="text-sm text-gray-400 mb-6 text-center">Войдите чтобы добавить товары</Text>
-      <TouchableOpacity onPress={() => router.push("/(auth)/login")} className="bg-blue-600 px-8 py-3.5 rounded-2xl">
+      <TouchableOpacity onPress={() => router.push("/(auth)/login")} className="bg-violet-500 px-8 py-3.5 rounded-2xl">
         <Text className="text-white font-bold">Войти</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -50,7 +50,7 @@ export default function CartScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#2563EB" className="mt-10" />
+        <ActivityIndicator color="#8B5CF6" className="mt-10" />
       ) : items.length === 0 ? (
         <View className="flex-1 items-center justify-center">
           <ShoppingBag size={48} color="#e5e7eb" />
@@ -69,7 +69,7 @@ export default function CartScreen() {
               <View className={`bg-white rounded-2xl p-4 ${!inStock ? "opacity-50" : ""}`}>
                 <View className="flex-row gap-3">
                   {inStock && (
-                    <TouchableOpacity onPress={() => toggleOne(item.id)} className="w-5 h-5 rounded-md border-2 items-center justify-center mt-1" style={{ borderColor: isSel ? "#2563EB" : "#d1d5db", backgroundColor: isSel ? "#2563EB" : "transparent" }}>
+                    <TouchableOpacity onPress={() => toggleOne(item.id)} className="w-5 h-5 rounded-md border-2 items-center justify-center mt-1" style={{ borderColor: isSel ? "#8B5CF6" : "#d1d5db", backgroundColor: isSel ? "#8B5CF6" : "transparent" }}>
                       {isSel && <Text className="text-white text-[10px] font-bold">✓</Text>}
                     </TouchableOpacity>
                   )}
@@ -116,7 +116,7 @@ export default function CartScreen() {
           <TouchableOpacity
             onPress={() => selected.size > 0 && router.push(`/checkout?ids=${ids}` as any)}
             disabled={selected.size === 0}
-            className={`py-4 rounded-2xl items-center ${selected.size > 0 ? "bg-blue-600" : "bg-gray-100"}`}
+            className={`py-4 rounded-2xl items-center ${selected.size > 0 ? "bg-violet-500" : "bg-gray-100"}`}
           >
             <Text className={`font-bold text-base ${selected.size > 0 ? "text-white" : "text-gray-400"}`}>
               {selected.size > 0 ? `Оформить ${selected.size} товара` : "Выберите товары"}

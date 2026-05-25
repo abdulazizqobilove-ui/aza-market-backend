@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -50,7 +50,7 @@ export default function SellerProductsScreen() {
           <Text className="text-xl font-bold text-gray-900">Мои товары</Text>
           <Text className="text-xs text-gray-400 mt-0.5">{products.length} товаров · {activeCount} активных</Text>
         </View>
-        <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-blue-600 flex-row items-center gap-1.5 px-4 py-2.5 rounded-2xl">
+        <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-violet-500 flex-row items-center gap-1.5 px-4 py-2.5 rounded-2xl">
           <Plus size={16} color="white" />
           <Text className="text-white font-semibold text-sm">Добавить</Text>
         </TouchableOpacity>
@@ -72,7 +72,7 @@ export default function SellerProductsScreen() {
         </View>
       )}
 
-      {loading ? <ActivityIndicator color="#2563EB" className="mt-10" /> : (
+      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
         <FlatList
           data={products}
           keyExtractor={(p) => String(p.id)}
@@ -82,7 +82,7 @@ export default function SellerProductsScreen() {
               <Package size={48} color="#e5e7eb" />
               <Text className="text-lg font-semibold text-gray-700 mt-4 mb-1">Товаров пока нет</Text>
               <Text className="text-gray-400 text-sm mb-6">Добавьте первый товар</Text>
-              <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-blue-600 px-6 py-3 rounded-2xl flex-row items-center gap-2">
+              <TouchableOpacity onPress={() => router.push("/seller/new-product" as any)} className="bg-violet-500 px-6 py-3 rounded-2xl flex-row items-center gap-2">
                 <Plus size={16} color="white" />
                 <Text className="text-white font-bold">Добавить товар</Text>
               </TouchableOpacity>
@@ -98,7 +98,7 @@ export default function SellerProductsScreen() {
                   </View>
                   <View className="flex-1">
                     <Text className="font-semibold text-sm text-gray-800" numberOfLines={1}>{p.title}</Text>
-                    <Text className="text-blue-600 font-bold text-sm mt-0.5">{p.price.toLocaleString()} сом.</Text>
+                    <Text className="text-violet-500 font-bold text-sm mt-0.5">{p.price.toLocaleString()} сом.</Text>
                     <View className="flex-row items-center gap-2 mt-1">
                       <Text className="text-xs text-gray-400">{p.stock} шт.</Text>
                       <View className={`px-2 py-0.5 rounded-full ${p.is_active ? "bg-green-100" : "bg-gray-100"}`}>
@@ -110,8 +110,8 @@ export default function SellerProductsScreen() {
 
                 <View className="flex-row border-t border-gray-50">
                   <TouchableOpacity onPress={() => router.push(`/seller/edit-product/${p.id}` as any)} className="flex-1 flex-row items-center justify-center gap-1.5 py-3">
-                    <Pencil size={15} color="#2563EB" />
-                    <Text className="text-xs font-semibold text-blue-600">Изменить</Text>
+                    <Pencil size={15} color="#8B5CF6" />
+                    <Text className="text-xs font-semibold text-violet-500">Изменить</Text>
                   </TouchableOpacity>
                   <View className="w-px bg-gray-50" />
                   <TouchableOpacity onPress={() => toggleActive(p)} className="flex-1 flex-row items-center justify-center gap-1.5 py-3">

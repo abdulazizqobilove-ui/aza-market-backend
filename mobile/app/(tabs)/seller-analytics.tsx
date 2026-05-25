@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { TrendingUp, DollarSign, Package, ShoppingBag } from "lucide-react-native";
@@ -18,7 +18,7 @@ export default function SellerAnalyticsScreen() {
   }, [user]);
 
   const stats = [
-    { label: "Баланс", value: `${(balance?.balance || 0).toLocaleString()} сом.`, icon: DollarSign, color: "#2563EB", bg: "#eff6ff" },
+    { label: "Баланс", value: `${(balance?.balance || 0).toLocaleString()} сом.`, icon: DollarSign, color: "#8B5CF6", bg: "#eff6ff" },
     { label: "Всего заработано", value: `${(balance?.total_earned || 0).toLocaleString()} сом.`, icon: TrendingUp, color: "#22c55e", bg: "#f0fdf4" },
     { label: "Выведено", value: `${(balance?.total_withdrawn || 0).toLocaleString()} сом.`, icon: ShoppingBag, color: "#a855f7", bg: "#faf5ff" },
   ];
@@ -29,7 +29,7 @@ export default function SellerAnalyticsScreen() {
         <Text className="text-xl font-bold text-gray-900">Аналитика и баланс</Text>
       </View>
 
-      {loading ? <ActivityIndicator color="#2563EB" className="mt-10" /> : (
+      {loading ? <ActivityIndicator color="#8B5CF6" className="mt-10" /> : (
         <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
           {stats.map(({ label, value, icon: Icon, color, bg }) => (
             <View key={label} className="bg-white rounded-2xl p-4 flex-row items-center gap-4">

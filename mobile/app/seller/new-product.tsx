@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -88,7 +88,7 @@ export default function NewProductScreen() {
           <ArrowLeft size={18} color="#4b5563" />
         </TouchableOpacity>
         <Text className="text-lg font-bold text-gray-900 flex-1">Новый товар</Text>
-        <TouchableOpacity onPress={submit} disabled={saving} className="bg-blue-600 px-4 py-2 rounded-xl">
+        <TouchableOpacity onPress={submit} disabled={saving} className="bg-violet-500 px-4 py-2 rounded-xl">
           {saving ? <ActivityIndicator color="white" size="small" /> : <Text className="text-white font-bold text-sm">Сохранить</Text>}
         </TouchableOpacity>
       </View>
@@ -98,9 +98,9 @@ export default function NewProductScreen() {
         <View className="bg-white rounded-2xl p-4 gap-3">
           <Text className="font-semibold text-gray-700">Фотографии</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-            <TouchableOpacity onPress={pickImage} className="w-20 h-20 rounded-xl bg-blue-50 border-2 border-dashed border-blue-300 items-center justify-center">
-              <Camera size={22} color="#2563EB" />
-              <Text className="text-xs text-blue-600 mt-1">Фото</Text>
+            <TouchableOpacity onPress={pickImage} className="w-20 h-20 rounded-xl bg-violet-50 border-2 border-dashed border-blue-300 items-center justify-center">
+              <Camera size={22} color="#8B5CF6" />
+              <Text className="text-xs text-violet-500 mt-1">Фото</Text>
             </TouchableOpacity>
             {images.map((img, i) => (
               <View key={i} className="relative w-20 h-20 rounded-xl overflow-hidden">
@@ -108,7 +108,7 @@ export default function NewProductScreen() {
                 <TouchableOpacity onPress={() => setImages((p) => p.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full items-center justify-center">
                   <X size={12} color="white" />
                 </TouchableOpacity>
-                {i === 0 && <View className="absolute bottom-0 left-0 right-0 bg-blue-600/80 py-0.5"><Text className="text-white text-xs text-center">Главное</Text></View>}
+                {i === 0 && <View className="absolute bottom-0 left-0 right-0 bg-violet-500/80 py-0.5"><Text className="text-white text-xs text-center">Главное</Text></View>}
               </View>
             ))}
           </ScrollView>
@@ -136,8 +136,8 @@ export default function NewProductScreen() {
           <View className="flex-row items-center justify-between">
             <Text className="font-semibold text-gray-700">Характеристики</Text>
             <TouchableOpacity onPress={addAttr} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Plus size={14} color="#2563eb" />
-              <Text style={{ fontSize: 13, color: "#2563eb", fontWeight: "600" }}>Добавить</Text>
+              <Plus size={14} color="#8B5CF6" />
+              <Text style={{ fontSize: 13, color: "#8B5CF6", fontWeight: "600" }}>Добавить</Text>
             </TouchableOpacity>
           </View>
           {attrs.map((attr, i) => (
@@ -205,7 +205,7 @@ export default function NewProductScreen() {
           <Text className="font-semibold text-gray-700">Категория *</Text>
           <View className="flex-row flex-wrap gap-2">
             {categories.map((cat) => (
-              <TouchableOpacity key={cat.id} onPress={() => set("category_id", String(cat.id))} className={`px-3 py-2 rounded-xl border ${form.category_id === String(cat.id) ? "bg-blue-600 border-blue-600" : "bg-gray-50 border-gray-200"}`}>
+              <TouchableOpacity key={cat.id} onPress={() => set("category_id", String(cat.id))} className={`px-3 py-2 rounded-xl border ${form.category_id === String(cat.id) ? "bg-violet-500 border-violet-500" : "bg-gray-50 border-gray-200"}`}>
                 <Text className={`text-sm font-medium ${form.category_id === String(cat.id) ? "text-white" : "text-gray-700"}`}>{cat.name}</Text>
               </TouchableOpacity>
             ))}

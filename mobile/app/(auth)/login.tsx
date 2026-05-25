@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import Toast from "react-native-toast-message";
@@ -48,7 +48,7 @@ export default function LoginScreen() {
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-white">
       <View className="flex-1 px-6 justify-center">
         <View className="items-center mb-10">
-          <View className="w-20 h-20 bg-blue-600 rounded-3xl items-center justify-center mb-4">
+          <View className="w-20 h-20 bg-violet-500 rounded-3xl items-center justify-center mb-4">
             <Text className="text-white text-4xl font-black">A</Text>
           </View>
           <Text className="text-2xl font-bold text-gray-900">AZA Market</Text>
@@ -74,7 +74,7 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={sendCode}
               disabled={phone.length < 9 || loading}
-              className={`py-4 rounded-2xl items-center ${phone.length >= 9 ? "bg-blue-600" : "bg-gray-200"}`}
+              className={`py-4 rounded-2xl items-center ${phone.length >= 9 ? "bg-violet-500" : "bg-gray-200"}`}
             >
               {loading ? <ActivityIndicator color="white" /> : <Text className={`font-bold text-base ${phone.length >= 9 ? "text-white" : "text-gray-400"}`}>Получить код</Text>}
             </TouchableOpacity>
@@ -94,12 +94,12 @@ export default function LoginScreen() {
             <TouchableOpacity
               onPress={verify}
               disabled={code.length < 4 || loading}
-              className={`py-4 rounded-2xl items-center ${code.length >= 4 ? "bg-blue-600" : "bg-gray-200"}`}
+              className={`py-4 rounded-2xl items-center ${code.length >= 4 ? "bg-violet-500" : "bg-gray-200"}`}
             >
               {loading ? <ActivityIndicator color="white" /> : <Text className={`font-bold text-base ${code.length >= 4 ? "text-white" : "text-gray-400"}`}>Войти</Text>}
             </TouchableOpacity>
             <TouchableOpacity onPress={() => setStep("phone")} className="mt-3 items-center">
-              <Text className="text-blue-600 font-medium">Изменить номер</Text>
+              <Text className="text-violet-500 font-medium">Изменить номер</Text>
             </TouchableOpacity>
           </>
         )}

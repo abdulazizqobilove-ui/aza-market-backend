@@ -1,4 +1,4 @@
-import { Tabs, Redirect } from "expo-router";
+﻿import { Tabs, Redirect } from "expo-router";
 import { Home, LayoutGrid, ShoppingCart, User, Package, ClipboardList, TrendingUp, Shield, Users } from "lucide-react-native";
 import { View, Text } from "react-native";
 import { useAuthStore } from "@/store/auth";
@@ -17,7 +17,7 @@ export default function TabsLayout() {
   const user = useAuthStore((s) => s.user);
   const cartCount = useCartStore((s) => s.count)();
 
-  const PRIMARY = "#2563EB";
+  const PRIMARY = "#8B5CF6";
   const GRAY = "#9ca3af";
 
   if (!user) {

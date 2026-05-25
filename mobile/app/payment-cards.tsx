@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import {
   View, Text, TouchableOpacity, FlatList, TextInput,
   Modal, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView,
@@ -147,7 +147,7 @@ export default function PaymentCardsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#2563eb" style={{ marginTop: 60 }} />
+        <ActivityIndicator color="#8B5CF6" style={{ marginTop: 60 }} />
       ) : (
         <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
           {cards.length === 0 ? (

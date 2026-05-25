@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -63,7 +63,7 @@ export default function MyReviewsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#2563eb" style={{ marginTop: 60 }} />
+        <ActivityIndicator color="#8B5CF6" style={{ marginTop: 60 }} />
       ) : (
         <FlatList
           data={data}

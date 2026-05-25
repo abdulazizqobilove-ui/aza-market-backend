@@ -1,14 +1,18 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+﻿import { useEffect, useState, useCallback, useRef } from "react";
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Dimensions,
+  Modal, TextInput, Pressable,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { Search, Bell, ChevronRight } from "lucide-react-native";
+import { Search, Bell, ChevronRight, MapPin, ChevronDown, X } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import api, { Product, ProductsResponse, Category } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const CITIES = ["Душанбе", "Худжанд", "Бохтар", "Куляб", "Хорог", "Истаравшан", "Турсунзаде", "Пенджикент", "Канибадам", "Вахдат"];
 
 const { width: SW } = Dimensions.get("window");
 
@@ -23,7 +27,7 @@ interface Banner {
 }
 
 const FALLBACK_BANNERS: Banner[] = [
-  { id: 1, bg_color: "#1d4ed8", accent_color: "#93c5fd", title: "Скидки до 30%", subtitle: "на электронику этой недели", emoji: "📱" },
+  { id: 1, bg_color: "#7C3AED", accent_color: "#C4B5FD", title: "Скидки до 30%", subtitle: "на электронику этой недели", emoji: "📱" },
   { id: 2, bg_color: "#7c3aed", accent_color: "#c4b5fd", title: "Новая коллекция", subtitle: "одежда и аксессуары 2026", emoji: "👗" },
   { id: 3, bg_color: "#059669", accent_color: "#6ee7b7", title: "Бесплатная доставка", subtitle: "при заказе от 500 сом", emoji: "🚚" },
 ];
@@ -81,7 +85,7 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
       {banners.length > 1 && (
         <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 10 }}>
           {banners.map((_, i) => (
-            <View key={i} style={{ width: i === active ? 20 : 6, height: 6, borderRadius: 3, backgroundColor: i === active ? "#2563EB" : "#d1d5db" }} />
+            <View key={i} style={{ width: i === active ? 20 : 6, height: 6, borderRadius: 3, backgroundColor: i === active ? "#8B5CF6" : "#d1d5db" }} />
           ))}
         </View>
       )}
@@ -104,6 +108,21 @@ export default function HomeScreen() {
 
   const [unreadCount, setUnreadCount] = useState(0);
   const user = useAuthStore((s) => s.user);
+
+  const [address, setAddress] = useState("Душанбе");
+  const [addrModal, setAddrModal] = useState(false);
+  const [addrInput, setAddrInput] = useState("");
+
+  useEffect(() => {
+    AsyncStorage.getItem("user_address").then((v) => { if (v) setAddress(v); });
+  }, []);
+
+  const saveAddress = (val: string) => {
+    const v = val.trim() || "Душанбе";
+    setAddress(v);
+    AsyncStorage.setItem("user_address", v);
+    setAddrModal(false);
+  };
 
   useFocusEffect(useCallback(() => {
     if (!user) return;
@@ -174,8 +193,8 @@ export default function HomeScreen() {
         <View className="flex-row items-center justify-between mb-3">
           <Text className="text-base font-bold text-gray-900">Категории</Text>
           <TouchableOpacity onPress={() => router.push("/(tabs)/catalog")} className="flex-row items-center gap-1">
-            <Text className="text-sm text-blue-600 font-medium">Все</Text>
-            <ChevronRight size={14} color="#2563EB" />
+            <Text className="text-sm text-violet-500 font-medium">Все</Text>
+            <ChevronRight size={14} color="#8B5CF6" />
           </TouchableOpacity>
         </View>
         <View className="flex-row flex-wrap gap-2">
@@ -199,8 +218,8 @@ export default function HomeScreen() {
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-base font-bold text-gray-900">🔥 Популярное</Text>
             <TouchableOpacity onPress={() => router.push("/(tabs)/catalog")} className="flex-row items-center gap-1">
-              <Text className="text-sm text-blue-600 font-medium">Все</Text>
-              <ChevronRight size={14} color="#2563EB" />
+              <Text className="text-sm text-violet-500 font-medium">Все</Text>
+              <ChevronRight size={14} color="#8B5CF6" />
             </TouchableOpacity>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -12 }} contentContainerStyle={{ paddingHorizontal: 12, gap: 10 }}>
@@ -225,12 +244,21 @@ export default function HomeScreen() {
       {/* Header */}
       <View className="bg-white px-4 pt-2 pb-3 border-b border-gray-100">
         <View className="flex-row items-center justify-between mb-3">
-          <View>
-            <Text className="text-xl font-black text-blue-600">AZA Market</Text>
-            <Text className="text-xs text-gray-400">Таджикистан · Душанбе</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push("/notifications" as any)} className="w-9 h-9 bg-blue-50 rounded-full items-center justify-center" style={{ position: "relative" }}>
-            <Bell size={18} color="#2563EB" />
+          {/* Address picker */}
+          <TouchableOpacity onPress={() => { setAddrInput(address); setAddrModal(true); }} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
+            <MapPin size={15} color="#8B5CF6" />
+            <View>
+              <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "500" }}>Ваш адрес</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                <Text style={{ fontSize: 14, fontWeight: "800", color: "#111827" }} numberOfLines={1}>{address}</Text>
+                <ChevronDown size={13} color="#6b7280" />
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Bell */}
+          <TouchableOpacity onPress={() => router.push("/notifications" as any)} style={{ width: 36, height: 36, backgroundColor: "#F5F3FF", borderRadius: 18, alignItems: "center", justifyContent: "center" }}>
+            <Bell size={18} color="#8B5CF6" />
             {unreadCount > 0 && (
               <View style={{ position: "absolute", top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: "#ef4444", alignItems: "center", justifyContent: "center", paddingHorizontal: 3, borderWidth: 1.5, borderColor: "#fff" }}>
                 <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800" }}>{unreadCount > 99 ? "99+" : unreadCount}</Text>
@@ -238,11 +266,52 @@ export default function HomeScreen() {
             )}
           </TouchableOpacity>
         </View>
+
         <TouchableOpacity onPress={() => router.push("/search" as any)} className="flex-row items-center bg-gray-100 rounded-2xl px-4 gap-2" activeOpacity={0.7}>
           <Search size={18} color="#9ca3af" />
           <Text className="flex-1 py-3 text-sm text-gray-400">Искать товары и категории</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Address Modal */}
+      <Modal visible={addrModal} transparent animationType="slide" onRequestClose={() => setAddrModal(false)}>
+        <Pressable style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} onPress={() => setAddrModal(false)} />
+        <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36, position: "absolute", bottom: 0, left: 0, right: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+            <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Выберите город</Text>
+            <TouchableOpacity onPress={() => setAddrModal(false)}>
+              <X size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Custom input */}
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
+            <TextInput
+              value={addrInput}
+              onChangeText={setAddrInput}
+              placeholder="Введите адрес..."
+              placeholderTextColor="#9ca3af"
+              style={{ flex: 1, backgroundColor: "#f3f4f6", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#111827" }}
+            />
+            <TouchableOpacity onPress={() => saveAddress(addrInput)} style={{ backgroundColor: "#8B5CF6", borderRadius: 12, paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* City list */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            {CITIES.map((city) => (
+              <TouchableOpacity
+                key={city}
+                onPress={() => saveAddress(city)}
+                style={{ backgroundColor: address === city ? "#8B5CF6" : "#f3f4f6", borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8 }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: "600", color: address === city ? "#fff" : "#374151" }}>{city}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
 
       <FlatList
         data={products}
@@ -256,10 +325,10 @@ export default function HomeScreen() {
         onEndReached={() => { if (hasMore && !loadingMore && !loading) fetchProducts(false); }}
         onEndReachedThreshold={0.4}
         ListEmptyComponent={
-          loading ? <ActivityIndicator color="#2563EB" style={{ marginTop: 20 }} /> : null
+          loading ? <ActivityIndicator color="#8B5CF6" style={{ marginTop: 20 }} /> : null
         }
         ListFooterComponent={
-          loadingMore ? <ActivityIndicator color="#2563EB" style={{ paddingVertical: 16 }} /> : null
+          loadingMore ? <ActivityIndicator color="#8B5CF6" style={{ paddingVertical: 16 }} /> : null
         }
         renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
       />
