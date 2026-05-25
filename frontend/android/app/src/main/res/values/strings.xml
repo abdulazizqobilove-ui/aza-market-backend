@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AZA Market</string>
+    <string name="title_activity_main">AZA Market</string>
+    <string name="package_name">tj.azamarket.app</string>
+    <string name="custom_url_scheme">tj.azamarket.app</string>
+</resources>

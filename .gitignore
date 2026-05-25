@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+
+# Node / React Native
+node_modules/
+.expo/
+dist/
+.next/
+.cache/
+*.log
+
+# Build outputs
+mobile/android/
+mobile/ios/
+frontend/.next/
+frontend/out/
+
+# Uploads (user files)
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
