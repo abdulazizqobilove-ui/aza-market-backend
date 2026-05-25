@@ -21,11 +21,6 @@ def get_categories(db: Session = Depends(get_db)):
     return db.query(Category).filter(Category.parent_id == None).all()
 
 
-@router.get("/categories/all", response_model=List[CategoryOut])
-def get_all_categories(db: Session = Depends(get_db)):
-    return db.query(Category).order_by(sa_text("parent_id NULLS FIRST"), Category.id).all()
-
-
 @router.get("/categories/{cat_id}/subcategories", response_model=List[CategoryOut])
 def get_subcategories(cat_id: int, db: Session = Depends(get_db)):
     return db.query(Category).filter(Category.parent_id == cat_id).all()
