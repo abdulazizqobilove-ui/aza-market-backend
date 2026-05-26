@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 import os
 from app.core.database import Base, engine
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats
 from app.models import payment_card, chat, report  # ensure tables are created
 
@@ -186,6 +189,9 @@ def _seed():
 _seed()
 
 app = FastAPI(title="Marketplace API", version="1.0.0")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

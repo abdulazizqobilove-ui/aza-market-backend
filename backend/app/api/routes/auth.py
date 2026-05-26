@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import random, re
 from app.core.database import get_db
 from app.core.security import hash_password, verify_password, create_access_token
+from app.core.limiter import limiter
 from app.models.user import User, UserRole
 from app.models.otp import OTPCode
 from app.schemas.user import UserCreate, UserLogin, UserOut, Token
@@ -28,7 +29,8 @@ class PhoneVerifyRequest(BaseModel):
 
 
 @router.post("/phone/send")
-def send_otp(data: PhoneSendRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def send_otp(request: Request, data: PhoneSendRequest, db: Session = Depends(get_db)):
     phone = _normalize_phone(data.phone)
     if len(re.sub(r"\D", "", phone)) < 10:
         raise HTTPException(status_code=400, detail="Неверный номер телефона")
@@ -46,7 +48,8 @@ def send_otp(data: PhoneSendRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/phone/verify", response_model=Token)
-def verify_otp(data: PhoneVerifyRequest, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def verify_otp(request: Request, data: PhoneVerifyRequest, db: Session = Depends(get_db)):
     phone = _normalize_phone(data.phone)
     otp = db.query(OTPCode).filter(OTPCode.phone == phone).order_by(OTPCode.created_at.desc()).first()
 

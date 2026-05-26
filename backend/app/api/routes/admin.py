@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
@@ -14,6 +14,7 @@ from app.schemas.user import UserOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.payout import PayoutOut
 from pydantic import BaseModel
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -247,7 +248,8 @@ class ReportReview(BaseModel):
 
 
 @router.post("/reports", response_model=ReportOut, status_code=201)
-def create_report(data: ReportCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+@limiter.limit("3/hour")
+def create_report(request: Request, data: ReportCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     report = Report(reporter_id=user.id, **data.model_dump())
     db.add(report)
     db.commit()
