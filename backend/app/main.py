@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 import os
@@ -226,8 +227,6 @@ app.include_router(chats.router, prefix="/api")
 def health():
     return {"status": "ok"}
 
-
-from fastapi.responses import HTMLResponse
 
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy_policy():
