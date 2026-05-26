@@ -225,3 +225,8 @@ app.include_router(chats.router, prefix="/api")
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/privacy", response_class=__import__("fastapi").responses.HTMLResponse)
+def privacy_policy():
+    return open("/app/docs/index.html", encoding="utf-8").read() if __import__("os").path.exists("/app/docs/index.html") else open("docs/index.html", encoding="utf-8").read()
