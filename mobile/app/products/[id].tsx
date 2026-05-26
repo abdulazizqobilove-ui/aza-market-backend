@@ -1,14 +1,14 @@
 import { useEffect, useState, useRef } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
-  Dimensions, Animated, Share,
+  Dimensions, Animated, Share, Modal, Alert,
 } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft, Heart, Star, ShoppingCart, Plus, Minus,
   Clock, Truck, Shield, Store, ChevronRight, MessageCircle,
-  Share2, ChevronDown, ChevronUp,
+  Share2, ChevronDown, ChevronUp, Flag, X,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -49,6 +49,9 @@ export default function ProductScreen() {
   const [showFullDesc, setShowFullDesc] = useState(false);
   const [showSpecs, setShowSpecs] = useState(true);
   const [showAbout, setShowAbout] = useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportSending, setReportSending] = useState(false);
 
   const imgScrollRef = useRef<ScrollView>(null);
   const favScale = useRef(new Animated.Value(1)).current;
@@ -106,6 +109,18 @@ export default function ProductScreen() {
       setInWaitlist(true);
       Toast.show({ type: "success", text1: "Уведомим когда появится!" });
     }
+  };
+
+  const sendReport = async () => {
+    if (!reportReason.trim()) { Alert.alert("Укажите причину"); return; }
+    setReportSending(true);
+    try {
+      await api.post("/admin/reports", { type: "product", target_id: Number(id), reason: reportReason.trim() });
+      setReportVisible(false);
+      setReportReason("");
+      Toast.show({ type: "success", text1: "Жалоба отправлена", text2: "Мы рассмотрим её в ближайшее время" });
+    } catch { Toast.show({ type: "error", text1: "Ошибка отправки" }); }
+    finally { setReportSending(false); }
   };
 
   const scrollToImage = (i: number) => {
@@ -287,6 +302,17 @@ export default function ProductScreen() {
           </TouchableOpacity>
         )}
 
+        {/* Report button */}
+        {user && user.id !== product.seller_id && (
+          <TouchableOpacity
+            onPress={() => setReportVisible(true)}
+            style={{ marginHorizontal: 16, marginTop: 8, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10 }}
+          >
+            <Flag size={13} color="#9ca3af" />
+            <Text style={{ fontSize: 12, color: "#9ca3af" }}>Пожаловаться на товар</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Description */}
         {product.description && (
           <View className="mx-4 mt-3 bg-white border border-gray-100 rounded-2xl px-4 py-4 shadow-sm">
@@ -374,6 +400,35 @@ export default function ProductScreen() {
         )}
 
       </ScrollView>
+
+      {/* Report Modal */}
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setReportVisible(false)} />
+          <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Пожаловаться на товар</Text>
+              <TouchableOpacity onPress={() => setReportVisible(false)} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+                <X size={16} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 13, color: "#6b7280", marginBottom: 12 }}>Выберите причину жалобы:</Text>
+            {["Поддельный товар", "Неверное описание", "Запрещённый товар", "Мошенничество", "Другое"].map((reason) => (
+              <TouchableOpacity key={reason} onPress={() => setReportReason(reason)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: "#f3f4f6" }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: reportReason === reason ? "#8B5CF6" : "#d1d5db", backgroundColor: reportReason === reason ? "#8B5CF6" : "transparent", alignItems: "center", justifyContent: "center" }}>
+                  {reportReason === reason && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" }} />}
+                </View>
+                <Text style={{ fontSize: 14, color: "#111827" }}>{reason}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={sendReport} disabled={reportSending || !reportReason}
+              style={{ marginTop: 20, backgroundColor: reportReason ? "#8B5CF6" : "#e5e7eb", borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
+              {reportSending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: reportReason ? "#fff" : "#9ca3af", fontSize: 15 }}>Отправить жалобу</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Bottom bar */}
       {user?.role !== "seller" && user?.role !== "admin" && (

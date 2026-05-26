@@ -10,6 +10,7 @@ import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
   ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
+  AlertTriangle, Eye, EyeOff, Tag, Flag,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -18,7 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 
 const P = "#8B5CF6";
-const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры"] as const;
+const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Категории"] as const;
 type Section = typeof SECTIONS[number];
 
 interface Stats {
@@ -36,6 +37,9 @@ interface AppUser { id: number; username?: string; phone?: string; full_name?: s
 interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; created_at: string; }
 interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; image_url?: string | null; link_url?: string | null; }
 interface Payout { id: number; seller_id: number; amount: number; status: string; comment?: string; created_at: string; }
+interface AdminProduct { id: number; title: string; price: number; stock: number; is_active: boolean; seller_id: number; }
+interface Report { id: number; type: string; target_id: number; reason: string; comment?: string; status: string; reporter_id: number; created_at: string; }
+interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
 const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#7c3aed" };
@@ -328,25 +332,35 @@ export default function AdminTabScreen() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [catSlots, setCatSlots] = useState<ApiCategory[]>([]);
+  const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [adminCats, setAdminCats] = useState<AdminCategory[]>([]);
+  const [catForm, setCatForm] = useState<{ visible: boolean; id?: number; name: string; slug: string; parent_id: string }>({ visible: false, name: "", slug: "", parent_id: "" });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bannerFormState, setBannerFormState] = useState<{ visible: boolean; existing: Banner | null; initialLinkUrl?: string | null }>({ visible: false, existing: null });
 
   const loadAll = useCallback(async () => {
     try {
-      const [sRes, uRes, aRes, bRes, pRes, cRes] = await Promise.allSettled([
+      const [sRes, uRes, aRes, bRes, pRes, cRes, apRes, rpRes, acRes] = await Promise.allSettled([
         api.get<Stats>("/admin/stats"),
         api.get<AppUser[]>("/admin/users"),
         api.get<SellerApp[]>("/seller-applications"),
         api.get<Banner[]>("/banners/all"),
         api.get<Payout[]>("/admin/payouts"),
         api.get<ApiCategory[]>("/products/categories"),
+        api.get<AdminProduct[]>("/admin/products"),
+        api.get<Report[]>("/admin/reports"),
+        api.get<AdminCategory[]>("/admin/categories"),
       ]);
       if (sRes.status === "fulfilled") setStats(sRes.value.data);
       if (uRes.status === "fulfilled") setUsers(uRes.value.data);
       if (aRes.status === "fulfilled") setApps(aRes.value.data);
       if (bRes.status === "fulfilled") setBanners(bRes.value.data);
       if (pRes.status === "fulfilled") setPayouts(pRes.value.data);
+      if (apRes.status === "fulfilled") setAdminProducts(apRes.value.data);
+      if (rpRes.status === "fulfilled") setReports(rpRes.value.data);
+      if (acRes.status === "fulfilled") setAdminCats(acRes.value.data);
       if (cRes.status === "fulfilled") {
         const roots = cRes.value.data;
         const subResults = await Promise.allSettled(
@@ -438,6 +452,75 @@ export default function AdminTabScreen() {
 
   const pendingApps = apps.filter((a) => a.status === "pending");
   const pendingPayouts = payouts.filter((p) => p.status === "pending");
+
+  const [prodSearch, setProdSearch] = useState("");
+  const [reportFilter, setReportFilter] = useState<"all" | "pending">("pending");
+  const [catSaving, setCatSaving] = useState(false);
+
+  const toggleProduct = async (p: AdminProduct) => {
+    try {
+      await api.patch(`/admin/products/${p.id}/active`, { is_active: !p.is_active });
+      setAdminProducts((prev) => prev.map((x) => x.id === p.id ? { ...x, is_active: !x.is_active } : x));
+      Toast.show({ type: "success", text1: p.is_active ? "Товар скрыт" : "Товар показан" });
+    } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+  };
+
+  const reviewReport = (id: number, status: "resolved" | "dismissed") => {
+    Alert.alert(
+      status === "resolved" ? "Решить жалобу?" : "Отклонить жалобу?", "",
+      [
+        { text: "Отмена", style: "cancel" },
+        { text: status === "resolved" ? "Решить" : "Отклонить", style: status === "dismissed" ? "destructive" : "default",
+          onPress: async () => {
+            try {
+              await api.patch(`/admin/reports/${id}`, { status });
+              setReports((prev) => prev.map((r) => r.id === id ? { ...r, status } : r));
+              Toast.show({ type: "success", text1: status === "resolved" ? "Решено" : "Отклонено" });
+            } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+          },
+        },
+      ]
+    );
+  };
+
+  const saveCat = async () => {
+    if (!catForm.name.trim() || !catForm.slug.trim()) {
+      Toast.show({ type: "error", text1: "Заполните название и slug" }); return;
+    }
+    setCatSaving(true);
+    try {
+      if (catForm.id) {
+        await api.patch(`/admin/categories/${catForm.id}`, { name: catForm.name.trim(), slug: catForm.slug.trim() });
+        setAdminCats((prev) => prev.map((c) => c.id === catForm.id ? { ...c, name: catForm.name.trim(), slug: catForm.slug.trim() } : c));
+        Toast.show({ type: "success", text1: "Категория обновлена" });
+      } else {
+        const res = await api.post<AdminCategory>("/admin/categories", {
+          name: catForm.name.trim(), slug: catForm.slug.trim(),
+          parent_id: catForm.parent_id ? Number(catForm.parent_id) : null,
+        });
+        setAdminCats((prev) => [...prev, res.data]);
+        Toast.show({ type: "success", text1: "Категория создана" });
+      }
+      setCatForm({ visible: false, name: "", slug: "", parent_id: "" });
+    } catch (e: any) {
+      Toast.show({ type: "error", text1: e?.response?.data?.detail || "Ошибка" });
+    } finally { setCatSaving(false); }
+  };
+
+  const deleteCat = (id: number, name: string) => {
+    Alert.alert("Удалить категорию?", name, [
+      { text: "Отмена", style: "cancel" },
+      { text: "Удалить", style: "destructive", onPress: async () => {
+        try {
+          await api.delete(`/admin/categories/${id}`);
+          setAdminCats((prev) => prev.filter((c) => c.id !== id));
+          Toast.show({ type: "success", text1: "Удалено" });
+        } catch (e: any) {
+          Toast.show({ type: "error", text1: e?.response?.data?.detail || "Ошибка" });
+        }
+      }},
+    ]);
+  };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f3ff" }} edges={["top"]}>
@@ -752,6 +835,155 @@ export default function AdminTabScreen() {
             </>
           )}
 
+          {/* ── ТОВАРЫ ── */}
+          {section === "Товары" && (
+            <>
+              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{adminProducts.length} товаров</Text>
+              <TextInput
+                value={prodSearch} onChangeText={setProdSearch}
+                placeholder="Поиск товара..." placeholderTextColor="#d1d5db"
+                style={{ backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6" }}
+              />
+              {adminProducts
+                .filter((p) => !prodSearch || p.title.toLowerCase().includes(prodSearch.toLowerCase()))
+                .map((p) => (
+                  <View key={p.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: p.is_active ? "#f5f3ff" : "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+                      <Package size={18} color={p.is_active ? P : "#9ca3af"} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: p.is_active ? "#111827" : "#9ca3af" }} numberOfLines={1}>{p.title}</Text>
+                      <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{p.price.toLocaleString()} с. · склад: {p.stock} · ID: {p.id}</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => toggleProduct(p)} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: p.is_active ? "#fef2f2" : "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
+                      {p.is_active ? <EyeOff size={16} color="#ef4444" /> : <Eye size={16} color="#16a34a" />}
+                    </TouchableOpacity>
+                  </View>
+                ))}
+            </>
+          )}
+
+          {/* ── ЖАЛОБЫ ── */}
+          {section === "Жалобы" && (
+            <>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["pending", "all"] as const).map((f) => (
+                  <TouchableOpacity key={f} onPress={() => setReportFilter(f)}
+                    style={{ paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: reportFilter === f ? P : "#f3f4f6" }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: reportFilter === f ? "#fff" : "#6b7280" }}>{f === "pending" ? "Ожидают" : "Все"}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>
+                {reports.filter(r => reportFilter === "all" || r.status === "pending").length} жалоб
+              </Text>
+              {reports.filter(r => reportFilter === "all" || r.status === "pending").length === 0 ? (
+                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Flag size={44} color="#e5e7eb" />
+                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Жалоб нет</Text>
+                </View>
+              ) : reports.filter(r => reportFilter === "all" || r.status === "pending").map((r) => (
+                <View key={r.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                  <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <View style={{ flex: 1, marginRight: 10 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <View style={{ backgroundColor: r.type === "product" ? "#eff6ff" : "#fef2f2", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: r.type === "product" ? "#2563eb" : "#ef4444" }}>
+                            {r.type === "product" ? "Товар" : "Пользователь"} #{r.target_id}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{r.reason}</Text>
+                      {r.comment && <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{r.comment}</Text>}
+                      <Text style={{ fontSize: 11, color: "#d1d5db", marginTop: 4 }}>
+                        От пользователя #{r.reporter_id} · {new Date(r.created_at).toLocaleDateString("ru-RU")}
+                      </Text>
+                    </View>
+                    <View style={{ backgroundColor: (r.status === "pending" ? "#f59e0b" : r.status === "resolved" ? "#16a34a" : "#9ca3af") + "20", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: r.status === "pending" ? "#f59e0b" : r.status === "resolved" ? "#16a34a" : "#9ca3af" }}>
+                        {r.status === "pending" ? "Ожидает" : r.status === "resolved" ? "Решено" : "Отклонено"}
+                      </Text>
+                    </View>
+                  </View>
+                  {r.status === "pending" && (
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity onPress={() => reviewReport(r.id, "resolved")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingVertical: 10, borderRadius: 12 }}>
+                        <CheckCircle size={14} color="#16a34a" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Решить</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => reviewReport(r.id, "dismissed")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f9fafb", paddingVertical: 10, borderRadius: 12 }}>
+                        <XCircle size={14} color="#9ca3af" />
+                        <Text style={{ fontSize: 13, fontWeight: "600", color: "#9ca3af" }}>Отклонить</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </>
+          )}
+
+          {/* ── КАТЕГОРИИ ── */}
+          {section === "Категории" && (
+            <>
+              <TouchableOpacity onPress={() => setCatForm({ visible: true, name: "", slug: "", parent_id: "" })}
+                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
+                <Plus size={16} color="#fff" />
+                <Text style={{ fontWeight: "700", color: "#fff", fontSize: 14 }}>Новая корневая категория</Text>
+              </TouchableOpacity>
+
+              {(() => {
+                const roots = adminCats.filter(c => !c.parent_id);
+                const subsOf = (id: number) => adminCats.filter(c => c.parent_id === id);
+                return roots.map((root) => (
+                  <View key={root.id} style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                    {/* Root row */}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: "#f3f4f6" }}>
+                      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                        <Tag size={14} color={P} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#111827" }}>{root.name}</Text>
+                        <Text style={{ fontSize: 11, color: "#9ca3af" }}>{root.slug}</Text>
+                      </View>
+                      <TouchableOpacity onPress={() => setCatForm({ visible: true, id: root.id, name: root.name, slug: root.slug, parent_id: "" })}
+                        style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
+                        <Pencil size={13} color="#0ea5e9" />
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => deleteCat(root.id, root.name)}
+                        style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
+                        <Trash2 size={13} color="#ef4444" />
+                      </TouchableOpacity>
+                    </View>
+                    {/* Subcategories */}
+                    {subsOf(root.id).map((sub) => (
+                      <View key={sub.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10, paddingLeft: 24, borderBottomWidth: 0.5, borderBottomColor: "#f9fafb" }}>
+                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#d1d5db" }} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: "500", color: "#374151" }}>{sub.name}</Text>
+                          <Text style={{ fontSize: 10, color: "#d1d5db" }}>{sub.slug}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => setCatForm({ visible: true, id: sub.id, name: sub.name, slug: sub.slug, parent_id: String(sub.parent_id) })}
+                          style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
+                          <Pencil size={12} color="#0ea5e9" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => deleteCat(sub.id, sub.name)}
+                          style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
+                          <Trash2 size={12} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    {/* Add subcategory button */}
+                    <TouchableOpacity onPress={() => setCatForm({ visible: true, name: "", slug: "", parent_id: String(root.id) })}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 24, paddingVertical: 10 }}>
+                      <Plus size={12} color="#9ca3af" />
+                      <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>Добавить подкатегорию</Text>
+                    </TouchableOpacity>
+                  </View>
+                ));
+              })()}
+            </>
+          )}
+
           {/* ── БАННЕРЫ ── */}
           {section === "Баннеры" && (
             <>
@@ -887,6 +1119,43 @@ export default function AdminTabScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* Category Form Modal */}
+      <Modal visible={catForm.visible} transparent animationType="slide" onRequestClose={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })}>
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })} />
+          <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>
+                {catForm.id ? "Редактировать категорию" : catForm.parent_id ? "Новая подкатегория" : "Новая категория"}
+              </Text>
+              <TouchableOpacity onPress={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+                <X size={16} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+            {catForm.parent_id ? (
+              <View style={{ backgroundColor: "#f5f3ff", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 }}>
+                <Text style={{ fontSize: 12, color: P, fontWeight: "600" }}>
+                  Подкатегория для: {adminCats.find(c => c.id === Number(catForm.parent_id))?.name ?? `#${catForm.parent_id}`}
+                </Text>
+              </View>
+            ) : null}
+            <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>НАЗВАНИЕ</Text>
+            <TextInput value={catForm.name} onChangeText={(v) => setCatForm(f => ({ ...f, name: v }))}
+              placeholder="Электроника" placeholderTextColor="#d1d5db"
+              style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: catForm.name ? P : "#f3f4f6", marginBottom: 12 }} />
+            <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>SLUG (латиница)</Text>
+            <TextInput value={catForm.slug} onChangeText={(v) => setCatForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s+/g, "-") }))}
+              placeholder="electronics" placeholderTextColor="#d1d5db" autoCapitalize="none"
+              style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: catForm.slug ? P : "#f3f4f6", marginBottom: 20 }} />
+            <TouchableOpacity onPress={saveCat} disabled={catSaving}
+              style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
+              {catSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff", fontSize: 15 }}>{catForm.id ? "Сохранить" : "Создать"}</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Banner Form Modal */}
       <Modal visible={bannerFormState.visible} transparent animationType="slide" onRequestClose={() => setBannerFormState({ visible: false, existing: null })}>
