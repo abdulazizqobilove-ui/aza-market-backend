@@ -4,11 +4,18 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as Sentry from "@sentry/react-native";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 import { useFavoritesStore } from "@/store/favorites";
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: "https://ca06cef015beee42cef9a886378d9f9e@o4511453703700480.ingest.us.sentry.io/4511453707436032",
+  tracesSampleRate: 0.2,
+  enabled: !__DEV__,
+});
+
+export default Sentry.wrap(function RootLayout() {
   const init = useAuthStore((s) => s.init);
   const user = useAuthStore((s) => s.user);
   const fetchCart = useCartStore((s) => s.fetch);
@@ -50,4 +57,4 @@ export default function RootLayout() {
       <Toast />
     </GestureHandlerRootView>
   );
-}
+});
