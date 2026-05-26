@@ -10,6 +10,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import api, { Product, ProductsResponse, Category, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/components/ProductCard";
+import { SkeletonBox } from "@/components/Skeleton";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";
 
@@ -124,6 +125,57 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
         </View>
       )}
     </View>
+  );
+}
+
+function HomeSkeleton() {
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 40 }} scrollEnabled={false}>
+      {/* Banner skeleton */}
+      <View style={{ paddingHorizontal: 12, paddingTop: 16, marginBottom: 20 }}>
+        <SkeletonBox height={160} borderRadius={20} />
+      </View>
+
+      {/* Categories skeleton */}
+      <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
+        <SkeletonBox width={120} height={16} borderRadius={6} style={{ marginBottom: 12 }} />
+        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+          {[80, 100, 90, 110, 85, 95, 75, 105].map((w, i) => (
+            <SkeletonBox key={i} width={w} height={36} borderRadius={16} />
+          ))}
+        </View>
+      </View>
+
+      {/* Popular skeleton */}
+      <View style={{ paddingHorizontal: 12, marginBottom: 20 }}>
+        <SkeletonBox width={140} height={16} borderRadius={6} style={{ marginBottom: 12 }} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }} scrollEnabled={false}>
+          {[0, 1, 2].map((i) => (
+            <View key={i} style={{ width: 150, gap: 8 }}>
+              <SkeletonBox height={140} borderRadius={14} />
+              <SkeletonBox width="80%" height={12} borderRadius={6} />
+              <SkeletonBox width="50%" height={12} borderRadius={6} />
+              <SkeletonBox width="60%" height={16} borderRadius={6} />
+            </View>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Grid skeleton */}
+      <View style={{ paddingHorizontal: 12 }}>
+        <SkeletonBox width={120} height={16} borderRadius={6} style={{ marginBottom: 12 }} />
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <View key={i} style={{ width: (SW - 32) / 2, gap: 8 }}>
+              <SkeletonBox height={180} borderRadius={14} />
+              <SkeletonBox width="80%" height={12} borderRadius={6} />
+              <SkeletonBox width="50%" height={12} borderRadius={6} />
+              <SkeletonBox width="60%" height={18} borderRadius={6} style={{ marginBottom: 8 }} />
+            </View>
+          ))}
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
@@ -357,25 +409,24 @@ export default function HomeScreen() {
         </View>
       </Modal>
 
-      <FlatList
-        data={products}
-        numColumns={2}
-        keyExtractor={(p) => String(p.id)}
-        columnWrapperStyle={{ gap: 8, paddingHorizontal: 12 }}
-        contentContainerStyle={{ paddingBottom: 32, gap: 8 }}
-        ListHeaderComponent={<Header />}
-        removeClippedSubviews={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        onEndReached={() => { if (hasMore && !loadingMore && !loading) fetchProducts(false); }}
-        onEndReachedThreshold={0.4}
-        ListEmptyComponent={
-          loading ? <ActivityIndicator color="#8B5CF6" style={{ marginTop: 20 }} /> : null
-        }
-        ListFooterComponent={
-          loadingMore ? <ActivityIndicator color="#8B5CF6" style={{ paddingVertical: 16 }} /> : null
-        }
-        renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
-      />
+      {loading ? <HomeSkeleton /> : (
+        <FlatList
+          data={products}
+          numColumns={2}
+          keyExtractor={(p) => String(p.id)}
+          columnWrapperStyle={{ gap: 8, paddingHorizontal: 12 }}
+          contentContainerStyle={{ paddingBottom: 32, gap: 8 }}
+          ListHeaderComponent={<Header />}
+          removeClippedSubviews={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          onEndReached={() => { if (hasMore && !loadingMore && !loading) fetchProducts(false); }}
+          onEndReachedThreshold={0.4}
+          ListFooterComponent={
+            loadingMore ? <ActivityIndicator color="#8B5CF6" style={{ paddingVertical: 16 }} /> : null
+          }
+          renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
+        />
+      )}
     </SafeAreaView>
   );
 }
