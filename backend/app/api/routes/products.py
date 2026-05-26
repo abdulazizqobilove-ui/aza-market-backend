@@ -192,12 +192,10 @@ def upload_images(
 
     has_main = bool(product.images)
     for i, file in enumerate(files):
-        try:
-            url = cloud_upload(file, folder="products")
-            is_main = not has_main and i == 0
-            db.add(ProductImage(product_id=product.id, url=url, is_main=is_main))
-        except Exception:
-            pass
+        url = cloud_upload(file, folder="products")
+        is_main = not has_main and i == 0
+        db.add(ProductImage(product_id=product.id, url=url, is_main=is_main))
+        has_main = True
     db.commit()
 
     return db.query(Product).options(

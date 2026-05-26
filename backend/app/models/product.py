@@ -36,6 +36,8 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
+    sku = Column(String, nullable=True)
+
     seller_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("mkt_categories.id"), nullable=False)
 
