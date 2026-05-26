@@ -85,3 +85,12 @@ class ProductListOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class WaitlistItemOut(BaseModel):
+    id: int
+    product_id: int
+    product: ProductListOut
+
+    class Config:
+        from_attributes = True

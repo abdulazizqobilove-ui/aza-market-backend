@@ -26,18 +26,16 @@ def add_favorite(product_id: int, db: Session = Depends(get_db), user: User = De
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     existing = db.query(Favorite).filter(Favorite.user_id == user.id, Favorite.product_id == product_id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Already in favorites")
-    fav = Favorite(user_id=user.id, product_id=product_id)
-    db.add(fav)
-    db.commit()
+    if not existing:
+        fav = Favorite(user_id=user.id, product_id=product_id)
+        db.add(fav)
+        db.commit()
     return {"ok": True}
 
 
 @router.delete("/{product_id}", status_code=204)
 def remove_favorite(product_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     fav = db.query(Favorite).filter(Favorite.user_id == user.id, Favorite.product_id == product_id).first()
-    if not fav:
-        raise HTTPException(status_code=404, detail="Not in favorites")
-    db.delete(fav)
-    db.commit()
+    if fav:
+        db.delete(fav)
+        db.commit()

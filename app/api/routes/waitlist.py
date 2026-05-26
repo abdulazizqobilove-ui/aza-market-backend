@@ -6,21 +6,27 @@ from app.api.deps import get_current_user
 from app.models.waitlist import Waitlist
 from app.models.product import Product
 from app.models.user import User
-from app.schemas.product import ProductListOut
+from app.schemas.product import WaitlistItemOut
 
 router = APIRouter(prefix="/waitlist", tags=["waitlist"])
 
 
-@router.get("", response_model=List[ProductListOut])
+@router.get("", response_model=List[WaitlistItemOut])
 def get_waitlist(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     items = db.query(Waitlist).filter(Waitlist.user_id == user.id).all()
-    product_ids = [i.product_id for i in items]
-    if not product_ids:
+    if not items:
         return []
-    return db.query(Product).options(
+    product_ids = [i.product_id for i in items]
+    products = db.query(Product).options(
         joinedload(Product.category),
         joinedload(Product.images),
     ).filter(Product.id.in_(product_ids)).all()
+    product_map = {p.id: p for p in products}
+    return [
+        {"id": item.id, "product_id": item.product_id, "product": product_map[item.product_id]}
+        for item in items
+        if item.product_id in product_map
+    ]
 
 
 @router.post("/{product_id}", status_code=201)
