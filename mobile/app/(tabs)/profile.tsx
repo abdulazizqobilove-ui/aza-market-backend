@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import {
   User as UserIcon, Package, Heart, LogOut, LogIn,
   Clock, ChevronRight, Store, Shield, ClipboardList, TrendingUp,
-  Bell, Wallet, MessageSquare, CreditCard, Pencil,
+  Bell, Wallet, MessageSquare, CreditCard, Pencil, FileText,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/auth";
@@ -216,6 +216,7 @@ export default function ProfileScreen() {
           {/* Common bottom */}
           <Section>
             <Row label="Уведомления" icon={Bell} color="#f59e0b" onPress={() => router.push("/notifications" as any)} />
+            <Row label="Политика конфиденциальности" icon={FileText} color="#9ca3af" onPress={() => router.push("/privacy" as any)} />
           </Section>
 
           <Text className="text-center text-xs text-gray-300">AZA Market · Версия 1.0.0 · Таджикистан</Text>

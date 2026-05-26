@@ -63,6 +63,7 @@ export default Sentry.wrap(function RootLayout() {
         <Stack.Screen name="write-review/[id]" />
         <Stack.Screen name="reviews/[id]" />
         <Stack.Screen name="waitlist" />
+        <Stack.Screen name="privacy" />
       </Stack>
       <OfflineBanner />
       <Toast />
