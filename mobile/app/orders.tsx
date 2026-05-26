@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, FlatList, ActivityIndicator } from "react
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Package, MapPin, ChevronRight, Clock, CheckCircle2, Truck, Star } from "lucide-react-native";
+import { EmptyState } from "@/components/EmptyState";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api, { Order, API_URL, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
@@ -52,10 +53,11 @@ export default function OrdersScreen() {
           keyExtractor={(o) => String(o.id)}
           contentContainerStyle={{ padding: 12, gap: 8, paddingBottom: 24 }}
           ListEmptyComponent={
-            <View className="items-center py-20">
-              <Package size={48} color="#e5e7eb" />
-              <Text className="text-gray-400 mt-3">Заказов пока нет</Text>
-            </View>
+            <EmptyState
+              emoji="📦"
+              title="Заказов пока нет"
+              subtitle="Здесь появятся ваши заказы после первой покупки"
+            />
           }
           renderItem={({ item: order }) => {
             const sc = STATUS_COLORS[order.status] || STATUS_COLORS.pending;

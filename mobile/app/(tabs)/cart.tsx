@@ -7,6 +7,7 @@ import { useCartStore } from "@/store/cart";
 import { useAuthStore } from "@/store/auth";
 import { API_URL, imgUrl } from "@/lib/api";
 import { useState, useEffect } from "react";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function CartScreen() {
   const router = useRouter();
@@ -52,10 +53,13 @@ export default function CartScreen() {
       {loading ? (
         <ActivityIndicator color="#8B5CF6" className="mt-10" />
       ) : items.length === 0 ? (
-        <View className="flex-1 items-center justify-center">
-          <ShoppingBag size={48} color="#e5e7eb" />
-          <Text className="text-gray-400 mt-3">Корзина пуста</Text>
-        </View>
+        <EmptyState
+          emoji="🛒"
+          title="Корзина пуста"
+          subtitle="Добавьте товары из каталога и они появятся здесь"
+          actionLabel="Перейти в каталог"
+          onAction={() => router.push("/(tabs)/catalog")}
+        />
       ) : (
         <FlatList
           data={items}

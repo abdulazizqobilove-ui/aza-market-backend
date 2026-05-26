@@ -5,6 +5,9 @@ import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as Sentry from "@sentry/react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 import { useFavoritesStore } from "@/store/favorites";
@@ -16,6 +19,7 @@ Sentry.init({
 });
 
 export default Sentry.wrap(function RootLayout() {
+  const router = useRouter();
   const init = useAuthStore((s) => s.init);
   const user = useAuthStore((s) => s.user);
   const fetchCart = useCartStore((s) => s.fetch);
@@ -23,7 +27,12 @@ export default Sentry.wrap(function RootLayout() {
   const fetchFavs = useFavoritesStore((s) => s.fetch);
   const clearFavs = useFavoritesStore((s) => s.clear);
 
-  useEffect(() => { init(); }, []);
+  useEffect(() => {
+    init();
+    AsyncStorage.getItem("onboarding_done").then((done) => {
+      if (!done) router.replace("/onboarding");
+    });
+  }, []);
 
   useEffect(() => {
     if (user) { fetchCart(); fetchFavs(); }
@@ -34,6 +43,7 @@ export default Sentry.wrap(function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="dark" />
       <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+        <Stack.Screen name="onboarding" options={{ animation: "fade", gestureEnabled: false }} />
         <Stack.Screen name="(tabs)" options={{ animation: "none" }} />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="products/[id]" />
@@ -54,6 +64,7 @@ export default Sentry.wrap(function RootLayout() {
         <Stack.Screen name="reviews/[id]" />
         <Stack.Screen name="waitlist" />
       </Stack>
+      <OfflineBanner />
       <Toast />
     </GestureHandlerRootView>
   );
