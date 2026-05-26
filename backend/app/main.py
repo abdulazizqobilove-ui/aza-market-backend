@@ -13,52 +13,23 @@ from app.models import payment_card, chat, report  # ensure tables are created
 
 Base.metadata.create_all(bind=engine)
 
-# Migrations — each in its own try/except so one failure doesn't block the rest
-from sqlalchemy import text as _sql, inspect as _inspect
-_existing_review_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_reviews")]
-_existing_user_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_users")]
-_existing_product_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_products")]
-_existing_banner_cols = [c["name"] for c in _inspect(engine).get_columns("mkt_banners")]
-for _stmt in (
-    [] if "images" in _existing_review_cols else
-    ["ALTER TABLE mkt_reviews ADD COLUMN images JSONB DEFAULT '[]'"]
-) + (
-    [] if "avatar_url" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN avatar_url VARCHAR"]
-) + (
-    [] if "push_token" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN push_token VARCHAR"]
-) + (
-    [] if "sales_count" in _existing_product_cols else
-    ["ALTER TABLE mkt_products ADD COLUMN sales_count INTEGER NOT NULL DEFAULT 0"]
-) + (
-    [] if "about" in _existing_product_cols else
-    ["ALTER TABLE mkt_products ADD COLUMN about TEXT"]
-) + (
-    [] if "attributes" in _existing_product_cols else
-    ["ALTER TABLE mkt_products ADD COLUMN attributes JSONB DEFAULT '{}'::jsonb"]
-) + (
-    [] if "shop_name" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN shop_name VARCHAR"]
-) + (
-    [] if "shop_description" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN shop_description VARCHAR"]
-) + (
-    [] if "shop_banner_url" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN shop_banner_url VARCHAR"]
-) + (
-    [] if "shop_logo_url" in _existing_user_cols else
-    ["ALTER TABLE mkt_users ADD COLUMN shop_logo_url VARCHAR"]
-) + (
-    [] if "link_url" in _existing_banner_cols else
-    ["ALTER TABLE mkt_banners ADD COLUMN link_url VARCHAR"]
-) + (
-    [] if "image_url" in _existing_banner_cols else
-    ["ALTER TABLE mkt_banners ADD COLUMN image_url VARCHAR"]
-) + (
-    [] if "sku" in _existing_product_cols else
-    ["ALTER TABLE mkt_products ADD COLUMN sku VARCHAR"]
-):
+# Migrations — idempotent via IF NOT EXISTS, each in its own try/except
+from sqlalchemy import text as _sql
+for _stmt in [
+    "ALTER TABLE mkt_reviews ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS push_token VARCHAR",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sales_count INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS about TEXT",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '{}'::jsonb",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_name VARCHAR",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_description VARCHAR",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_banner_url VARCHAR",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_logo_url VARCHAR",
+    "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS link_url VARCHAR",
+    "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS image_url VARCHAR",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sku VARCHAR",
+]:
     try:
         with engine.begin() as _conn:
             _conn.execute(_sql(_stmt))
