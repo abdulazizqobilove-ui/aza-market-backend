@@ -30,6 +30,7 @@ class ProductCreate(BaseModel):
     stock: int = 0
     brand: Optional[str] = None
     category_id: int
+    sku: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -41,6 +42,7 @@ class ProductUpdate(BaseModel):
     brand: Optional[str] = None
     category_id: Optional[int] = None
     is_active: Optional[bool] = None
+    sku: Optional[str] = None
 
 
 class ProductOut(BaseModel):
@@ -51,6 +53,7 @@ class ProductOut(BaseModel):
     original_price: Optional[float]
     stock: int
     brand: Optional[str]
+    sku: Optional[str] = None
     rating: float
     reviews_count: int
     is_active: bool
@@ -70,6 +73,7 @@ class ProductListOut(BaseModel):
     original_price: Optional[float]
     stock: int
     brand: Optional[str]
+    sku: Optional[str] = None
     rating: float
     reviews_count: int
     is_active: bool

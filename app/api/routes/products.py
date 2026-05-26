@@ -5,6 +5,7 @@ from typing import List, Optional
 import os, uuid, shutil
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.upload import upload_image as cloud_upload
 from app.api.deps import get_current_user, require_seller
 from app.models.product import Product, Category, ProductImage
 from app.models.user import User
@@ -179,9 +180,9 @@ def delete_product(
 
 
 @router.post("/{product_id}/images", response_model=ProductOut)
-def upload_image(
+def upload_images(
     product_id: int,
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
@@ -189,17 +190,12 @@ def upload_image(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    is_main = not bool(product.images)
-    image = ProductImage(product_id=product.id, url=f"/uploads/{filename}", is_main=is_main)
-    db.add(image)
+    has_main = bool(product.images)
+    for i, file in enumerate(files):
+        url = cloud_upload(file, folder="products")
+        is_main = not has_main and i == 0
+        db.add(ProductImage(product_id=product.id, url=url, is_main=is_main))
+        has_main = True
     db.commit()
 
     return db.query(Product).options(

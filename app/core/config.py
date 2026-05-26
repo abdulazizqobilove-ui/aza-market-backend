@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379"
     UPLOAD_DIR: str = "uploads"
 
+    SUPABASE_URL: str = ""
+    SUPABASE_SERVICE_KEY: str = ""
+    SUPABASE_BUCKET: str = "marketplace"
+
     class Config:
         env_file = ".env"
 

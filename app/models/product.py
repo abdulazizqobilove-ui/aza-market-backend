@@ -26,7 +26,7 @@ class Product(Base):
     price = Column(Float, nullable=False)
     original_price = Column(Float)
     stock = Column(Integer, default=0)
-    sku = Column(String, unique=True)
+    sku = Column(String, nullable=True)
     brand = Column(String)
     rating = Column(Float, default=0.0)
     reviews_count = Column(Integer, default=0)
