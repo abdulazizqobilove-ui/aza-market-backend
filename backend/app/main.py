@@ -184,6 +184,10 @@ def _seed():
             db.add(User(phone="+992666666666", username="demo_seller", full_name="Демо Продавец", role=UserRole.seller,
                         shop_name="Демо Магазин"))
             db.commit()
+
+        if not db.query(User).filter(User.phone == "+992555555555").first():
+            db.add(User(phone="+992555555555", username="google_reviewer", full_name="Test User", role=UserRole.buyer))
+            db.commit()
     except: pass
     finally: db.close()
 
