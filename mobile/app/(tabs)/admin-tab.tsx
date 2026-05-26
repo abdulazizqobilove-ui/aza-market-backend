@@ -9,11 +9,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
-  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus,
+  ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import api, { imgUrl } from "@/lib/api";
+import api, { imgUrl, API_URL } from "@/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 
 const P = "#8B5CF6";
@@ -33,7 +34,7 @@ interface Stats {
 }
 interface AppUser { id: number; username?: string; phone?: string; full_name?: string; role: string; is_active: boolean; created_at: string; }
 interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; created_at: string; }
-interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; }
+interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; image_url?: string | null; link_url?: string | null; }
 interface Payout { id: number; seller_id: number; amount: number; status: string; comment?: string; created_at: string; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
@@ -76,18 +77,46 @@ const COLOR_PRESETS = [
 ];
 const EMOJI_PICKS = ["🔥", "💥", "🎉", "⚡", "🛒", "📦", "👗", "💎", "🏷️", "🎁", "📱", "👟"];
 
-interface ApiCategory { id: number; name: string; slug: string; }
+interface ApiCategory { id: number; name: string; slug: string; parent_id?: number | null; }
 
-function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => void }) {
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [emoji, setEmoji] = useState("🔥");
-  const [preset, setPreset] = useState(0);
+type LinkType = "none" | "category" | "url";
+
+function parseLinkUrl(link?: string | null): { type: LinkType; slug: string | null; url: string } {
+  if (!link) return { type: "none", slug: null, url: "" };
+  if (link.startsWith("category:")) return { type: "category", slug: link.replace("category:", ""), url: "" };
+  return { type: "url", slug: null, url: link };
+}
+
+function buildLinkUrl(type: LinkType, slug: string | null, url: string): string | null {
+  if (type === "category" && slug) return `category:${slug}`;
+  if (type === "url" && url.trim()) return url.trim();
+  return null;
+}
+
+function BannerForm({
+  onSave, onClose, existing, initialLinkUrl,
+}: {
+  onSave: () => void;
+  onClose: () => void;
+  existing?: Banner | null;
+  initialLinkUrl?: string | null;
+}) {
+  const parsed = parseLinkUrl(existing?.link_url ?? initialLinkUrl);
+  const initPreset = existing
+    ? Math.max(0, COLOR_PRESETS.findIndex(c => c.bg === existing.bg_color))
+    : 0;
+
+  const [title, setTitle] = useState(existing?.title ?? "");
+  const [subtitle, setSubtitle] = useState(existing?.subtitle ?? "");
+  const [emoji, setEmoji] = useState(existing?.emoji ?? "🔥");
+  const [preset, setPreset] = useState(initPreset < 0 ? 0 : initPreset);
   const [imageUri, setImageUri] = useState<string | null>(null);
-  const [linkType, setLinkType] = useState<"none" | "category">("none");
-  const [linkSlug, setLinkSlug] = useState<string | null>(null);
+  const [linkType, setLinkType] = useState<LinkType>(parsed.type);
+  const [linkSlug, setLinkSlug] = useState<string | null>(parsed.slug);
+  const [linkUrl, setLinkUrl] = useState(parsed.url);
   const [apiCategories, setApiCategories] = useState<ApiCategory[]>([]);
   const [saving, setSaving] = useState(false);
+  const isEdit = !!existing;
 
   const { bg, accent } = COLOR_PRESETS[preset];
 
@@ -97,119 +126,134 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Toast.show({ type: "error", text1: "Нет доступа к галерее" });
-      return;
-    }
+    if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.85,
-      allowsEditing: true,
-      aspect: [16, 6],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85,
+      allowsEditing: true, aspect: [16, 6],
     });
-    if (!result.canceled && result.assets[0]) {
-      setImageUri(result.assets[0].uri);
-    }
+    if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
   };
 
   const save = async () => {
-    if (!title.trim()) { Toast.show({ type: "error", text1: "Введите заголовок" }); return; }
     if (linkType === "category" && !linkSlug) { Toast.show({ type: "error", text1: "Выберите категорию" }); return; }
+    if (linkType === "url" && !linkUrl.trim()) { Toast.show({ type: "error", text1: "Введите ссылку" }); return; }
     setSaving(true);
     try {
-      const form = new FormData();
-      form.append("title", title.trim());
-      if (subtitle.trim()) form.append("subtitle", subtitle.trim());
-      form.append("bg_color", bg);
-      form.append("accent_color", accent);
-      form.append("emoji", emoji);
-      form.append("sort_order", "0");
-      if (linkType === "category" && linkSlug) form.append("link_url", `category:${linkSlug}`);
-      if (imageUri) {
-        const ext = imageUri.split(".").pop() || "jpg";
-        form.append("image", { uri: imageUri, name: `banner.${ext}`, type: `image/${ext}` } as any);
+      const finalLink = buildLinkUrl(linkType, linkSlug, linkUrl);
+
+      const token = await AsyncStorage.getItem("token");
+
+      const xhrRequest = (method: string, url: string, body: FormData) =>
+        new Promise<any>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open(method, url);
+          if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              try { resolve(JSON.parse(xhr.responseText)); } catch { resolve({}); }
+            } else {
+              try { reject(new Error(JSON.parse(xhr.responseText)?.detail || `HTTP ${xhr.status}`)); }
+              catch { reject(new Error(`HTTP ${xhr.status}`)); }
+            }
+          };
+          xhr.onerror = () => reject(new Error("Сетевая ошибка"));
+          xhr.send(body);
+        });
+
+      if (isEdit && existing) {
+        await api.patch(`/banners/${existing.id}`, {
+          title: title.trim(), subtitle: subtitle.trim() || null,
+          bg_color: COLOR_PRESETS[preset].bg, accent_color: COLOR_PRESETS[preset].accent,
+          emoji, link_url: finalLink,
+        });
+        if (imageUri) {
+          const form = new FormData();
+          form.append("file", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
+          await xhrRequest("POST", `${API_URL}/api/banners/${existing.id}/image`, form).catch(() => {});
+        }
+        Toast.show({ type: "success", text1: "Баннер обновлён" });
+      } else {
+        const form = new FormData();
+        form.append("title", title.trim() || " ");
+        if (subtitle.trim()) form.append("subtitle", subtitle.trim());
+        form.append("bg_color", COLOR_PRESETS[preset].bg);
+        form.append("accent_color", COLOR_PRESETS[preset].accent);
+        if (emoji) form.append("emoji", emoji);
+        if (finalLink) form.append("link_url", finalLink);
+        form.append("sort_order", "0");
+        if (imageUri) form.append("image", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
+        await xhrRequest("POST", `${API_URL}/api/banners`, form);
+        Toast.show({ type: "success", text1: "Баннер создан" });
       }
-      await api.post("/banners", form, { headers: { "Content-Type": "multipart/form-data" } });
-      Toast.show({ type: "success", text1: "Баннер создан" });
       onSave();
-    } catch { Toast.show({ type: "error", text1: "Ошибка сохранения" }); }
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail || e?.message || "Неизвестная ошибка";
+      Toast.show({ type: "error", text1: "Ошибка сохранения", text2: String(msg), visibilityTime: 6000 });
+    }
     finally { setSaving(false); }
   };
 
+  const previewBg = COLOR_PRESETS[preset].bg;
+  const previewAccent = COLOR_PRESETS[preset].accent;
+  const previewImg = imageUri ?? (existing?.image_url ? imgUrl(existing.image_url) : null);
+
   return (
-    <ScrollView style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24 }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ backgroundColor: "#fff" }} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
       {/* Header */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Новый баннер</Text>
+        <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>{isEdit ? "Редактировать баннер" : "Новый баннер"}</Text>
         <TouchableOpacity onPress={onClose} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
           <X size={16} color="#6b7280" />
         </TouchableOpacity>
       </View>
 
       {/* Live preview */}
-      <View style={{ height: 120, borderRadius: 18, backgroundColor: bg, overflow: "hidden", marginBottom: 20 }}>
-        {imageUri
-          ? <Image source={{ uri: imageUri }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+      <View style={{ height: 120, borderRadius: 18, backgroundColor: previewBg, overflow: "hidden", marginBottom: 20 }}>
+        {previewImg
+          ? <Image source={{ uri: previewImg }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
           : <>
-              <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: accent, opacity: 0.25 }} />
-              <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: accent, opacity: 0.15 }} />
+              <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: previewAccent, opacity: 0.25 }} />
+              <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: previewAccent, opacity: 0.15 }} />
             </>
         }
-        {/* Overlay text always shown */}
         <View style={{ position: "absolute", inset: 0, padding: 18, justifyContent: "flex-end" }}>
-          {!imageUri && <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>}
+          {!previewImg && <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>}
           <Text style={{ fontSize: 16, fontWeight: "900", color: "#fff" }} numberOfLines={1}>{title || "Заголовок баннера"}</Text>
-          {subtitle ? <Text style={{ fontSize: 12, color: imageUri ? "#fff" : accent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
+          {subtitle ? <Text style={{ fontSize: 12, color: previewImg ? "#fff" : previewAccent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
         </View>
       </View>
 
       {/* Image picker */}
-      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ФОТО БАННЕРА (необязательно)</Text>
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ФОТО БАННЕРА</Text>
       <TouchableOpacity onPress={pickImage} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: imageUri ? "#f0fdf4" : "#f9fafb", borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: imageUri ? "#86efac" : "#f3f4f6", marginBottom: 16 }}>
         <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: imageUri ? "#dcfce7" : "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
           <ImagePlus size={20} color={imageUri ? "#16a34a" : "#9ca3af"} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 14, fontWeight: "600", color: imageUri ? "#16a34a" : "#374151" }}>
-            {imageUri ? "Фото выбрано" : "Выбрать фото"}
-          </Text>
-          <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>
-            {imageUri ? "Нажмите чтобы заменить" : "Перекроет цвет и эмодзи"}
-          </Text>
+          <Text style={{ fontSize: 14, fontWeight: "600", color: imageUri ? "#16a34a" : "#374151" }}>{imageUri ? "Новое фото выбрано" : (existing?.image_url ? "Заменить фото" : "Выбрать фото")}</Text>
+          <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 1 }}>{imageUri ? "Нажмите чтобы заменить" : "Перекроет цвет и эмодзи"}</Text>
         </View>
-        {imageUri && (
-          <TouchableOpacity onPress={() => setImageUri(null)} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
-            <X size={13} color="#ef4444" />
-          </TouchableOpacity>
-        )}
+        {imageUri && <TouchableOpacity onPress={() => setImageUri(null)} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}><X size={13} color="#ef4444" /></TouchableOpacity>}
       </TouchableOpacity>
 
-      {/* Text inputs */}
-      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ЗАГОЛОВОК *</Text>
-      <TextInput
-        value={title} onChangeText={setTitle}
-        placeholder="Скидки до 50%"
-        placeholderTextColor="#d1d5db"
-        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: title ? P : "#f3f4f6", marginBottom: 12 }}
-      />
+      {/* Text */}
+      <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ЗАГОЛОВОК</Text>
+      <TextInput value={title} onChangeText={setTitle} placeholder="Скидки до 50%" placeholderTextColor="#d1d5db"
+        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: title ? P : "#f3f4f6", marginBottom: 12 }} />
 
       <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>ПОДЗАГОЛОВОК</Text>
-      <TextInput
-        value={subtitle} onChangeText={setSubtitle}
-        placeholder="На все категории"
-        placeholderTextColor="#d1d5db"
-        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6", marginBottom: 16 }}
-      />
+      <TextInput value={subtitle} onChangeText={setSubtitle} placeholder="На все категории" placeholderTextColor="#d1d5db"
+        style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6", marginBottom: 16 }} />
 
-      {/* Emoji picker — hidden when image is set */}
-      {!imageUri && (
+      {/* Emoji */}
+      {!previewImg && (
         <>
           <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЭМОДЗИ</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {EMOJI_PICKS.map((e) => (
                 <TouchableOpacity key={e} onPress={() => setEmoji(e)}
-                  style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: emoji === e ? bg : "#f3f4f6", alignItems: "center", justifyContent: "center", borderWidth: emoji === e ? 2 : 0, borderColor: bg }}>
+                  style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: emoji === e ? previewBg : "#f3f4f6", alignItems: "center", justifyContent: "center", borderWidth: emoji === e ? 2 : 0, borderColor: previewBg }}>
                   <Text style={{ fontSize: 22 }}>{e}</Text>
                 </TouchableOpacity>
               ))}
@@ -218,7 +262,7 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
         </>
       )}
 
-      {/* Color presets */}
+      {/* Color */}
       <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>ЦВЕТ БАННЕРА</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
         {COLOR_PRESETS.map((c, i) => (
@@ -230,47 +274,47 @@ function BannerForm({ onSave, onClose }: { onSave: () => void; onClose: () => vo
         ))}
       </View>
 
-      {/* Link destination */}
+      {/* Link */}
       <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 8 }}>КУДА ВЕДЁТ БАННЕР</Text>
-      <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
-        <TouchableOpacity onPress={() => { setLinkType("none"); setLinkSlug(null); }}
-          style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: linkType === "none" ? "#f3f4f6" : "#fff", borderWidth: 1.5, borderColor: linkType === "none" ? "#6b7280" : "#e5e7eb", alignItems: "center" }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: linkType === "none" ? "#374151" : "#9ca3af" }}>Никуда</Text>
-          <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>только показ</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => setLinkType("category")}
-          style={{ flex: 1, paddingVertical: 10, borderRadius: 12, backgroundColor: linkType === "category" ? "#f5f3ff" : "#fff", borderWidth: 1.5, borderColor: linkType === "category" ? P : "#e5e7eb", alignItems: "center" }}>
-          <Text style={{ fontSize: 13, fontWeight: "600", color: linkType === "category" ? P : "#9ca3af" }}>Категория</Text>
-          <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>открыть раздел</Text>
-        </TouchableOpacity>
+      <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
+        {([["none","Никуда","только показ"],["category","Категория","раздел каталога"],["url","Ссылка","внешний сайт"]] as [LinkType,string,string][]).map(([type, label, sub]) => (
+          <TouchableOpacity key={type} onPress={() => { setLinkType(type); if (type !== "category") setLinkSlug(null); if (type !== "url") setLinkUrl(""); }}
+            style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: linkType === type ? (type === "none" ? "#f3f4f6" : "#f5f3ff") : "#fff", borderWidth: 1.5, borderColor: linkType === type ? (type === "none" ? "#6b7280" : P) : "#e5e7eb", alignItems: "center" }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: linkType === type ? (type === "none" ? "#374151" : P) : "#9ca3af" }}>{label}</Text>
+            <Text style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>{sub}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {linkType === "category" && (
         <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>Выберите категорию:</Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: "row", gap: 8, paddingBottom: 4 }}>
             {apiCategories.map((c) => (
               <TouchableOpacity key={c.id} onPress={() => setLinkSlug(c.slug)}
-                style={{ paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, backgroundColor: linkSlug === c.slug ? P : "#f3f4f6", borderWidth: linkSlug === c.slug ? 0 : 1, borderColor: "#e5e7eb" }}>
-                <Text style={{ fontSize: 12, fontWeight: "600", color: linkSlug === c.slug ? "#fff" : "#374151" }}>{c.name}</Text>
+                style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: linkSlug === c.slug ? P : "#f3f4f6", borderWidth: linkSlug === c.slug ? 0 : 1, borderColor: "#e5e7eb" }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: linkSlug === c.slug ? "#fff" : "#374151" }}>{c.name}</Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
           {linkSlug && (
             <View style={{ marginTop: 10, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "#f0fdf4", borderRadius: 10, padding: 10 }}>
               <CheckCircle size={14} color="#16a34a" />
-              <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>
-                Выбрано: {apiCategories.find(c => c.slug === linkSlug)?.name}
-              </Text>
+              <Text style={{ fontSize: 12, color: "#16a34a", fontWeight: "600" }}>Выбрано: {apiCategories.find(c => c.slug === linkSlug)?.name}</Text>
             </View>
           )}
         </View>
       )}
 
-      {/* Buttons */}
-      <TouchableOpacity onPress={save} disabled={saving}
-        style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
-        {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff", fontSize: 15 }}>Создать баннер</Text>}
+      {linkType === "url" && (
+        <View style={{ marginBottom: 20 }}>
+          <TextInput value={linkUrl} onChangeText={setLinkUrl} placeholder="https://example.com" placeholderTextColor="#d1d5db" autoCapitalize="none" keyboardType="url"
+            style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: linkUrl ? P : "#f3f4f6" }} />
+          <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 6 }}>Вставьте полный URL (например https://t.me/yourshop)</Text>
+        </View>
+      )}
+
+      <TouchableOpacity onPress={save} disabled={saving} style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
+        {saving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff", fontSize: 15 }}>{isEdit ? "Сохранить изменения" : "Создать баннер"}</Text>}
       </TouchableOpacity>
     </ScrollView>
   );
@@ -283,24 +327,39 @@ export default function AdminTabScreen() {
   const [apps, setApps] = useState<SellerApp[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [catSlots, setCatSlots] = useState<ApiCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [showBannerForm, setShowBannerForm] = useState(false);
+  const [bannerFormState, setBannerFormState] = useState<{ visible: boolean; existing: Banner | null; initialLinkUrl?: string | null }>({ visible: false, existing: null });
 
   const loadAll = useCallback(async () => {
     try {
-      const [sRes, uRes, aRes, bRes, pRes] = await Promise.allSettled([
+      const [sRes, uRes, aRes, bRes, pRes, cRes] = await Promise.allSettled([
         api.get<Stats>("/admin/stats"),
         api.get<AppUser[]>("/admin/users"),
         api.get<SellerApp[]>("/seller-applications"),
         api.get<Banner[]>("/banners/all"),
         api.get<Payout[]>("/admin/payouts"),
+        api.get<ApiCategory[]>("/products/categories"),
       ]);
       if (sRes.status === "fulfilled") setStats(sRes.value.data);
       if (uRes.status === "fulfilled") setUsers(uRes.value.data);
       if (aRes.status === "fulfilled") setApps(aRes.value.data);
       if (bRes.status === "fulfilled") setBanners(bRes.value.data);
       if (pRes.status === "fulfilled") setPayouts(pRes.value.data);
+      if (cRes.status === "fulfilled") {
+        const roots = cRes.value.data;
+        const subResults = await Promise.allSettled(
+          roots.map(r => api.get<ApiCategory[]>(`/products/categories/${r.id}/subcategories`))
+        );
+        const allCats: ApiCategory[] = [];
+        roots.forEach((root, i) => {
+          allCats.push(root);
+          const sub = subResults[i];
+          if (sub.status === "fulfilled") allCats.push(...sub.value.data);
+        });
+        setCatSlots(allCats);
+      }
     } finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -696,6 +755,60 @@ export default function AdminTabScreen() {
           {/* ── БАННЕРЫ ── */}
           {section === "Баннеры" && (
             <>
+              {/* Где менять баннер */}
+              <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 16, gap: 12 }}>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>Где менять баннер?</Text>
+
+                {/* Главный экран */}
+                <TouchableOpacity
+                  onPress={() => setBannerFormState({ visible: true, existing: banners.find(b => !b.link_url) ?? null, initialLinkUrl: null })}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#f5f3ff", borderRadius: 16, padding: 14 }}
+                >
+                  <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: P, alignItems: "center", justifyContent: "center" }}>
+                    <Text style={{ fontSize: 22 }}>🏠</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "700", color: "#111827" }}>Главный экран</Text>
+                    <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+                      {banners.filter(b => !b.link_url).length > 0 ? `${banners.filter(b => !b.link_url).length} баннер(а)` : "Нет баннеров"}
+                    </Text>
+                  </View>
+                  <Pencil size={16} color={P} />
+                </TouchableOpacity>
+
+                {/* Категории — сгруппированы */}
+                {(() => {
+                  const roots = catSlots.filter(c => !c.parent_id);
+                  const subOf = (id: number) => catSlots.filter(c => c.parent_id === id);
+                  return roots.map((root) => {
+                    const subs = subOf(root.id);
+                    const allCats = [root, ...subs];
+                    return (
+                      <View key={root.id} style={{ gap: 6 }}>
+                        <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "700", letterSpacing: 0.5 }}>{root.name.toUpperCase()}</Text>
+                        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                          {allCats.map((cat) => {
+                            const hasBanner = banners.some(b => b.link_url === `category:${cat.slug}`);
+                            const existingBanner = banners.find(b => b.link_url === `category:${cat.slug}`) ?? null;
+                            const isRoot = !cat.parent_id;
+                            return (
+                              <TouchableOpacity
+                                key={cat.id}
+                                onPress={() => setBannerFormState({ visible: true, existing: existingBanner, initialLinkUrl: `category:${cat.slug}` })}
+                                style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: hasBanner ? P : isRoot ? "#f0f9ff" : "#f3f4f6", borderWidth: hasBanner ? 0 : 1, borderColor: isRoot ? "#bae6fd" : "#e5e7eb" }}
+                              >
+                                {hasBanner && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#c4b5fd" }} />}
+                                <Text style={{ fontSize: 12, fontWeight: isRoot ? "700" : "500", color: hasBanner ? "#fff" : isRoot ? "#0369a1" : "#374151" }}>{cat.name}</Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    );
+                  });
+                })()}
+              </View>
+
               {/* Preview carousel */}
               {banners.filter(b => b.is_active).length > 0 && (
                 <View style={{ backgroundColor: "#fff", borderRadius: 18, padding: 14, gap: 10 }}>
@@ -733,11 +846,6 @@ export default function AdminTabScreen() {
                 </View>
               )}
 
-              <TouchableOpacity onPress={() => setShowBannerForm(true)} style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
-                <Plus size={16} color="#fff" />
-                <Text style={{ fontSize: 14, fontWeight: "700", color: "#fff" }}>Добавить баннер</Text>
-              </TouchableOpacity>
-
               {banners.length === 0 ? (
                 <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
                   <Text style={{ color: "#9ca3af", fontWeight: "500" }}>Баннеров нет</Text>
@@ -755,9 +863,17 @@ export default function AdminTabScreen() {
                     {b.subtitle && <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }} numberOfLines={1}>{b.subtitle}</Text>}
                     <Text style={{ fontSize: 11, marginTop: 3, color: b.is_active ? "#16a34a" : "#9ca3af", fontWeight: "500" }}>
                       {b.is_active ? "● Активен" : "○ Отключён"}
+                      {b.link_url
+                        ? b.link_url.startsWith("category:")
+                          ? ` · ${catSlots.find(c => c.slug === b.link_url!.replace("category:", ""))?.name ?? b.link_url.replace("category:", "")}`
+                          : ` · ${b.link_url}`
+                        : " · Главный экран"}
                     </Text>
                   </View>
                   <View style={{ flexDirection: "row", gap: 6 }}>
+                    <TouchableOpacity onPress={() => setBannerFormState({ visible: true, existing: b })} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
+                      <Pencil size={15} color="#0ea5e9" />
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
                       {b.is_active ? <ToggleRight size={20} color={P} /> : <ToggleLeft size={20} color="#9ca3af" />}
                     </TouchableOpacity>
@@ -773,10 +889,17 @@ export default function AdminTabScreen() {
       )}
 
       {/* Banner Form Modal */}
-      <Modal visible={showBannerForm} transparent animationType="slide" onRequestClose={() => setShowBannerForm(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setShowBannerForm(false)} />
-        <View style={{ position: "absolute", bottom: 0, left: 0, right: 0 }}>
-          <BannerForm onClose={() => setShowBannerForm(false)} onSave={() => { setShowBannerForm(false); loadAll(); }} />
+      <Modal visible={bannerFormState.visible} transparent animationType="slide" onRequestClose={() => setBannerFormState({ visible: false, existing: null })}>
+        <View style={{ flex: 1, justifyContent: "flex-end" }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setBannerFormState({ visible: false, existing: null })} />
+          <View style={{ height: "88%", backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+            <BannerForm
+              existing={bannerFormState.existing}
+              initialLinkUrl={bannerFormState.initialLinkUrl}
+              onClose={() => setBannerFormState({ visible: false, existing: null })}
+              onSave={() => { setBannerFormState({ visible: false, existing: null }); loadAll(); }}
+            />
+          </View>
         </View>
       </Modal>
     </SafeAreaView>

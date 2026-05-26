@@ -2,7 +2,7 @@
 import {
   View, Text, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, ScrollView, Dimensions,
-  Modal, TextInput, Pressable,
+  Modal, TextInput, Pressable, Linking,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Search, Bell, ChevronRight, MapPin, ChevronDown, X } from "lucide-react-native";
@@ -45,6 +45,8 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
     if (linkUrl.startsWith("category:")) {
       const slug = linkUrl.replace("category:", "");
       router.push(`/(tabs)/catalog?cat_slug=${slug}` as any);
+    } else if (linkUrl.startsWith("http://") || linkUrl.startsWith("https://")) {
+      Linking.openURL(linkUrl);
     }
   };
 

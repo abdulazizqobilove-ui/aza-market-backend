@@ -4,14 +4,15 @@ import {
   ActivityIndicator, ScrollView, Dimensions, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { Search, ArrowLeft, SlidersHorizontal, X, Star } from "lucide-react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import api, { Product, ProductsResponse, Category } from "@/lib/api";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
+import api, { Product, ProductsResponse, Category, imgUrl } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Image } from "expo-image";
 
 const { width: SW } = Dimensions.get("window");
 
-interface ApiBanner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; }
+interface ApiBanner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; link_url?: string | null; image_url?: string | null; }
 
 const SUBCAT_EMOJI: Record<string, string> = {
   smartphones: "📱", laptops: "💻", tablets: "📟", audio: "🎧",
@@ -124,8 +125,11 @@ export default function CatalogScreen() {
         }
       }
     }).catch(() => {});
-    api.get<ApiBanner[]>("/banners").then((r) => setApiBanners(r.data)).catch(() => {});
   }, [cat_slug]);
+
+  useFocusEffect(useCallback(() => {
+    api.get<ApiBanner[]>("/banners").then((r) => setApiBanners(r.data)).catch(() => {});
+  }, []));
 
   const loadProducts = useCallback(async (
     reset: boolean,
@@ -168,6 +172,7 @@ export default function CatalogScreen() {
     const cat = categories.find((c) => c.slug === slug);
     const catId = cat?.id ?? null;
     setActiveCatId(catId);
+    api.get<ApiBanner[]>("/banners").then((r) => setApiBanners(r.data)).catch(() => {});
     if (catId) {
       api.get<Category[]>(`/products/categories/${catId}/subcategories`).then((r) => setSubCats(r.data)).catch(() => {});
     }
@@ -219,20 +224,32 @@ export default function CatalogScreen() {
 
   // ── Products view ──────────────────────────────────────────
   if (active) {
-    const banner = apiBanners[0] ?? null;
+    const banner = apiBanners.find((b) => b.link_url === `category:${active.slug}`) ?? null;
 
     const ListHeader = (
       <View>
         {/* Banner */}
         <View style={{ marginHorizontal: 12, marginTop: 12, borderRadius: 20, overflow: "hidden" }}>
           {banner ? (
-            <View style={{ backgroundColor: banner.bg_color, padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: banner.accent_color, fontSize: 10, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>AZA MARKET</Text>
-                <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900", lineHeight: 24, marginBottom: 4 }}>{banner.title}</Text>
-                {banner.subtitle && <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>{banner.subtitle}</Text>}
-              </View>
-              {banner.emoji && <Text style={{ fontSize: 52, marginLeft: 12 }}>{banner.emoji}</Text>}
+            <View style={{ backgroundColor: banner.bg_color, height: 140 }}>
+              {banner.image_url ? (
+                <>
+                  <Image source={{ uri: imgUrl(banner.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                  <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.35)", padding: 20, justifyContent: "flex-end" }}>
+                    {banner.title ? <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>{banner.title}</Text> : null}
+                    {banner.subtitle ? <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 13, marginTop: 3 }}>{banner.subtitle}</Text> : null}
+                  </View>
+                </>
+              ) : (
+                <View style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 20 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: banner.accent_color, fontSize: 10, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>AZA MARKET</Text>
+                    {banner.title ? <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900", lineHeight: 24 }}>{banner.title}</Text> : null}
+                    {banner.subtitle ? <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 4 }}>{banner.subtitle}</Text> : null}
+                  </View>
+                  {banner.emoji ? <Text style={{ fontSize: 52, marginLeft: 12 }}>{banner.emoji}</Text> : null}
+                </View>
+              )}
             </View>
           ) : (
             <View style={{ backgroundColor: "#f3f4f6", padding: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 100 }}>

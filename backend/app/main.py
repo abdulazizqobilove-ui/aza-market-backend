@@ -5,7 +5,7 @@ import os
 from app.core.database import Base, engine
 from app.core.config import settings
 from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats
-from app.models import payment_card, chat  # ensure tables are created
+from app.models import payment_card, chat, report  # ensure tables are created
 
 Base.metadata.create_all(bind=engine)
 

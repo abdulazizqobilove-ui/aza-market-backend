@@ -3,12 +3,13 @@ from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
-from app.api.deps import require_admin
+from app.api.deps import require_admin, get_current_user
 from app.models.user import User, UserRole
-from app.models.product import Product, ProductImage
+from app.models.product import Product, ProductImage, Category
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.payout import Payout, PayoutStatus
 from app.models.review import Review
+from app.models.report import Report, ReportType, ReportStatus
 from app.schemas.user import UserOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.payout import PayoutOut
@@ -193,7 +194,6 @@ def review_payout(payout_id: int, data: PayoutReview, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="Заявка уже обработана")
 
     if data.status == PayoutStatus.rejected:
-        # Возвращаем деньги продавцу при отклонении
         seller = db.query(User).filter(User.id == payout.seller_id).first()
         if seller:
             seller.balance = (seller.balance or 0) + payout.amount
@@ -203,3 +203,130 @@ def review_payout(payout_id: int, data: PayoutReview, db: Session = Depends(get_
     db.commit()
     db.refresh(payout)
     return payout
+
+
+# ── Product moderation ──
+
+class ProductActiveUpdate(BaseModel):
+    is_active: bool
+
+
+@router.patch("/products/{product_id}/active")
+def set_product_active(product_id: int, data: ProductActiveUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    product.is_active = data.is_active
+    db.commit()
+    return {"id": product_id, "is_active": data.is_active}
+
+
+# ── Reports ──
+
+class ReportCreate(BaseModel):
+    type: ReportType
+    target_id: int
+    reason: str
+    comment: Optional[str] = None
+
+
+class ReportOut(BaseModel):
+    id: int
+    type: ReportType
+    target_id: int
+    reason: str
+    comment: Optional[str]
+    status: ReportStatus
+    reporter_id: int
+    created_at: datetime
+    model_config = {"from_attributes": True}
+
+
+class ReportReview(BaseModel):
+    status: ReportStatus
+
+
+@router.post("/reports", response_model=ReportOut, status_code=201)
+def create_report(data: ReportCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    report = Report(reporter_id=user.id, **data.model_dump())
+    db.add(report)
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+@router.get("/reports", response_model=List[ReportOut])
+def list_reports(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return db.query(Report).order_by(Report.created_at.desc()).all()
+
+
+@router.patch("/reports/{report_id}", response_model=ReportOut)
+def update_report(report_id: int, data: ReportReview, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    report = db.query(Report).filter(Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Not found")
+    report.status = data.status
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+# ── Category management ──
+
+class CategoryCreate(BaseModel):
+    name: str
+    slug: str
+    parent_id: Optional[int] = None
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+
+
+class CategoryOut(BaseModel):
+    id: int
+    name: str
+    slug: str
+    parent_id: Optional[int]
+    model_config = {"from_attributes": True}
+
+
+@router.get("/categories", response_model=List[CategoryOut])
+def list_categories(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    from sqlalchemy import text as _t
+    return db.query(Category).order_by(_t("parent_id NULLS FIRST"), Category.id).all()
+
+
+@router.post("/categories", response_model=CategoryOut, status_code=201)
+def create_category(data: CategoryCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    if db.query(Category).filter(Category.slug == data.slug).first():
+        raise HTTPException(status_code=400, detail="Slug уже существует")
+    cat = Category(**data.model_dump())
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.patch("/categories/{cat_id}", response_model=CategoryOut)
+def update_category(cat_id: int, data: CategoryUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Not found")
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(cat, field, value)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.delete("/categories/{cat_id}", status_code=204)
+def delete_category(cat_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Not found")
+    if db.query(Product).filter(Product.category_id == cat_id).first():
+        raise HTTPException(status_code=400, detail="Есть товары в этой категории")
+    db.delete(cat)
+    db.commit()
