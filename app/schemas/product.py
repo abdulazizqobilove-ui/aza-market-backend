@@ -56,6 +56,7 @@ class ProductOut(BaseModel):
     sku: Optional[str] = None
     rating: float
     reviews_count: int
+    sales_count: int = 0
     is_active: bool
     created_at: datetime
     seller_id: int
@@ -76,6 +77,7 @@ class ProductListOut(BaseModel):
     sku: Optional[str] = None
     rating: float
     reviews_count: int
+    sales_count: int = 0
     is_active: bool
     seller_id: int
     category: CategoryOut
