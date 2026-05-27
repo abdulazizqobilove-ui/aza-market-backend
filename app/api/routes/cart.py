@@ -27,11 +27,13 @@ def add_to_cart(data: CartItemAdd, db: Session = Depends(get_db), user: User = D
     if product.stock < data.quantity:
         raise HTTPException(status_code=400, detail="Not enough stock")
 
-    item = db.query(CartItem).filter(CartItem.user_id == user.id, CartItem.product_id == data.product_id).first()
+    # Match by product + selected_attrs so different variants are separate items
+    existing = db.query(CartItem).filter(CartItem.user_id == user.id, CartItem.product_id == data.product_id).all()
+    item = next((e for e in existing if e.selected_attrs == (data.selected_attrs or None)), None)
     if item:
         item.quantity += data.quantity
     else:
-        item = CartItem(user_id=user.id, product_id=data.product_id, quantity=data.quantity)
+        item = CartItem(user_id=user.id, product_id=data.product_id, quantity=data.quantity, selected_attrs=data.selected_attrs or None)
         db.add(item)
     db.commit()
     db.refresh(item)
