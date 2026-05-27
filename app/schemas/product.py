@@ -34,6 +34,7 @@ class ProductCreate(BaseModel):
     category_id: int
     sku: Optional[str] = None
     attributes: Optional[dict] = None
+    variants: Optional[List[dict]] = None
 
 
 class ProductUpdate(BaseModel):
@@ -48,6 +49,7 @@ class ProductUpdate(BaseModel):
     is_active: Optional[bool] = None
     sku: Optional[str] = None
     attributes: Optional[dict] = None
+    variants: Optional[List[dict]] = None
 
 
 class ProductOut(BaseModel):
@@ -69,6 +71,7 @@ class ProductOut(BaseModel):
     images: List[ProductImageOut] = []
     attributes: Optional[dict] = None
     about: Optional[str] = None
+    variants: Optional[List[dict]] = None
 
     class Config:
         from_attributes = True
@@ -90,6 +93,7 @@ class ProductListOut(BaseModel):
     category: CategoryOut
     images: List[ProductImageOut] = []
     attributes: Optional[dict] = None
+    variants: Optional[List[dict]] = None
 
     class Config:
         from_attributes = True

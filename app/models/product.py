@@ -41,6 +41,7 @@ class Product(Base):
 
     about = Column(Text, nullable=True)
     attributes = Column(JSONB, nullable=True, default=dict, server_default=text("'{}'::jsonb"))
+    variants = Column(JSONB, nullable=True, default=None)
 
     seller = relationship("User", back_populates="products")
     category = relationship("Category", back_populates="products")

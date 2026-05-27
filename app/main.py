@@ -30,6 +30,7 @@ def _run_startup_db():
         "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sku VARCHAR",
         "ALTER TABLE mkt_product_images ADD COLUMN IF NOT EXISTS variant_index INTEGER",
         "ALTER TABLE mkt_cart_items ADD COLUMN IF NOT EXISTS selected_attrs JSONB",
+        "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS variants JSONB",
     ]:
         try:
             with engine.begin() as _conn:
