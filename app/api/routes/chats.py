@@ -111,6 +111,31 @@ def list_chats(db: Session = Depends(get_db), user: User = Depends(get_current_u
     return [_build_chat_out(c, user.id, db) for c in chats]
 
 
+class SendMessageRequest(BaseModel):
+    text: str
+
+
+@router.post("/{chat_id}/messages", response_model=MessageOut, status_code=201)
+def send_message(
+    chat_id: int,
+    data: SendMessageRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    chat = db.query(Chat).filter(Chat.id == chat_id).first()
+    if not chat or user.id not in (chat.buyer_id, chat.seller_id):
+        raise HTTPException(status_code=404, detail="Chat not found")
+    text = data.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty message")
+    msg = Message(chat_id=chat_id, sender_id=user.id, text=text)
+    db.add(msg)
+    chat.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(msg)
+    return _msg_out(msg)
+
+
 @router.get("/{chat_id}/messages", response_model=List[MessageOut])
 def get_messages(
     chat_id: int,
