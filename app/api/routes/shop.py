@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from app.core.database import get_db
 from app.models.user import User, UserRole
 from app.models.product import Product
@@ -19,7 +20,16 @@ def get_shop(seller_id: int, db: Session = Depends(get_db)):
     ).first()
     if not seller:
         raise HTTPException(status_code=404, detail="Магазин не найден")
-    return seller
+
+    stats = db.query(
+        func.avg(Product.rating).label("avg_rating"),
+        func.sum(Product.reviews_count).label("total_reviews"),
+    ).filter(Product.seller_id == seller_id, Product.is_active == True).first()
+
+    result = ShopOut.model_validate(seller)
+    result.rating = round(float(stats.avg_rating), 1) if stats.avg_rating else None
+    result.reviews_count = int(stats.total_reviews) if stats.total_reviews else 0
+    return result
 
 
 @router.get("/{seller_id}/products", response_model=List[ProductListOut])

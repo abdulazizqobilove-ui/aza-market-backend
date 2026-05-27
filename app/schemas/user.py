@@ -47,6 +47,8 @@ class ShopOut(BaseModel):
     shop_banner_url: Optional[str] = None
     shop_logo_url: Optional[str] = None
     created_at: datetime
+    rating: Optional[float] = None
+    reviews_count: Optional[int] = None
 
     class Config:
         from_attributes = True

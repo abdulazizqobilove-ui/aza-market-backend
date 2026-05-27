@@ -63,8 +63,8 @@ def list_products(
     sort_map = {
         # score = продажи*0.6 + рейтинг*6 + свежесть за 30 дней +5
         "popular": sa_text(
-            "COALESCE(sales_count,0)*0.6 + COALESCE(rating,0)*6.0 "
-            "+ CASE WHEN created_at > NOW() - INTERVAL '30 days' THEN 5 ELSE 0 END DESC"
+            "COALESCE(mkt_products.sales_count,0)*0.6 + COALESCE(mkt_products.rating,0)*6.0 "
+            "+ CASE WHEN mkt_products.created_at > NOW() - INTERVAL '30 days' THEN 5 ELSE 0 END DESC"
         ),
         "newest": Product.created_at.desc(),
         "price_asc": Product.price.asc(),
