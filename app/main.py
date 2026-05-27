@@ -1,36 +1,42 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-import os
+import os, threading
 from app.core.database import Base, engine
 from app.core.config import settings
 from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats
 from app.models import payment_card, chat  # ensure tables are created
 
-Base.metadata.create_all(bind=engine)
-
-# Migrations — idempotent via IF NOT EXISTS, each in its own try/except
-from sqlalchemy import text as _sql
-for _stmt in [
-    "ALTER TABLE mkt_reviews ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS push_token VARCHAR",
-    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sales_count INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS about TEXT",
-    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '{}'::jsonb",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_name VARCHAR",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_description VARCHAR",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_banner_url VARCHAR",
-    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_logo_url VARCHAR",
-    "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS link_url VARCHAR",
-    "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS image_url VARCHAR",
-    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sku VARCHAR",
-]:
+def _run_startup_db():
     try:
-        with engine.begin() as _conn:
-            _conn.execute(_sql(_stmt))
+        Base.metadata.create_all(bind=engine)
     except Exception:
         pass
+
+    from sqlalchemy import text as _sql
+    for _stmt in [
+        "ALTER TABLE mkt_reviews ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS push_token VARCHAR",
+        "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sales_count INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS about TEXT",
+        "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS attributes JSONB DEFAULT '{}'::jsonb",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_name VARCHAR",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_description VARCHAR",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_banner_url VARCHAR",
+        "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_logo_url VARCHAR",
+        "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS link_url VARCHAR",
+        "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS image_url VARCHAR",
+        "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sku VARCHAR",
+    ]:
+        try:
+            with engine.begin() as _conn:
+                _conn.execute(_sql(_stmt))
+        except Exception:
+            pass
+    _seed()
+
+threading.Thread(target=_run_startup_db, daemon=True).start()
 
 # Auto-seed categories and users if empty
 def _seed():
@@ -153,8 +159,6 @@ def _seed():
             db.commit()
     except: pass
     finally: db.close()
-
-_seed()
 
 app = FastAPI(title="Marketplace API", version="1.0.0")
 
