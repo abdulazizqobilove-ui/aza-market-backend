@@ -28,6 +28,7 @@ def _run_startup_db():
         "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS link_url VARCHAR",
         "ALTER TABLE mkt_banners ADD COLUMN IF NOT EXISTS image_url VARCHAR",
         "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS sku VARCHAR",
+        "ALTER TABLE mkt_product_images ADD COLUMN IF NOT EXISTS variant_index INTEGER",
     ]:
         try:
             with engine.begin() as _conn:

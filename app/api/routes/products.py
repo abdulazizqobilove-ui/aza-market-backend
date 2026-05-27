@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, func, text as sa_text
 from typing import List, Optional
-import os, uuid, shutil
+import os, uuid, shutil, json
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.upload import upload_image as cloud_upload
@@ -183,6 +183,7 @@ def delete_product(
 def upload_images(
     product_id: int,
     files: List[UploadFile] = File(...),
+    variant_indices: Optional[str] = Form(None),
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
@@ -190,11 +191,19 @@ def upload_images(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
+    indices: List[Optional[int]] = []
+    if variant_indices:
+        try:
+            indices = json.loads(variant_indices)
+        except Exception:
+            indices = []
+
     has_main = bool(product.images)
     for i, file in enumerate(files):
         url = cloud_upload(file, folder="products")
         is_main = not has_main and i == 0
-        db.add(ProductImage(product_id=product.id, url=url, is_main=is_main))
+        vi = indices[i] if i < len(indices) else None
+        db.add(ProductImage(product_id=product.id, url=url, is_main=is_main, variant_index=vi))
         has_main = True
     db.commit()
 

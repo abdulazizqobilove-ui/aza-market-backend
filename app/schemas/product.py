@@ -17,6 +17,7 @@ class ProductImageOut(BaseModel):
     id: int
     url: str
     is_main: bool
+    variant_index: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -25,17 +26,20 @@ class ProductImageOut(BaseModel):
 class ProductCreate(BaseModel):
     title: str
     description: Optional[str] = None
+    about: Optional[str] = None
     price: float
     original_price: Optional[float] = None
     stock: int = 0
     brand: Optional[str] = None
     category_id: int
     sku: Optional[str] = None
+    attributes: Optional[dict] = None
 
 
 class ProductUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+    about: Optional[str] = None
     price: Optional[float] = None
     original_price: Optional[float] = None
     stock: Optional[int] = None
@@ -43,6 +47,7 @@ class ProductUpdate(BaseModel):
     category_id: Optional[int] = None
     is_active: Optional[bool] = None
     sku: Optional[str] = None
+    attributes: Optional[dict] = None
 
 
 class ProductOut(BaseModel):
@@ -62,6 +67,8 @@ class ProductOut(BaseModel):
     seller_id: int
     category: CategoryOut
     images: List[ProductImageOut] = []
+    attributes: Optional[dict] = None
+    about: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -82,6 +89,7 @@ class ProductListOut(BaseModel):
     seller_id: int
     category: CategoryOut
     images: List[ProductImageOut] = []
+    attributes: Optional[dict] = None
 
     class Config:
         from_attributes = True

@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -38,6 +39,9 @@ class Product(Base):
     seller_id = Column(Integer, ForeignKey("mkt_users.id"), nullable=False)
     category_id = Column(Integer, ForeignKey("mkt_categories.id"), nullable=False)
 
+    about = Column(Text, nullable=True)
+    attributes = Column(JSONB, nullable=True, default=dict, server_default=text("'{}'::jsonb"))
+
     seller = relationship("User", back_populates="products")
     category = relationship("Category", back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
@@ -55,5 +59,6 @@ class ProductImage(Base):
     product_id = Column(Integer, ForeignKey("mkt_products.id"), nullable=False)
     url = Column(String, nullable=False)
     is_main = Column(Boolean, default=False)
+    variant_index = Column(Integer, nullable=True)
 
     product = relationship("Product", back_populates="images")
