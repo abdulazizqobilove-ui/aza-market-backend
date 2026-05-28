@@ -317,8 +317,8 @@ export default function HomeScreen() {
         data={products}
         numColumns={2}
         keyExtractor={(p) => String(p.id)}
-        columnWrapperStyle={{ gap: 4, paddingHorizontal: 4 }}
-        contentContainerStyle={{ paddingBottom: 96, gap: 8, paddingTop: 4 }}
+        columnWrapperStyle={{ gap: 2, paddingHorizontal: 2 }}
+        contentContainerStyle={{ paddingBottom: 96, gap: 2, paddingTop: 4 }}
         ListHeaderComponent={<Header />}
         removeClippedSubviews={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

@@ -66,8 +66,8 @@ export default function FavoritesScreen() {
           data={favProducts}
           numColumns={2}
           keyExtractor={(p) => String(p.id)}
-          columnWrapperStyle={{ gap: 8, paddingHorizontal: 12 }}
-          contentContainerStyle={{ paddingTop: 12, paddingBottom: 32, gap: 8 }}
+          columnWrapperStyle={{ gap: 2, paddingHorizontal: 2 }}
+          contentContainerStyle={{ paddingTop: 4, paddingBottom: 32, gap: 2 }}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => <View style={{ flex: 1, maxWidth: "50%" }}><ProductCard product={item} /></View>}
         />

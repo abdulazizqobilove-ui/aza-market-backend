@@ -60,8 +60,8 @@ export default function ShopScreen() {
         data={visibleProducts}
         numColumns={2}
         keyExtractor={(p) => String(p.id)}
-        columnWrapperStyle={{ gap: 8, paddingHorizontal: 12 }}
-        contentContainerStyle={{ paddingBottom: 24, gap: 8 }}
+        columnWrapperStyle={{ gap: 2, paddingHorizontal: 2 }}
+        contentContainerStyle={{ paddingBottom: 24, gap: 2 }}
         ListHeaderComponent={
           <View>
             {/* Banner */}
