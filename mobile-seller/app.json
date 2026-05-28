@@ -4,7 +4,7 @@
     "slug": "aza-market-seller",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "scheme": "azamarket",
     "plugins": [
@@ -30,8 +30,8 @@
     "android": {
       "package": "tj.azamarket.seller",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#8B5CF6"
+        "foregroundImage": "./assets/logo.png",
+        "backgroundColor": "#ffffff"
       },
       "permissions": [
         "android.permission.READ_MEDIA_IMAGES",
