@@ -344,7 +344,7 @@ export default function HomeScreen() {
         ListFooterComponent={
           loadingMore ? <ActivityIndicator color="#8B5CF6" style={{ paddingVertical: 16 }} /> : null
         }
-        renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
+        renderItem={({ item }) => <View style={{ flex: 1, maxWidth: "50%" }}><ProductCard product={item} /></View>}
       />
     </SafeAreaView>
   );

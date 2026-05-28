@@ -153,7 +153,7 @@ export default function ShopScreen() {
             ? <SkeletonProductGrid rows={3} />
             : <View style={{ alignItems: "center", paddingVertical: 64 }}><Package size={48} color={c.border} /><Text style={{ color: c.textMuted, marginTop: 12 }}>Товаров нет</Text></View>
         }
-        renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
+        renderItem={({ item }) => <View style={{ flex: 1, maxWidth: "50%" }}><ProductCard product={item} /></View>}
       />
     </SafeAreaView>
   );

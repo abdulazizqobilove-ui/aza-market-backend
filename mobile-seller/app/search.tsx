@@ -283,7 +283,7 @@ export default function SearchScreen() {
           renderItem={({ item }) => {
             const image = img(item);
             return (
-              <TouchableOpacity onPress={() => router.push(`/products/${item.id}` as any)} style={{ flex: 1, backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
+              <TouchableOpacity onPress={() => router.push(`/products/${item.id}` as any)} style={{ flex: 1, maxWidth: "50%", backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                 <View style={{ height: 160, backgroundColor: c.iconBg }}>
                   {image ? <Image source={{ uri: imgUrl(image.url) ?? "" }} style={{ width: "100%", height: 160 }} contentFit="cover" /> : <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 40 }}>📦</Text></View>}
                 </View>
