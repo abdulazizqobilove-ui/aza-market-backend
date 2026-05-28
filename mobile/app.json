@@ -24,6 +24,7 @@
       "package": "tj.azamarket.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/logo.png",
+        "monochromeImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [

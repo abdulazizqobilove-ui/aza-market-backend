@@ -5,7 +5,6 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import Toast from "react-native-toast-message";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import * as Sentry from "@sentry/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -17,13 +16,7 @@ import { useThemeStore } from "@/store/theme";
 import { useIsDark } from "@/lib/theme";
 import SplashAnim from "@/components/SplashAnim";
 
-Sentry.init({
-  dsn: "https://ca06cef015beee42cef9a886378d9f9e@o4511453703700480.ingest.us.sentry.io/4511453707436032",
-  tracesSampleRate: 0.2,
-  enabled: !__DEV__,
-});
-
-export default Sentry.wrap(function RootLayout() {
+export default function RootLayout() {
   const router = useRouter();
   const init = useAuthStore((s) => s.init);
   const user = useAuthStore((s) => s.user);
@@ -87,4 +80,4 @@ export default Sentry.wrap(function RootLayout() {
       {!splashDone && <SplashAnim onFinish={() => setSplashDone(true)} />}
     </GestureHandlerRootView>
   );
-});
+}
