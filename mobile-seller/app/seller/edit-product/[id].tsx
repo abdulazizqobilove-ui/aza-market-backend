@@ -229,7 +229,7 @@ export default function EditProductScreen() {
 
   const uploadNewPhotos = (photosArr?: NewPhoto[]) =>
     new Promise<boolean>((resolve) => {
-      AsyncStorage.getItem("token").then((token) => {
+      AsyncStorage.getItem("seller:token").then((token) => {
         const toUpload = photosArr ?? newPhotos;
         const fd = new FormData();
         toUpload.forEach((p) => fd.append("files", { uri: p.uri, name: p.name, type: p.type } as any));

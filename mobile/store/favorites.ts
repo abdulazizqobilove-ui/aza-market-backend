@@ -1,41 +1,77 @@
 import { create } from "zustand";
-import api from "@/lib/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import api, { Product } from "@/lib/api";
+
+const IDS_KEY = "buyer:fav_ids";
+const PRODUCTS_KEY = "buyer:fav_products";
 
 interface FavoritesState {
   ids: Record<number, boolean>;
+  products: Record<number, Product>;
+  hydrate: () => Promise<void>;
   fetch: () => Promise<void>;
-  toggle: (productId: number) => Promise<void>;
+  toggle: (product: Product) => Promise<void>;
   clear: () => void;
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
   ids: {},
+  products: {},
 
-  fetch: async () => {
+  hydrate: async () => {
     try {
-      const res = await api.get<{ id: number }[]>("/favorites");
-      const ids: Record<number, boolean> = {};
-      res.data.forEach((p: any) => { ids[p.id] = true; });
-      set({ ids });
+      const [rawIds, rawProducts] = await Promise.all([
+        AsyncStorage.getItem(IDS_KEY),
+        AsyncStorage.getItem(PRODUCTS_KEY),
+      ]);
+      const ids = rawIds ? JSON.parse(rawIds) : {};
+      const products = rawProducts ? JSON.parse(rawProducts) : {};
+      set({ ids, products });
     } catch {}
   },
 
-  toggle: async (productId) => {
-    const has = !!get().ids[productId];
-    const next = { ...get().ids };
-    if (has) delete next[productId];
-    else next[productId] = true;
-    set({ ids: next });
+  fetch: async () => {
     try {
-      if (has) await api.delete(`/favorites/${productId}`);
-      else await api.post(`/favorites/${productId}`);
+      const res = await api.get<Product[]>("/favorites");
+      const serverIds: Record<number, boolean> = {};
+      const serverProducts: Record<number, Product> = {};
+      res.data.forEach((p) => {
+        serverIds[p.id] = true;
+        serverProducts[p.id] = p;
+      });
+      const mergedIds = { ...get().ids, ...serverIds };
+      const mergedProducts = { ...get().products, ...serverProducts };
+      set({ ids: mergedIds, products: mergedProducts });
+      AsyncStorage.setItem(IDS_KEY, JSON.stringify(mergedIds));
+      AsyncStorage.setItem(PRODUCTS_KEY, JSON.stringify(mergedProducts));
     } catch {
-      const rollback = { ...get().ids };
-      if (has) rollback[productId] = true;
-      else delete rollback[productId];
-      set({ ids: rollback });
+      // Server unreachable — keep local state
     }
   },
 
-  clear: () => set({ ids: {} }),
+  toggle: async (product: Product) => {
+    const has = !!get().ids[product.id];
+    const nextIds = { ...get().ids };
+    const nextProducts = { ...get().products };
+    if (has) {
+      delete nextIds[product.id];
+      delete nextProducts[product.id];
+    } else {
+      nextIds[product.id] = true;
+      nextProducts[product.id] = product;
+    }
+    set({ ids: nextIds, products: nextProducts });
+    AsyncStorage.setItem(IDS_KEY, JSON.stringify(nextIds));
+    AsyncStorage.setItem(PRODUCTS_KEY, JSON.stringify(nextProducts));
+    try {
+      if (has) await api.delete(`/favorites/${product.id}`);
+      else await api.post(`/favorites/${product.id}`);
+    } catch {}
+  },
+
+  clear: () => {
+    set({ ids: {}, products: {} });
+    AsyncStorage.removeItem(IDS_KEY);
+    AsyncStorage.removeItem(PRODUCTS_KEY);
+  },
 }));

@@ -58,7 +58,7 @@ export default function WriteReviewScreen() {
       const res = await api.post<{ id: number }>(`/products/${id}/reviews`, { rating, text });
       const reviewId = res.data.id;
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await AsyncStorage.getItem("buyer:token");
       for (const img of pickedImages) {
         await new Promise<void>((resolve) => {
           const form = new FormData();

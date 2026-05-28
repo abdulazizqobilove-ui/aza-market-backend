@@ -17,7 +17,7 @@ export function pingServer() {
 const timers = new Map<string, ReturnType<typeof setTimeout>>();
 
 api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("token");
+  const token = await AsyncStorage.getItem("buyer:token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
 
   const controller = new AbortController();
@@ -39,8 +39,8 @@ api.interceptors.response.use(
     const key = (error?.config as any)?.__abortKey;
     if (key) { clearTimeout(timers.get(key)); timers.delete(key); }
     if (error?.response?.status === 401) {
-      await AsyncStorage.removeItem("token");
-      await AsyncStorage.removeItem("user");
+      await AsyncStorage.removeItem("buyer:token");
+      await AsyncStorage.removeItem("buyer:user");
     }
     return Promise.reject(error);
   }

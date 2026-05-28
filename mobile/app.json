@@ -23,6 +23,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "tj.azamarket.app"
     },
+    "androidNavigationBar": {
+      "visible": "immersive",
+      "barStyle": "dark-content"
+    },
     "android": {
       "package": "tj.azamarket.app",
       "adaptiveIcon": {

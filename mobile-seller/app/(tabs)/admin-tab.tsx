@@ -148,7 +148,7 @@ function BannerForm({
     try {
       const finalLink = buildLinkUrl(linkType, linkSlug, linkUrl);
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await AsyncStorage.getItem("seller:token");
 
       const xhrRequest = (method: string, url: string, body: FormData) =>
         new Promise<any>((resolve, reject) => {

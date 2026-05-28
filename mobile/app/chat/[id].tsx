@@ -10,6 +10,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import api, { API_URL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
+import { useThemeColors } from "@/lib/theme";
 
 const WS_BASE = API_URL.replace("https://", "wss://").replace("http://", "ws://");
 
@@ -51,6 +52,7 @@ export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const chatId = Number(id);
   const router = useRouter();
+  const c = useThemeColors();
   const user = useAuthStore((s) => s.user);
 
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -68,8 +70,8 @@ export default function ChatScreen() {
     if (!user) return;
 
     api.get<ChatInfo[]>("/chats").then((r) => {
-      const c = r.data.find((ch) => ch.id === chatId);
-      if (c) setChatInfo(c);
+      const ch = r.data.find((item) => item.id === chatId);
+      if (ch) setChatInfo(ch);
     }).catch(() => {});
 
     api.get<Msg[]>(`/chats/${chatId}/messages`).then((r) => {
@@ -79,7 +81,7 @@ export default function ChatScreen() {
 
   // WebSocket
   const connect = useCallback(async () => {
-    const token = await AsyncStorage.getItem("token");
+    const token = await AsyncStorage.getItem("buyer:token");
     if (!token) return;
 
     const ws = new WebSocket(`${WS_BASE}/api/chats/${chatId}/ws?token=${token}`);
@@ -100,7 +102,6 @@ export default function ChatScreen() {
 
     ws.onclose = () => {
       setConnected(false);
-      // Reconnect after 3s
       reconnectTimer.current = setTimeout(connect, 3000);
     };
 
@@ -124,11 +125,20 @@ export default function ChatScreen() {
     }
   }, [loading]);
 
-  const send = () => {
+  const send = async () => {
     const t = text.trim();
-    if (!t || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
-    wsRef.current.send(JSON.stringify({ text: t }));
+    if (!t) return;
     setText("");
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ text: t }));
+    } else {
+      // WebSocket not connected — fallback to REST
+      try {
+        const res = await api.post<Msg>(`/chats/${chatId}/messages`, { text: t });
+        setMessages((prev) => prev.some((m) => m.id === res.data.id) ? prev : [...prev, res.data]);
+        setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
+      } catch {}
+    }
   };
 
   // Group messages by date
@@ -146,11 +156,11 @@ export default function ChatScreen() {
   const isMine = (msg: Msg) => msg.sender_id === user?.id;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       {/* Header */}
-      <View style={{ backgroundColor: "#fff", flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#f3f4f6", gap: 10 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
-          <ChevronLeft size={20} color="#374151" />
+      <View style={{ backgroundColor: c.card, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.border, gap: 10 }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+          <ChevronLeft size={20} color={c.textSub} />
         </TouchableOpacity>
 
         {/* Avatar */}
@@ -163,33 +173,33 @@ export default function ChatScreen() {
         </View>
 
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }} numberOfLines={1}>{chatInfo?.other_name ?? "..."}</Text>
+          <Text style={{ fontSize: 15, fontWeight: "700", color: c.text }} numberOfLines={1}>{chatInfo?.other_name ?? "..."}</Text>
           {chatInfo?.product_title && (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-              <Package size={11} color="#9ca3af" />
-              <Text style={{ fontSize: 11, color: "#9ca3af" }} numberOfLines={1}>{chatInfo.product_title}</Text>
+              <Package size={11} color={c.textMuted} />
+              <Text style={{ fontSize: 11, color: c.textMuted }} numberOfLines={1}>{chatInfo.product_title}</Text>
             </View>
           )}
         </View>
 
         {/* Connection dot */}
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: connected ? "#22c55e" : "#d1d5db" }} />
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: connected ? "#22c55e" : c.border }} />
       </View>
 
       {/* Product preview */}
       {chatInfo?.product_image && (
-        <View style={{ backgroundColor: "#fff", flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 0.5, borderBottomColor: "#f3f4f6" }}>
-          <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", backgroundColor: "#f3f4f6" }}>
+        <View style={{ backgroundColor: c.card, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
+          <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", backgroundColor: c.iconBg }}>
             <Image source={{ uri: `${API_URL}${chatInfo.product_image}` }} style={{ width: 44, height: 44 }} contentFit="cover" />
           </View>
-          <Text style={{ flex: 1, fontSize: 13, color: "#374151", fontWeight: "500" }} numberOfLines={2}>{chatInfo.product_title}</Text>
+          <Text style={{ flex: 1, fontSize: 13, color: c.textSub, fontWeight: "500" }} numberOfLines={2}>{chatInfo.product_title}</Text>
         </View>
       )}
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={0}>
         {/* Messages */}
         {loading ? (
-          <ActivityIndicator color="#111827" style={{ marginTop: 60 }} />
+          <ActivityIndicator color="#8B5CF6" style={{ marginTop: 60 }} />
         ) : (
           <FlatList
             ref={listRef}
@@ -199,15 +209,15 @@ export default function ChatScreen() {
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={{ alignItems: "center", paddingTop: 60 }}>
-                <Text style={{ fontSize: 13, color: "#9ca3af" }}>Начните разговор</Text>
+                <Text style={{ fontSize: 13, color: c.textMuted }}>Начните разговор</Text>
               </View>
             }
             renderItem={({ item }) => {
               if (item.type === "date") {
                 return (
                   <View style={{ alignItems: "center", marginVertical: 8 }}>
-                    <View style={{ backgroundColor: "rgba(0,0,0,0.06)", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
-                      <Text style={{ fontSize: 11, color: "#6b7280", fontWeight: "500" }}>{item.date}</Text>
+                    <View style={{ backgroundColor: c.iconBg, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 11, color: c.textMuted, fontWeight: "500" }}>{item.date}</Text>
                     </View>
                   </View>
                 );
@@ -234,15 +244,15 @@ export default function ChatScreen() {
                       borderRadius: 18,
                       borderBottomRightRadius: mine ? 4 : 18,
                       borderBottomLeftRadius: mine ? 18 : 4,
-                      backgroundColor: mine ? "#111827" : "#fff",
+                      backgroundColor: mine ? "#8B5CF6" : c.card,
                       shadowColor: "#000",
                       shadowOpacity: 0.05,
                       shadowRadius: 4,
                       elevation: 1,
                     }}>
-                      <Text style={{ fontSize: 14, color: mine ? "#fff" : "#111827", lineHeight: 20 }}>{msg.text}</Text>
+                      <Text style={{ fontSize: 14, color: mine ? "#fff" : c.text, lineHeight: 20 }}>{msg.text}</Text>
                     </View>
-                    <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 3, textAlign: mine ? "right" : "left", paddingHorizontal: 4 }}>
+                    <Text style={{ fontSize: 10, color: c.textMuted, marginTop: 3, textAlign: mine ? "right" : "left", paddingHorizontal: 4 }}>
                       {timeStr(msg.created_at)}{mine && (msg.is_read ? " ✓✓" : " ✓")}
                     </Text>
                   </View>
@@ -253,23 +263,23 @@ export default function ChatScreen() {
         )}
 
         {/* Input */}
-        <View style={{ flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 12, paddingVertical: 10, paddingBottom: Platform.OS === "ios" ? 10 : 14, backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#f3f4f6", gap: 8 }}>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", paddingHorizontal: 12, paddingVertical: 10, paddingBottom: Platform.OS === "ios" ? 10 : 14, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.border, gap: 8 }}>
           <TextInput
             value={text}
             onChangeText={setText}
             placeholder="Сообщение..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={c.textMuted}
             multiline
             maxLength={1000}
-            style={{ flex: 1, backgroundColor: "#f9fafb", borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: "#111827", maxHeight: 120 }}
+            style={{ flex: 1, backgroundColor: c.inputBg, borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, color: c.text, maxHeight: 120 }}
             onSubmitEditing={Platform.OS === "ios" ? send : undefined}
           />
           <TouchableOpacity
             onPress={send}
-            disabled={!text.trim() || !connected}
-            style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: text.trim() && connected ? "#111827" : "#e5e7eb", alignItems: "center", justifyContent: "center" }}
+            disabled={!text.trim()}
+            style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: text.trim() ? "#8B5CF6" : c.iconBg, alignItems: "center", justifyContent: "center" }}
           >
-            <Send size={18} color={text.trim() && connected ? "#fff" : "#9ca3af"} />
+            <Send size={18} color={text.trim() ? "#fff" : c.textMuted} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

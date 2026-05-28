@@ -1,15 +1,35 @@
-﻿import { Tabs, Redirect } from "expo-router";
-import { Home, LayoutGrid, ShoppingCart, User, Package, ClipboardList, TrendingUp, Shield, Users, Store, BarChart2 } from "lucide-react-native";
-import { View, Text } from "react-native";
+import { Tabs } from "expo-router";
+import { Home, Menu, ShoppingCart, User } from "lucide-react-native";
+import { View, Text, Platform, Pressable } from "react-native";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
-import { useThemeColors } from "@/lib/theme";
+import { useThemeColors, useIsDark } from "@/lib/theme";
+
+const PRIMARY = "#8B5CF6";
 
 function Badge({ count }: { count: number }) {
   if (!count) return null;
   return (
-    <View className="absolute -top-1 -right-2 bg-red-500 rounded-full min-w-[16px] h-4 items-center justify-center px-0.5">
-      <Text className="text-white text-[9px] font-bold">{count > 99 ? "99+" : count}</Text>
+    <View style={{ position: "absolute", top: -3, right: -6, backgroundColor: "#ef4444", borderRadius: 8, minWidth: 15, height: 15, alignItems: "center", justifyContent: "center", paddingHorizontal: 2 }}>
+      <Text style={{ color: "#fff", fontSize: 8, fontWeight: "700" }}>{count > 99 ? "99+" : count}</Text>
+    </View>
+  );
+}
+
+function TabIcon({ icon, focused, count }: { icon: (color: string) => React.ReactNode; focused: boolean; count?: number }) {
+  const isDark = useIsDark();
+  const color = focused ? PRIMARY : (isDark ? "#475569" : "#9ca3af");
+  return (
+    <View style={{ alignItems: "center", justifyContent: "center", marginTop: 6 }}>
+      <View style={{
+        width: 48, height: 32, borderRadius: 16,
+        backgroundColor: "transparent",
+        alignItems: "center", justifyContent: "center",
+        position: "relative",
+      }}>
+        {icon(color)}
+        {!!count && <Badge count={count} />}
+      </View>
     </View>
   );
 }
@@ -18,73 +38,78 @@ export default function TabsLayout() {
   const user = useAuthStore((s) => s.user);
   const cartCount = useCartStore((s) => s.count)();
   const c = useThemeColors();
+  const isDark = useIsDark();
 
-  const PRIMARY = "#8B5CF6";
-  const GRAY = "#9ca3af";
+  const role = user?.role ?? "guest";
+  const isGuest = role === "guest";
+  const isBuyer = role === "buyer";
 
-  if (!user) {
-    return (
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { backgroundColor: c.tabBar, borderTopColor: c.tabBorder }, tabBarLabelStyle: { fontSize: 10, color: GRAY } }}>
-        <Tabs.Screen name="index" options={{ title: "Главная", tabBarIcon: ({ color }) => <Home size={22} color={color} /> }} />
-        <Tabs.Screen name="catalog" options={{ title: "Каталог", tabBarIcon: ({ color }) => <LayoutGrid size={22} color={color} /> }} />
-        <Tabs.Screen name="cart" options={{ title: "Корзина", tabBarIcon: ({ color }) => <View className="relative"><ShoppingCart size={22} color={color} /><Badge count={cartCount} /></View> }} />
-        <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
-        <Tabs.Screen name="admin-tab" options={{ href: null }} />
-        <Tabs.Screen name="seller-products" options={{ href: null }} />
-        <Tabs.Screen name="seller-orders" options={{ href: null }} />
-        <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-        <Tabs.Screen name="seller-shop" options={{ href: null }} />
-        <Tabs.Screen name="seller-stats" options={{ href: null }} />
-      </Tabs>
-    );
-  }
-
-  if (user.role === "admin") {
-    return (
-      <Tabs initialRouteName="admin-tab" screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { backgroundColor: c.tabBar, borderTopColor: c.tabBorder }, tabBarLabelStyle: { fontSize: 10, color: GRAY } }}>
-        <Tabs.Screen name="admin-tab" options={{ title: "Панель", tabBarIcon: ({ color }) => <Shield size={22} color={color} /> }} />
-        <Tabs.Screen name="catalog" options={{ title: "Каталог", tabBarIcon: ({ color }) => <LayoutGrid size={22} color={color} /> }} />
-        <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="cart" options={{ href: null }} />
-        <Tabs.Screen name="seller-products" options={{ href: null }} />
-        <Tabs.Screen name="seller-orders" options={{ href: null }} />
-        <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-        <Tabs.Screen name="seller-shop" options={{ href: null }} />
-        <Tabs.Screen name="seller-stats" options={{ href: null }} />
-      </Tabs>
-    );
-  }
-
-  if (user.role === "seller") {
-    return (
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { backgroundColor: c.tabBar, borderTopColor: c.tabBorder }, tabBarLabelStyle: { fontSize: 10, color: GRAY } }}>
-        <Tabs.Screen name="index" options={{ href: null }} />
-        <Tabs.Screen name="catalog" options={{ href: null }} />
-        <Tabs.Screen name="cart" options={{ href: null }} />
-        <Tabs.Screen name="admin-tab" options={{ href: null }} />
-        <Tabs.Screen name="seller-products" options={{ title: "Товары", tabBarIcon: ({ color }) => <Package size={22} color={color} /> }} />
-        <Tabs.Screen name="seller-orders" options={{ title: "Заказы", tabBarIcon: ({ color }) => <ClipboardList size={22} color={color} /> }} />
-        <Tabs.Screen name="seller-stats" options={{ title: "Статистика", tabBarIcon: ({ color }) => <BarChart2 size={22} color={color} /> }} />
-        <Tabs.Screen name="seller-shop" options={{ title: "Магазин", tabBarIcon: ({ color }) => <Store size={22} color={color} /> }} />
-        <Tabs.Screen name="seller-analytics" options={{ title: "Финансы", tabBarIcon: ({ color }) => <TrendingUp size={22} color={color} /> }} />
-        <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
-      </Tabs>
-    );
-  }
+  const tabOptions = {
+    headerShown: false,
+    tabBarShowLabel: false,
+    tabBarActiveTintColor: PRIMARY,
+    tabBarInactiveTintColor: isDark ? "#475569" : "#9ca3af",
+    tabBarActiveBackgroundColor: "transparent",
+    tabBarInactiveBackgroundColor: "transparent",
+    tabBarPressColor: "transparent",
+    tabBarPressOpacity: 1,
+    tabBarButton: (props: any) => (
+      <Pressable {...props} android_ripple={null} style={[props.style, { backgroundColor: "transparent" }]} />
+    ),
+    tabBarStyle: {
+      position: "absolute" as const,
+      backgroundColor: isDark ? "#0f172a" : "#ffffff",
+      borderTopWidth: 0,
+      elevation: 0,
+      shadowOpacity: 0,
+      height: Platform.OS === "ios" ? 78 : 60,
+      bottom: 0,
+      left: 0,
+      right: 0,
+    },
+  };
 
   return (
-    <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: PRIMARY, tabBarInactiveTintColor: GRAY, tabBarStyle: { backgroundColor: c.tabBar, borderTopColor: c.tabBorder }, tabBarLabelStyle: { fontSize: 10, color: GRAY } }}>
-      <Tabs.Screen name="index" options={{ title: "Главная", tabBarIcon: ({ color }) => <Home size={22} color={color} /> }} />
-      <Tabs.Screen name="catalog" options={{ title: "Каталог", tabBarIcon: ({ color }) => <LayoutGrid size={22} color={color} /> }} />
-      <Tabs.Screen name="cart" options={{ title: "Корзина", tabBarIcon: ({ color }) => <View className="relative"><ShoppingCart size={22} color={color} /><Badge count={cartCount} /></View> }} />
-      <Tabs.Screen name="profile" options={{ title: "Профиль", tabBarIcon: ({ color }) => <User size={22} color={color} /> }} />
-      <Tabs.Screen name="admin-tab" options={{ href: null }} />
-      <Tabs.Screen name="seller-products" options={{ href: null }} />
-      <Tabs.Screen name="seller-orders" options={{ href: null }} />
+    <Tabs screenOptions={tabOptions}>
+      <Tabs.Screen
+        name="index"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={(c) => <Home size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="catalog"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={(c) => <Menu size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} count={cartCount} icon={(c) => <ShoppingCart size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+          ),
+        }}
+      />
+      {/* Hide seller/admin screens — they live in separate apps */}
+      <Tabs.Screen name="seller-products"  options={{ href: null }} />
+      <Tabs.Screen name="seller-orders"    options={{ href: null }} />
+      <Tabs.Screen name="seller-stats"     options={{ href: null }} />
+      <Tabs.Screen name="seller-shop"      options={{ href: null }} />
       <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-      <Tabs.Screen name="seller-shop" options={{ href: null }} />
-      <Tabs.Screen name="seller-stats" options={{ href: null }} />
+      <Tabs.Screen name="admin-tab"        options={{ href: null }} />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={(c) => <User size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

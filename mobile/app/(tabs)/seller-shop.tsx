@@ -12,10 +12,12 @@ import { useFocusEffect } from "expo-router";
 import api, { API_URL, imgUrl, Product } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/components/ProductCard";
+import { useThemeColors } from "@/lib/theme";
 
 const P = "#8B5CF6";
 
 export default function SellerShopScreen() {
+  const c = useThemeColors();
   const { user, updateUser } = useAuthStore();
 
   const [shopName, setShopName] = useState(user?.shop_name || "");
@@ -32,7 +34,7 @@ export default function SellerShopScreen() {
   useEffect(() => {
     setShopName(user?.shop_name || "");
     setShopDesc(user?.shop_description || "");
-  }, [user]);
+  }, [user?.shop_name, user?.shop_description]);
 
   useFocusEffect(useCallback(() => {
     api.get<Product[]>("/seller/products")
@@ -102,7 +104,7 @@ export default function SellerShopScreen() {
   const initials = (user?.shop_name || user?.username || "?")[0].toUpperCase();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f9fafb" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
@@ -130,7 +132,7 @@ export default function SellerShopScreen() {
           </View>
 
           {/* ── PROFILE CARD ── */}
-          <View style={{ backgroundColor: "#fff", marginHorizontal: 16, marginTop: -28, borderRadius: 24, padding: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 }}>
+          <View style={{ backgroundColor: c.card, marginHorizontal: 16, marginTop: -28, borderRadius: 24, padding: 20, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 }}>
 
             {/* Logo + name row */}
             <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 14, marginBottom: 16 }}>
@@ -163,7 +165,7 @@ export default function SellerShopScreen() {
                       value={shopName}
                       onChangeText={setShopName}
                       autoFocus
-                      style={{ flex: 1, fontSize: 17, fontWeight: "700", color: "#111827" }}
+                      style={{ flex: 1, fontSize: 17, fontWeight: "700", color: c.text }}
                     />
                     <TouchableOpacity onPress={() => { setShopName(user?.shop_name || ""); setEditingName(false); }}>
                       <X size={16} color="#9ca3af" />
@@ -174,7 +176,7 @@ export default function SellerShopScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity onPress={() => setEditingName(true)} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                    <Text style={{ fontSize: 18, fontWeight: "800", color: "#111827", flex: 1 }} numberOfLines={1}>
+                    <Text style={{ fontSize: 18, fontWeight: "800", color: c.text, flex: 1 }} numberOfLines={1}>
                       {user?.shop_name || "Название магазина"}
                     </Text>
                     <Pencil size={14} color="#9ca3af" />
@@ -190,10 +192,10 @@ export default function SellerShopScreen() {
             </View>
 
             {/* Divider */}
-            <View style={{ height: 1, backgroundColor: "#f3f4f6", marginBottom: 14 }} />
+            <View style={{ height: 1, backgroundColor: c.border, marginBottom: 14 }} />
 
             {/* Description */}
-            <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "600", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Описание</Text>
+            <Text style={{ fontSize: 11, color: c.textMuted, fontWeight: "600", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Описание</Text>
             {editingDesc ? (
               <View style={{ gap: 10 }}>
                 <TextInput
@@ -203,14 +205,14 @@ export default function SellerShopScreen() {
                   multiline
                   placeholder="Расскажите о вашем магазине..."
                   placeholderTextColor="#d1d5db"
-                  style={{ fontSize: 14, color: "#374151", lineHeight: 20, borderWidth: 1.5, borderColor: P, borderRadius: 12, padding: 12, textAlignVertical: "top", minHeight: 90 }}
+                  style={{ fontSize: 14, color: c.text, lineHeight: 20, borderWidth: 1.5, borderColor: P, borderRadius: 12, padding: 12, textAlignVertical: "top", minHeight: 90, backgroundColor: c.inputBg }}
                 />
                 <View style={{ flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
                   <TouchableOpacity
                     onPress={() => { setShopDesc(user?.shop_description || ""); setEditingDesc(false); }}
-                    style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: "#f3f4f6" }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10, backgroundColor: c.iconBg }}
                   >
-                    <Text style={{ fontSize: 13, color: "#6b7280", fontWeight: "600" }}>Отмена</Text>
+                    <Text style={{ fontSize: 13, color: c.textSub, fontWeight: "600" }}>Отмена</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => saveField("shop_description")}
@@ -226,7 +228,7 @@ export default function SellerShopScreen() {
               </View>
             ) : (
               <TouchableOpacity onPress={() => setEditingDesc(true)} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-                <Text style={{ fontSize: 14, color: user?.shop_description ? "#374151" : "#d1d5db", lineHeight: 20, flex: 1 }}>
+                <Text style={{ fontSize: 14, color: user?.shop_description ? c.textSub : c.textMuted, lineHeight: 20, flex: 1 }}>
                   {user?.shop_description || "Добавьте описание магазина..."}
                 </Text>
                 <Pencil size={14} color="#9ca3af" />
@@ -237,17 +239,17 @@ export default function SellerShopScreen() {
           {/* ── PRODUCTS ── */}
           <View style={{ marginTop: 20, paddingHorizontal: 16 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <Text style={{ fontSize: 16, fontWeight: "800", color: "#111827" }}>Мои товары</Text>
-              <Text style={{ fontSize: 12, color: "#9ca3af" }}>{products.length} шт.</Text>
+              <Text style={{ fontSize: 16, fontWeight: "800", color: c.text }}>Мои товары</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted }}>{products.length} шт.</Text>
             </View>
 
             {loadingProducts ? (
               <ActivityIndicator color={P} style={{ marginTop: 20 }} />
             ) : products.length === 0 ? (
-              <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 32, alignItems: "center", gap: 10 }}>
-                <Package size={44} color="#e5e7eb" />
-                <Text style={{ fontSize: 15, fontWeight: "600", color: "#374151" }}>Нет активных товаров</Text>
-                <Text style={{ fontSize: 13, color: "#9ca3af", textAlign: "center" }}>Добавьте товары во вкладке «Товары»</Text>
+              <View style={{ backgroundColor: c.card, borderRadius: 20, padding: 32, alignItems: "center", gap: 10 }}>
+                <Package size={44} color={c.border} />
+                <Text style={{ fontSize: 15, fontWeight: "600", color: c.text }}>Нет активных товаров</Text>
+                <Text style={{ fontSize: 13, color: c.textMuted, textAlign: "center" }}>Добавьте товары во вкладке «Товары»</Text>
               </View>
             ) : (
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>

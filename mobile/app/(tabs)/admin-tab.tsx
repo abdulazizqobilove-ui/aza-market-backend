@@ -17,6 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import api, { imgUrl, API_URL } from "@/lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
+import { useThemeColors } from "@/lib/theme";
 
 const P = "#8B5CF6";
 const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Категории"] as const;
@@ -47,24 +48,26 @@ const STATUS_COLORS: Record<string, string> = { pending: "#f59e0b", approved: "#
 const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", approved: "Одобрено", rejected: "Отклонено", paid: "Выплачено", cancelled: "Отменено" };
 
 function SectionTab({ active, onPress, label }: { active: boolean; onPress: () => void; label: string }) {
+  const c = useThemeColors();
   return (
     <TouchableOpacity onPress={onPress} style={{
       paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20,
-      backgroundColor: active ? P : "#f3f4f6", marginRight: 8,
+      backgroundColor: active ? P : c.iconBg, marginRight: 8,
     }}>
-      <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#fff" : "#6b7280" }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: active ? "#fff" : c.textSub }}>{label}</Text>
     </TouchableOpacity>
   );
 }
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string | number; icon: any; color: string }) {
+  const c = useThemeColors();
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 16, padding: 14, gap: 8 }}>
+    <View style={{ flex: 1, backgroundColor: c.card, borderRadius: 16, padding: 14, gap: 8 }}>
       <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: color + "18", alignItems: "center", justifyContent: "center" }}>
         <Icon size={18} color={color} />
       </View>
-      <Text style={{ fontSize: 22, fontWeight: "900", color: "#111827" }}>{value}</Text>
-      <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "500" }}>{label}</Text>
+      <Text style={{ fontSize: 22, fontWeight: "900", color: c.text }}>{value}</Text>
+      <Text style={{ fontSize: 11, color: c.textMuted, fontWeight: "500" }}>{label}</Text>
     </View>
   );
 }
@@ -145,7 +148,7 @@ function BannerForm({
     try {
       const finalLink = buildLinkUrl(linkType, linkSlug, linkUrl);
 
-      const token = await AsyncStorage.getItem("token");
+      const token = await AsyncStorage.getItem("buyer:token");
 
       const xhrRequest = (method: string, url: string, body: FormData) =>
         new Promise<any>((resolve, reject) => {
@@ -325,6 +328,7 @@ function BannerForm({
 }
 
 export default function AdminTabScreen() {
+  const c = useThemeColors();
   const [section, setSection] = useState<Section>("Обзор");
   const [stats, setStats] = useState<Stats | null>(null);
   const [users, setUsers] = useState<AppUser[]>([]);
@@ -523,18 +527,18 @@ export default function AdminTabScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f3ff" }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       {/* Header */}
-      <View style={{ backgroundColor: "#fff", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#f3f4f6" }}>
+      <View style={{ backgroundColor: c.card, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: c.border }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
               <Shield size={18} color={P} />
             </View>
-            <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>Панель администратора</Text>
+            <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>Панель администратора</Text>
           </View>
-          <TouchableOpacity onPress={onRefresh} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
-            <RefreshCw size={16} color="#6b7280" />
+          <TouchableOpacity onPress={onRefresh} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+            <RefreshCw size={16} color={c.textSub} />
           </TouchableOpacity>
         </View>
         {/* Tabs */}
@@ -566,7 +570,7 @@ export default function AdminTabScreen() {
               </View>
 
               {/* Быстрые действия */}
-              <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+              <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                 {[
                   { label: "Статистика", sub: `Выручка: ${(stats?.revenue?.total ?? 0).toLocaleString()} с.`, icon: BarChart2, color: P, sec: "Статистика" as Section },
                   { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#8B5CF6", sec: "Пользователи" as Section },
@@ -574,15 +578,15 @@ export default function AdminTabScreen() {
                   { label: "Выплаты", sub: pendingPayouts.length > 0 ? `${pendingPayouts.length} ожидают` : "Новых нет", icon: Wallet, color: "#16a34a", sec: "Выплаты" as Section },
                   { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#6366f1", sec: "Баннеры" as Section },
                 ].map(({ label, sub, icon: Icon, color, sec }, i, arr) => (
-                  <TouchableOpacity key={label} onPress={() => setSection(sec)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: i < arr.length - 1 ? 0.5 : 0, borderBottomColor: "#f3f4f6" }}>
+                  <TouchableOpacity key={label} onPress={() => setSection(sec)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: i < arr.length - 1 ? 0.5 : 0, borderBottomColor: c.border }}>
                     <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: color + "15", alignItems: "center", justifyContent: "center" }}>
                       <Icon size={18} color={color} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{label}</Text>
-                      <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }}>{sub}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: c.text }}>{label}</Text>
+                      <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 1 }}>{sub}</Text>
                     </View>
-                    <ChevronRight size={16} color="#d1d5db" />
+                    <ChevronRight size={16} color={c.textMuted} />
                   </TouchableOpacity>
                 ))}
               </View>
@@ -609,21 +613,21 @@ export default function AdminTabScreen() {
                     <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue?.total ?? 0).toLocaleString()} с.</Text>
                   </View>
                   <View style={{ flex: 1, gap: 8 }}>
-                    <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
-                      <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 7 дней</Text>
-                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue?.last_7d ?? 0).toLocaleString()} с.</Text>
+                    <View style={{ backgroundColor: c.card, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 10, color: c.textMuted, fontWeight: "600" }}>За 7 дней</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>{(stats?.revenue?.last_7d ?? 0).toLocaleString()} с.</Text>
                     </View>
-                    <View style={{ backgroundColor: "#fff", borderRadius: 12, padding: 12 }}>
-                      <Text style={{ fontSize: 10, color: "#9ca3af", fontWeight: "600" }}>За 30 дней</Text>
-                      <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>{(stats?.revenue?.last_30d ?? 0).toLocaleString()} с.</Text>
+                    <View style={{ backgroundColor: c.card, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ fontSize: 10, color: c.textMuted, fontWeight: "600" }}>За 30 дней</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>{(stats?.revenue?.last_30d ?? 0).toLocaleString()} с.</Text>
                     </View>
                   </View>
                 </View>
 
                 {/* Bar chart */}
                 {chart.length > 0 && (
-                  <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827", marginBottom: 14 }}>Выручка за 7 дней</Text>
+                  <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: c.text, marginBottom: 14 }}>Выручка за 7 дней</Text>
                     <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 80 }}>
                       {chart.map((d, i) => (
                         <View key={i} style={{ flex: 1, alignItems: "center", gap: 4 }}>
@@ -653,8 +657,8 @@ export default function AdminTabScreen() {
                 </View>
 
                 {/* Orders by status */}
-                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827", marginBottom: 4 }}>Заказы по статусам</Text>
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: c.text, marginBottom: 4 }}>Заказы по статусам</Text>
                   {Object.entries(ORDER_STATUS).map(([key, { label, color }]) => {
                     const count = stats?.orders_by_status?.[key] ?? 0;
                     const total = stats?.orders ?? 1;
@@ -662,10 +666,10 @@ export default function AdminTabScreen() {
                     return (
                       <View key={key} style={{ gap: 4 }}>
                         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                          <Text style={{ fontSize: 12, color: "#374151", fontWeight: "500" }}>{label}</Text>
+                          <Text style={{ fontSize: 12, color: c.textSub, fontWeight: "500" }}>{label}</Text>
                           <Text style={{ fontSize: 12, color, fontWeight: "700" }}>{count} ({pct}%)</Text>
                         </View>
-                        <View style={{ height: 5, backgroundColor: "#f3f4f6", borderRadius: 4 }}>
+                        <View style={{ height: 5, backgroundColor: c.border, borderRadius: 4 }}>
                           <View style={{ height: 5, width: `${pct}%`, backgroundColor: color, borderRadius: 4 }} />
                         </View>
                       </View>
@@ -675,19 +679,19 @@ export default function AdminTabScreen() {
 
                 {/* Top sellers */}
                 {(stats?.top_sellers?.length ?? 0) > 0 && (
-                  <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                  <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>Топ продавцов</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }}>Топ продавцов</Text>
                     </View>
                     {stats!.top_sellers.map((s, i) => (
-                      <View key={s.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: "#f3f4f6" }}>
-                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : "#9ca3af", width: 20, textAlign: "center" }}>#{i + 1}</Text>
-                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                      <View key={s.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: c.border }}>
+                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : c.textMuted, width: 20, textAlign: "center" }}>#{i + 1}</Text>
+                        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
                           <Store size={16} color={P} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }} numberOfLines={1}>{s.shop_name}</Text>
-                          <Text style={{ fontSize: 11, color: "#9ca3af" }}>{s.products} товаров</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }} numberOfLines={1}>{s.shop_name}</Text>
+                          <Text style={{ fontSize: 11, color: c.textMuted }}>{s.products} товаров</Text>
                         </View>
                         <Text style={{ fontSize: 13, fontWeight: "800", color: P }}>{s.revenue.toLocaleString()} с.</Text>
                       </View>
@@ -697,22 +701,22 @@ export default function AdminTabScreen() {
 
                 {/* Top products */}
                 {(stats?.top_products?.length ?? 0) > 0 && (
-                  <View style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                  <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                     <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#111827" }}>Топ товаров</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }}>Топ товаров</Text>
                     </View>
                     {stats!.top_products.map((p, i) => (
-                      <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: "#f3f4f6" }}>
-                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : "#9ca3af", width: 20, textAlign: "center" }}>#{i + 1}</Text>
+                      <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderTopWidth: 0.5, borderTopColor: c.border }}>
+                        <Text style={{ fontSize: 16, fontWeight: "900", color: i === 0 ? "#f59e0b" : c.textMuted, width: 20, textAlign: "center" }}>#{i + 1}</Text>
                         {p.image_url
                           ? <Image source={{ uri: p.image_url }} style={{ width: 40, height: 40, borderRadius: 10 }} contentFit="cover" />
-                          : <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}><Package size={18} color="#d1d5db" /></View>
+                          : <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}><Package size={18} color={c.textMuted} /></View>
                         }
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{p.title}</Text>
-                          <Text style={{ fontSize: 11, color: "#9ca3af" }}>{p.price.toLocaleString()} с. · склад: {p.stock}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: c.text }} numberOfLines={1}>{p.title}</Text>
+                          <Text style={{ fontSize: 11, color: c.textMuted }}>{p.price.toLocaleString()} с. · склад: {p.stock}</Text>
                         </View>
-                        <View style={{ backgroundColor: "#f5f3ff", paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                        <View style={{ backgroundColor: c.iconBg, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
                           <Text style={{ fontSize: 12, fontWeight: "700", color: P }}>{p.sales_count} прод.</Text>
                         </View>
                       </View>
@@ -726,14 +730,14 @@ export default function AdminTabScreen() {
           {/* ── ПОЛЬЗОВАТЕЛИ ── */}
           {section === "Пользователи" && (
             <>
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{users.length} пользователей</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>{users.length} пользователей</Text>
               {users.map((u) => (
-                <View key={u.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View key={u.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: (ROLE_COLORS[u.role] || P) + "18", alignItems: "center", justifyContent: "center" }}>
                     <Text style={{ fontSize: 16, fontWeight: "800", color: ROLE_COLORS[u.role] || P }}>{(u.full_name || u.username || u.phone || "?")[0].toUpperCase()}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: u.is_active ? "#111827" : "#9ca3af" }} numberOfLines={1}>{u.full_name || u.username || u.phone}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: u.is_active ? c.text : c.textMuted }} numberOfLines={1}>{u.full_name || u.username || u.phone}</Text>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
                       <View style={{ backgroundColor: (ROLE_COLORS[u.role] || P) + "18", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
                         <Text style={{ fontSize: 10, fontWeight: "700", color: ROLE_COLORS[u.role] || P }}>{ROLE_LABELS[u.role] || u.role}</Text>
@@ -761,20 +765,20 @@ export default function AdminTabScreen() {
           {/* ── ЗАЯВКИ ── */}
           {section === "Заявки" && (
             <>
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{pendingApps.length} ожидают рассмотрения</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>{pendingApps.length} ожидают рассмотрения</Text>
               {apps.length === 0 ? (
-                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
-                  <CheckCircle size={44} color="#e5e7eb" />
-                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Заявок нет</Text>
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <CheckCircle size={44} color={c.border} />
+                  <Text style={{ color: c.textMuted, marginTop: 12, fontWeight: "500" }}>Заявок нет</Text>
                 </View>
               ) : apps.map((app) => (
-                <View key={app.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                <View key={app.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12 }}>
                   <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
                     <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={{ fontSize: 15, fontWeight: "700", color: "#111827" }}>{app.shop_name}</Text>
-                      <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>{app.username}{app.phone ? ` · ${app.phone}` : ""}</Text>
-                      {app.description && <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 4 }} numberOfLines={3}>{app.description}</Text>}
-                      <Text style={{ fontSize: 11, color: "#d1d5db", marginTop: 6 }}>{new Date(app.created_at).toLocaleDateString("ru-RU")}</Text>
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: c.text }}>{app.shop_name}</Text>
+                      <Text style={{ fontSize: 12, color: c.textSub, marginTop: 2 }}>{app.username}{app.phone ? ` · ${app.phone}` : ""}</Text>
+                      {app.description && <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }} numberOfLines={3}>{app.description}</Text>}
+                      <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 6 }}>{new Date(app.created_at).toLocaleDateString("ru-RU")}</Text>
                     </View>
                     <View style={{ backgroundColor: STATUS_COLORS[app.status] + "18", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: STATUS_COLORS[app.status] }}>{STATUS_LABELS[app.status] || app.status}</Text>
@@ -800,19 +804,19 @@ export default function AdminTabScreen() {
           {/* ── ВЫПЛАТЫ ── */}
           {section === "Выплаты" && (
             <>
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{payouts.length} выплат</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>{payouts.length} выплат</Text>
               {payouts.length === 0 ? (
-                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
-                  <Wallet size={44} color="#e5e7eb" />
-                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Выплат нет</Text>
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Wallet size={44} color={c.border} />
+                  <Text style={{ color: c.textMuted, marginTop: 12, fontWeight: "500" }}>Выплат нет</Text>
                 </View>
               ) : payouts.map((p) => (
-                <View key={p.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                <View key={p.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12 }}>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <View>
-                      <Text style={{ fontSize: 18, fontWeight: "800", color: "#111827" }}>{p.amount.toLocaleString()} сом.</Text>
-                      <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>ID продавца: {p.seller_id} · {new Date(p.created_at).toLocaleDateString("ru-RU")}</Text>
-                      {p.comment && <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>{p.comment}</Text>}
+                      <Text style={{ fontSize: 18, fontWeight: "800", color: c.text }}>{p.amount.toLocaleString()} сом.</Text>
+                      <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>ID продавца: {p.seller_id} · {new Date(p.created_at).toLocaleDateString("ru-RU")}</Text>
+                      {p.comment && <Text style={{ fontSize: 12, color: c.textSub, marginTop: 4 }}>{p.comment}</Text>}
                     </View>
                     <View style={{ backgroundColor: (STATUS_COLORS[p.status] || "#9ca3af") + "18", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: STATUS_COLORS[p.status] || "#9ca3af" }}>{STATUS_LABELS[p.status] || p.status}</Text>
@@ -838,22 +842,22 @@ export default function AdminTabScreen() {
           {/* ── ТОВАРЫ ── */}
           {section === "Товары" && (
             <>
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>{adminProducts.length} товаров</Text>
+              <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>{adminProducts.length} товаров</Text>
               <TextInput
                 value={prodSearch} onChangeText={setProdSearch}
-                placeholder="Поиск товара..." placeholderTextColor="#d1d5db"
-                style={{ backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: "#111827", borderWidth: 1.5, borderColor: "#f3f4f6" }}
+                placeholder="Поиск товара..." placeholderTextColor={c.textMuted}
+                style={{ backgroundColor: c.card, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: c.text, borderWidth: 1.5, borderColor: c.border }}
               />
               {adminProducts
                 .filter((p) => !prodSearch || p.title.toLowerCase().includes(prodSearch.toLowerCase()))
                 .map((p) => (
-                  <View key={p.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: p.is_active ? "#f5f3ff" : "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
-                      <Package size={18} color={p.is_active ? P : "#9ca3af"} />
+                  <View key={p.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: p.is_active ? c.iconBg : c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                      <Package size={18} color={p.is_active ? P : c.textMuted} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "600", color: p.is_active ? "#111827" : "#9ca3af" }} numberOfLines={1}>{p.title}</Text>
-                      <Text style={{ fontSize: 11, color: "#9ca3af", marginTop: 2 }}>{p.price.toLocaleString()} с. · склад: {p.stock} · ID: {p.id}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "600", color: p.is_active ? c.text : c.textMuted }} numberOfLines={1}>{p.title}</Text>
+                      <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>{p.price.toLocaleString()} с. · склад: {p.stock} · ID: {p.id}</Text>
                     </View>
                     <TouchableOpacity onPress={() => toggleProduct(p)} style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: p.is_active ? "#fef2f2" : "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
                       {p.is_active ? <EyeOff size={16} color="#ef4444" /> : <Eye size={16} color="#16a34a" />}
@@ -869,21 +873,21 @@ export default function AdminTabScreen() {
               <View style={{ flexDirection: "row", gap: 8 }}>
                 {(["pending", "all"] as const).map((f) => (
                   <TouchableOpacity key={f} onPress={() => setReportFilter(f)}
-                    style={{ paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: reportFilter === f ? P : "#f3f4f6" }}>
-                    <Text style={{ fontSize: 13, fontWeight: "600", color: reportFilter === f ? "#fff" : "#6b7280" }}>{f === "pending" ? "Ожидают" : "Все"}</Text>
+                    style={{ paddingHorizontal: 16, paddingVertical: 7, borderRadius: 20, backgroundColor: reportFilter === f ? P : c.iconBg }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: reportFilter === f ? "#fff" : c.textSub }}>{f === "pending" ? "Ожидают" : "Все"}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
-              <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>
+              <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>
                 {reports.filter(r => reportFilter === "all" || r.status === "pending").length} жалоб
               </Text>
               {reports.filter(r => reportFilter === "all" || r.status === "pending").length === 0 ? (
-                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
-                  <Flag size={44} color="#e5e7eb" />
-                  <Text style={{ color: "#9ca3af", marginTop: 12, fontWeight: "500" }}>Жалоб нет</Text>
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Flag size={44} color={c.border} />
+                  <Text style={{ color: c.textMuted, marginTop: 12, fontWeight: "500" }}>Жалоб нет</Text>
                 </View>
               ) : reports.filter(r => reportFilter === "all" || r.status === "pending").map((r) => (
-                <View key={r.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 16, gap: 12 }}>
+                <View key={r.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12 }}>
                   <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
                     <View style={{ flex: 1, marginRight: 10 }}>
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -893,9 +897,9 @@ export default function AdminTabScreen() {
                           </Text>
                         </View>
                       </View>
-                      <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }}>{r.reason}</Text>
-                      {r.comment && <Text style={{ fontSize: 12, color: "#6b7280", marginTop: 3 }}>{r.comment}</Text>}
-                      <Text style={{ fontSize: 11, color: "#d1d5db", marginTop: 4 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: c.text }}>{r.reason}</Text>
+                      {r.comment && <Text style={{ fontSize: 12, color: c.textSub, marginTop: 3 }}>{r.comment}</Text>}
+                      <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 4 }}>
                         От пользователя #{r.reporter_id} · {new Date(r.created_at).toLocaleDateString("ru-RU")}
                       </Text>
                     </View>
@@ -932,18 +936,18 @@ export default function AdminTabScreen() {
               </TouchableOpacity>
 
               {(() => {
-                const roots = adminCats.filter(c => !c.parent_id);
-                const subsOf = (id: number) => adminCats.filter(c => c.parent_id === id);
+                const roots = adminCats.filter(cat => !cat.parent_id);
+                const subsOf = (id: number) => adminCats.filter(cat => cat.parent_id === id);
                 return roots.map((root) => (
-                  <View key={root.id} style={{ backgroundColor: "#fff", borderRadius: 16, overflow: "hidden" }}>
+                  <View key={root.id} style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                     {/* Root row */}
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: "#f3f4f6" }}>
-                      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
+                      <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
                         <Tag size={14} color={P} />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: 14, fontWeight: "700", color: "#111827" }}>{root.name}</Text>
-                        <Text style={{ fontSize: 11, color: "#9ca3af" }}>{root.slug}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>{root.name}</Text>
+                        <Text style={{ fontSize: 11, color: c.textMuted }}>{root.slug}</Text>
                       </View>
                       <TouchableOpacity onPress={() => setCatForm({ visible: true, id: root.id, name: root.name, slug: root.slug, parent_id: "" })}
                         style={{ width: 30, height: 30, borderRadius: 8, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
@@ -956,11 +960,11 @@ export default function AdminTabScreen() {
                     </View>
                     {/* Subcategories */}
                     {subsOf(root.id).map((sub) => (
-                      <View key={sub.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10, paddingLeft: 24, borderBottomWidth: 0.5, borderBottomColor: "#f9fafb" }}>
-                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#d1d5db" }} />
+                      <View key={sub.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10, paddingLeft: 24, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
+                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: c.textMuted }} />
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 13, fontWeight: "500", color: "#374151" }}>{sub.name}</Text>
-                          <Text style={{ fontSize: 10, color: "#d1d5db" }}>{sub.slug}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "500", color: c.textSub }}>{sub.name}</Text>
+                          <Text style={{ fontSize: 10, color: c.textMuted }}>{sub.slug}</Text>
                         </View>
                         <TouchableOpacity onPress={() => setCatForm({ visible: true, id: sub.id, name: sub.name, slug: sub.slug, parent_id: String(sub.parent_id) })}
                           style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
@@ -975,8 +979,8 @@ export default function AdminTabScreen() {
                     {/* Add subcategory button */}
                     <TouchableOpacity onPress={() => setCatForm({ visible: true, name: "", slug: "", parent_id: String(root.id) })}
                       style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 24, paddingVertical: 10 }}>
-                      <Plus size={12} color="#9ca3af" />
-                      <Text style={{ fontSize: 12, color: "#9ca3af", fontWeight: "500" }}>Добавить подкатегорию</Text>
+                      <Plus size={12} color={c.textMuted} />
+                      <Text style={{ fontSize: 12, color: c.textMuted, fontWeight: "500" }}>Добавить подкатегорию</Text>
                     </TouchableOpacity>
                   </View>
                 ));
@@ -988,8 +992,8 @@ export default function AdminTabScreen() {
           {section === "Баннеры" && (
             <>
               {/* Где менять баннер */}
-              <View style={{ backgroundColor: "#fff", borderRadius: 20, padding: 16, gap: 12 }}>
-                <Text style={{ fontSize: 15, fontWeight: "800", color: "#111827" }}>Где менять баннер?</Text>
+              <View style={{ backgroundColor: c.card, borderRadius: 20, padding: 16, gap: 12 }}>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>Где менять баннер?</Text>
 
                 {/* Главный экран */}
                 <TouchableOpacity
@@ -1079,11 +1083,11 @@ export default function AdminTabScreen() {
               )}
 
               {banners.length === 0 ? (
-                <View style={{ backgroundColor: "#fff", borderRadius: 16, padding: 40, alignItems: "center" }}>
-                  <Text style={{ color: "#9ca3af", fontWeight: "500" }}>Баннеров нет</Text>
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <Text style={{ color: c.textMuted, fontWeight: "500" }}>Баннеров нет</Text>
                 </View>
               ) : banners.map((b) => (
-                <View key={b.id} style={{ backgroundColor: "#fff", borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                <View key={b.id} style={{ backgroundColor: c.card, borderRadius: 16, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
                   <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: b.bg_color, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                     {b.image_url
                       ? <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: 48, height: 48 }} contentFit="cover" />
@@ -1091,8 +1095,8 @@ export default function AdminTabScreen() {
                     }
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#111827" }} numberOfLines={1}>{b.title}</Text>
-                    {b.subtitle && <Text style={{ fontSize: 12, color: "#9ca3af", marginTop: 1 }} numberOfLines={1}>{b.subtitle}</Text>}
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: c.text }} numberOfLines={1}>{b.title}</Text>
+                    {b.subtitle && <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 1 }} numberOfLines={1}>{b.subtitle}</Text>}
                     <Text style={{ fontSize: 11, marginTop: 3, color: b.is_active ? "#16a34a" : "#9ca3af", fontWeight: "500" }}>
                       {b.is_active ? "● Активен" : "○ Отключён"}
                       {b.link_url
@@ -1124,31 +1128,31 @@ export default function AdminTabScreen() {
       <Modal visible={catForm.visible} transparent animationType="slide" onRequestClose={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })}>
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })} />
-          <View style={{ backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
+          <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-              <Text style={{ fontSize: 17, fontWeight: "800", color: "#111827" }}>
+              <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>
                 {catForm.id ? "Редактировать категорию" : catForm.parent_id ? "Новая подкатегория" : "Новая категория"}
               </Text>
               <TouchableOpacity onPress={() => setCatForm({ visible: false, name: "", slug: "", parent_id: "" })}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
-                <X size={16} color="#6b7280" />
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                <X size={16} color={c.textSub} />
               </TouchableOpacity>
             </View>
             {catForm.parent_id ? (
-              <View style={{ backgroundColor: "#f5f3ff", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 }}>
+              <View style={{ backgroundColor: c.iconBg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 14 }}>
                 <Text style={{ fontSize: 12, color: P, fontWeight: "600" }}>
-                  Подкатегория для: {adminCats.find(c => c.id === Number(catForm.parent_id))?.name ?? `#${catForm.parent_id}`}
+                  Подкатегория для: {adminCats.find(cat => cat.id === Number(catForm.parent_id))?.name ?? `#${catForm.parent_id}`}
                 </Text>
               </View>
             ) : null}
-            <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>НАЗВАНИЕ</Text>
+            <Text style={{ fontSize: 12, color: c.textSub, fontWeight: "600", marginBottom: 6 }}>НАЗВАНИЕ</Text>
             <TextInput value={catForm.name} onChangeText={(v) => setCatForm(f => ({ ...f, name: v }))}
-              placeholder="Электроника" placeholderTextColor="#d1d5db"
-              style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: catForm.name ? P : "#f3f4f6", marginBottom: 12 }} />
-            <Text style={{ fontSize: 12, color: "#6b7280", fontWeight: "600", marginBottom: 6 }}>SLUG (латиница)</Text>
+              placeholder="Электроника" placeholderTextColor={c.textMuted}
+              style={{ backgroundColor: c.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: c.text, borderWidth: 1.5, borderColor: catForm.name ? P : c.border, marginBottom: 12 }} />
+            <Text style={{ fontSize: 12, color: c.textSub, fontWeight: "600", marginBottom: 6 }}>SLUG (латиница)</Text>
             <TextInput value={catForm.slug} onChangeText={(v) => setCatForm(f => ({ ...f, slug: v.toLowerCase().replace(/\s+/g, "-") }))}
-              placeholder="electronics" placeholderTextColor="#d1d5db" autoCapitalize="none"
-              style={{ backgroundColor: "#f9fafb", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: "#111827", borderWidth: 1.5, borderColor: catForm.slug ? P : "#f3f4f6", marginBottom: 20 }} />
+              placeholder="electronics" placeholderTextColor={c.textMuted} autoCapitalize="none"
+              style={{ backgroundColor: c.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11, fontSize: 15, color: c.text, borderWidth: 1.5, borderColor: catForm.slug ? P : c.border, marginBottom: 20 }} />
             <TouchableOpacity onPress={saveCat} disabled={catSaving}
               style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center" }}>
               {catSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ fontWeight: "700", color: "#fff", fontSize: 15 }}>{catForm.id ? "Сохранить" : "Создать"}</Text>}
@@ -1161,7 +1165,7 @@ export default function AdminTabScreen() {
       <Modal visible={bannerFormState.visible} transparent animationType="slide" onRequestClose={() => setBannerFormState({ visible: false, existing: null })}>
         <View style={{ flex: 1, justifyContent: "flex-end" }}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.4)" }} activeOpacity={1} onPress={() => setBannerFormState({ visible: false, existing: null })} />
-          <View style={{ height: "88%", backgroundColor: "#fff", borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
+          <View style={{ height: "88%", backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
             <BannerForm
               existing={bannerFormState.existing}
               initialLinkUrl={bannerFormState.initialLinkUrl}

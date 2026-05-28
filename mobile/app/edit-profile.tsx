@@ -58,7 +58,7 @@ export default function EditProfileScreen() {
 
   const uploadAvatar = async (): Promise<boolean> => {
     if (!localAvatar) return true;
-    const token = await AsyncStorage.getItem("token");
+    const token = await AsyncStorage.getItem("buyer:token");
     const form = new FormData();
     form.append("file", { uri: localAvatar.uri, name: localAvatar.name, type: localAvatar.type } as any);
     return new Promise<boolean>((resolve) => {

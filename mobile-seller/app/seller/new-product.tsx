@@ -251,7 +251,7 @@ export default function NewProductScreen() {
 
   const uploadPhotos = (productId: number, photosArr: Photo[], variantIndices?: number[]) =>
     new Promise<void>((resolve) => {
-      AsyncStorage.getItem("token").then((token) => {
+      AsyncStorage.getItem("seller:token").then((token) => {
         const fd = new FormData();
         photosArr.forEach((p) => fd.append("files", { uri: p.uri, name: p.name, type: p.type } as any));
         if (variantIndices && variantIndices.length > 0)
