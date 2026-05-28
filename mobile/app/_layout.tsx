@@ -1,5 +1,5 @@
 import "../global.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Easing } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -15,6 +15,7 @@ import { useCartStore } from "@/store/cart";
 import { useFavoritesStore } from "@/store/favorites";
 import { useThemeStore } from "@/store/theme";
 import { useIsDark } from "@/lib/theme";
+import SplashAnim from "@/components/SplashAnim";
 
 Sentry.init({
   dsn: "https://ca06cef015beee42cef9a886378d9f9e@o4511453703700480.ingest.us.sentry.io/4511453707436032",
@@ -34,6 +35,7 @@ export default Sentry.wrap(function RootLayout() {
   const clearFavs = useFavoritesStore((s) => s.clear);
   const hydrateTheme = useThemeStore((s) => s.hydrate);
   const isDark = useIsDark();
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     pingServer();
@@ -41,7 +43,6 @@ export default Sentry.wrap(function RootLayout() {
     hydrateFavs();
     init();
   }, []);
-
 
   useEffect(() => {
     if (user) { fetchCart(); fetchFavs(); }
@@ -83,6 +84,7 @@ export default Sentry.wrap(function RootLayout() {
       </Stack>
       <OfflineBanner />
       <Toast />
+      {!splashDone && <SplashAnim onFinish={() => setSplashDone(true)} />}
     </GestureHandlerRootView>
   );
 });
