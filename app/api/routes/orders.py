@@ -78,6 +78,36 @@ def get_order(order_id: int, db: Session = Depends(get_db), user: User = Depends
     return order
 
 
+@router.post("/{order_id}/cancel", response_model=OrderOut)
+def cancel_order(order_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    order = db.query(Order).filter(Order.id == order_id, Order.buyer_id == user.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status not in (OrderStatus.pending, OrderStatus.confirmed):
+        raise HTTPException(status_code=400, detail="Нельзя отменить заказ на этом этапе")
+    order.status = OrderStatus.cancelled
+    # return stock
+    items = db.query(OrderItem).filter(OrderItem.order_id == order_id).all()
+    for item in items:
+        product = db.query(Product).filter(Product.id == item.product_id).first()
+        if product:
+            product.stock += item.quantity
+    db.commit()
+    return _load_order(db, order.id)
+
+
+@router.post("/{order_id}/pay", response_model=OrderOut)
+def pay_order(order_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    order = db.query(Order).filter(Order.id == order_id, Order.buyer_id == user.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status == OrderStatus.cancelled:
+        raise HTTPException(status_code=400, detail="Заказ отменён")
+    order.is_paid = True
+    db.commit()
+    return _load_order(db, order.id)
+
+
 @router.patch("/{order_id}/status", response_model=OrderOut)
 def update_order_status(
     order_id: int,

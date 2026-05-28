@@ -25,6 +25,7 @@ class Order(Base):
     delivery_city = Column(String, nullable=False)
     contact_phone = Column(String, nullable=False)
     payment_method = Column(String, default="cash", nullable=False)
+    is_paid = Column(Boolean, default=False, nullable=False)
     delivery_date = Column(String, nullable=True)
     delivery_time = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

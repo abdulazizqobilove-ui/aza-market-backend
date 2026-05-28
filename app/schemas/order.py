@@ -33,6 +33,7 @@ class OrderOut(BaseModel):
     delivery_city: str
     contact_phone: str
     payment_method: str = "cash"
+    is_paid: bool = False
     delivery_date: Optional[str] = None
     delivery_time: Optional[str] = None
     created_at: datetime
