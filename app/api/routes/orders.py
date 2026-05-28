@@ -112,19 +112,24 @@ def pay_order(order_id: int, db: Session = Depends(get_db), user: User = Depends
 def mark_order_paid(
     order_id: int,
     db: Session = Depends(get_db),
-    seller: User = Depends(require_seller),
+    current_user: User = Depends(get_current_user),
 ):
-    """Seller confirms cash/on_delivery payment received."""
+    """Seller or admin confirms cash/on_delivery payment received."""
+    from app.models.user import UserRole
+    if current_user.role not in (UserRole.seller, UserRole.admin):
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
     order = db.query(Order).options(
         joinedload(Order.items).joinedload(OrderItem.product)
     ).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    # Only seller of items in this order can mark paid
-    seller_ids = {item.product.seller_id for item in order.items}
-    if seller.id not in seller_ids:
-        raise HTTPException(status_code=403, detail="Нет доступа")
+    # Admin can mark any order; seller only their own
+    if current_user.role == UserRole.seller:
+        seller_ids = {item.product.seller_id for item in order.items}
+        if current_user.id not in seller_ids:
+            raise HTTPException(status_code=403, detail="Нет доступа")
 
     if order.is_paid:
         raise HTTPException(status_code=400, detail="Заказ уже оплачен")

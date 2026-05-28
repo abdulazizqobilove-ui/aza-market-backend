@@ -80,11 +80,12 @@ export default function SellerOrdersScreen() {
   const markPaid = async (orderId: number) => {
     setUpdating(orderId);
     try {
-      const res = await api.patch<Order>(`/orders/${orderId}/mark-paid`, {});
+      const res = await api.patch<Order>(`/orders/${orderId}/mark-paid`);
       setOrders((prev) => prev.map((o) => o.id === orderId ? res.data : o));
       Toast.show({ type: "success", text1: "Оплата подтверждена ✅" });
-    } catch {
-      Toast.show({ type: "error", text1: "Ошибка подтверждения" });
+    } catch (e: any) {
+      const msg = e?.response?.data?.detail || e?.message || "Ошибка подтверждения";
+      Toast.show({ type: "error", text1: msg });
     } finally {
       setUpdating(null);
     }
