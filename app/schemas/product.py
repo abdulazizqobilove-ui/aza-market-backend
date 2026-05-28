@@ -35,6 +35,7 @@ class ProductCreate(BaseModel):
     sku: Optional[str] = None
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
+    shop_tag: Optional[str] = None
 
 
 class ProductUpdate(BaseModel):
@@ -50,6 +51,7 @@ class ProductUpdate(BaseModel):
     sku: Optional[str] = None
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
+    shop_tag: Optional[str] = None
 
 
 class ProductOut(BaseModel):
@@ -72,6 +74,7 @@ class ProductOut(BaseModel):
     attributes: Optional[dict] = None
     about: Optional[str] = None
     variants: Optional[List[dict]] = None
+    shop_tag: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -94,6 +97,7 @@ class ProductListOut(BaseModel):
     images: List[ProductImageOut] = []
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
+    shop_tag: Optional[str] = None
 
     class Config:
         from_attributes = True

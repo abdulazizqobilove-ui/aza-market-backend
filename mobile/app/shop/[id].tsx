@@ -6,6 +6,8 @@ import { ArrowLeft, Star, Package, Search } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api, { Product, API_URL } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
+import { useThemeColors } from "@/lib/theme";
+import { SkeletonProductGrid } from "@/components/Skeleton";
 
 interface ShopInfo {
   id: number; username: string; shop_name?: string; shop_description?: string;
@@ -23,11 +25,13 @@ const SORTS = [
 export default function ShopScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const c = useThemeColors();
   const [shop, setShop] = useState<ShopInfo | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState("newest");
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<ShopInfo>(`/shop/${id}`).then((r) => setShop(r.data)).catch(() => {});
@@ -46,10 +50,14 @@ export default function ShopScreen() {
     } catch {} finally { setLoading(false); }
   };
 
+  // Unique shop_tags from all products (non-null)
+  const shopTags = Array.from(new Set(products.map((p) => p.shop_tag).filter(Boolean))) as string[];
+  const visibleProducts = tagFilter ? products.filter((p) => p.shop_tag === tagFilter) : products;
+
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       <FlatList
-        data={products}
+        data={visibleProducts}
         numColumns={2}
         keyExtractor={(p) => String(p.id)}
         columnWrapperStyle={{ gap: 8, paddingHorizontal: 12 }}
@@ -57,67 +65,95 @@ export default function ShopScreen() {
         ListHeaderComponent={
           <View>
             {/* Banner */}
-            <View className="relative h-44 bg-blue-600">
-              {shop?.shop_banner_url && <Image source={{ uri: `${API_URL}${shop.shop_banner_url}` }} className="w-full h-full" contentFit="cover" />}
-              <TouchableOpacity onPress={() => router.back()} className="absolute top-4 left-4 w-10 h-10 bg-black/30 rounded-full items-center justify-center">
+            <View style={{ position: "relative", height: 176, backgroundColor: "#7C3AED" }}>
+              {shop?.shop_banner_url && <Image source={{ uri: `${API_URL}${shop.shop_banner_url}` }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
+              <TouchableOpacity onPress={() => router.back()} style={{ position: "absolute", top: 16, left: 16, width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
                 <ArrowLeft size={20} color="white" />
               </TouchableOpacity>
             </View>
 
             {/* Shop info */}
-            <View className="bg-white px-4 pb-4 pt-0">
-              <View className="flex-row items-end gap-4 -mt-8 mb-3">
-                <View className="w-20 h-20 rounded-2xl border-4 border-white overflow-hidden bg-blue-100 items-center justify-center shadow">
+            <View style={{ backgroundColor: c.card, paddingHorizontal: 16, paddingBottom: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 16, marginTop: -32, marginBottom: 12 }}>
+                <View style={{ width: 80, height: 80, borderRadius: 16, borderWidth: 4, borderColor: c.card, overflow: "hidden", backgroundColor: "#dbeafe", alignItems: "center", justifyContent: "center" }}>
                   {shop?.shop_logo_url
-                    ? <Image source={{ uri: `${API_URL}${shop.shop_logo_url}` }} className="w-full h-full" contentFit="cover" />
-                    : <Text className="text-blue-600 text-2xl font-bold">{(shop?.shop_name || shop?.username || "?")[0].toUpperCase()}</Text>}
+                    ? <Image source={{ uri: `${API_URL}${shop.shop_logo_url}` }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                    : <Text style={{ color: "#2563eb", fontSize: 24, fontWeight: "700" }}>{(shop?.shop_name || shop?.username || "?")[0].toUpperCase()}</Text>}
                 </View>
-                <View className="flex-1 pb-1">
-                  <Text className="text-lg font-bold text-gray-900">{shop?.shop_name || shop?.username}</Text>
+                <View style={{ flex: 1, paddingBottom: 4 }}>
+                  <Text style={{ fontSize: 18, fontWeight: "700", color: c.text }}>{shop?.shop_name || shop?.username}</Text>
                 </View>
               </View>
 
-              {shop?.shop_description && <Text className="text-sm text-gray-500 mb-3">{shop.shop_description}</Text>}
+              {shop?.shop_description && <Text style={{ fontSize: 14, color: c.textMuted, marginBottom: 12 }}>{shop.shop_description}</Text>}
 
-              <View className="flex-row gap-6">
-                <View className="items-center">
-                  <Text className="text-xl font-bold text-gray-900">{products.length}</Text>
-                  <Text className="text-xs text-gray-400">Товаров</Text>
+              <View style={{ flexDirection: "row", gap: 24 }}>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, fontWeight: "700", color: c.text }}>{products.length}</Text>
+                  <Text style={{ fontSize: 12, color: c.textMuted }}>Товаров</Text>
                 </View>
-                <View className="items-center">
-                  <Text className="text-xl font-bold text-gray-900">{(shop?.rating || 0).toFixed(1)}</Text>
-                  <Text className="text-xs text-gray-400">Рейтинг</Text>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, fontWeight: "700", color: c.text }}>{(shop?.rating || 0).toFixed(1)}</Text>
+                  <Text style={{ fontSize: 12, color: c.textMuted }}>Рейтинг</Text>
                 </View>
-                <View className="items-center">
-                  <Text className="text-xl font-bold text-gray-900">{shop?.reviews_count || 0}</Text>
-                  <Text className="text-xs text-gray-400">Отзывов</Text>
+                <View style={{ alignItems: "center" }}>
+                  <Text style={{ fontSize: 20, fontWeight: "700", color: c.text }}>{shop?.reviews_count || 0}</Text>
+                  <Text style={{ fontSize: 12, color: c.textMuted }}>Отзывов</Text>
                 </View>
               </View>
             </View>
 
             {/* Search & Sort */}
-            <View className="bg-white mt-2 px-4 py-3 gap-3">
-              <View className="flex-row items-center bg-gray-100 rounded-2xl px-4 gap-2">
-                <Search size={16} color="#9ca3af" />
-                <TextInput value={q} onChangeText={setQ} placeholder="Поиск в магазине..." placeholderTextColor="#9ca3af" className="flex-1 py-2.5 text-sm text-gray-900" />
+            <View style={{ backgroundColor: c.card, marginTop: 8, paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: c.iconBg, borderRadius: 16, paddingHorizontal: 14, gap: 8 }}>
+                <Search size={16} color={c.textMuted} />
+                <TextInput value={q} onChangeText={setQ} placeholder="Поиск в магазине..." placeholderTextColor={c.textMuted} style={{ flex: 1, paddingVertical: 10, fontSize: 14, color: c.text }} />
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
                 {SORTS.map((s) => (
-                  <TouchableOpacity key={s.key} onPress={() => setSort(s.key)} className={`px-3 py-1 rounded-full border ${sort === s.key ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}>
-                    <Text className={`text-xs font-medium ${sort === s.key ? "text-blue-600" : "text-gray-500"}`}>{s.label}</Text>
+                  <TouchableOpacity
+                    key={s.key}
+                    onPress={() => setSort(s.key)}
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: sort === s.key ? "#8B5CF6" : c.border, backgroundColor: sort === s.key ? "#eff6ff" : "transparent" }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: sort === s.key ? "#8B5CF6" : c.textMuted }}>{s.label}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             </View>
 
-            <View className="h-3" />
+            {/* Custom shop tag chips */}
+            {shopTags.length > 0 && (
+              <View style={{ backgroundColor: c.card, marginTop: 2, paddingVertical: 10 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
+                  <TouchableOpacity
+                    onPress={() => setTagFilter(null)}
+                    style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === null ? "#8B5CF6" : c.iconBg }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: tagFilter === null ? "#fff" : c.textSub }}>Все</Text>
+                  </TouchableOpacity>
+                  {shopTags.map((tag) => (
+                    <TouchableOpacity
+                      key={tag}
+                      onPress={() => setTagFilter(tagFilter === tag ? null : tag)}
+                      style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === tag ? "#8B5CF6" : c.iconBg }}
+                    >
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: tagFilter === tag ? "#fff" : c.textSub }}>{tag}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            <View style={{ height: 12 }} />
           </View>
         }
         ListEmptyComponent={
-          loading ? <ActivityIndicator color="#2563EB" className="mt-10" /> :
-          <View className="items-center py-16"><Package size={48} color="#e5e7eb" /><Text className="text-gray-400 mt-3">Товаров нет</Text></View>
+          loading
+            ? <SkeletonProductGrid rows={3} />
+            : <View style={{ alignItems: "center", paddingVertical: 64 }}><Package size={48} color={c.border} /><Text style={{ color: c.textMuted, marginTop: 12 }}>Товаров нет</Text></View>
         }
-        renderItem={({ item }) => <View className="flex-1"><ProductCard product={item} /></View>}
+        renderItem={({ item }) => <View style={{ flex: 1 }}><ProductCard product={item} /></View>}
       />
     </SafeAreaView>
   );
