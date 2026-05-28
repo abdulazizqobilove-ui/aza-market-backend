@@ -10,14 +10,7 @@
     "plugins": [
       "expo-router",
       "expo-image-picker",
-      "expo-notifications",
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "aza-market",
-          "project": "aza-market-mobile"
-        }
-      ]
+      "expo-notifications"
     ],
     "ios": {
       "supportsTablet": false,
