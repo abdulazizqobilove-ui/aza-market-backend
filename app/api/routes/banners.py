@@ -32,7 +32,14 @@ class BannerOut(BaseModel):
 
 @router.get("", response_model=List[BannerOut])
 def get_banners(db: Session = Depends(get_db)):
-    return db.query(Banner).filter(Banner.is_active == True).order_by(Banner.sort_order, Banner.id).all()
+    # Главный экран — только баннеры без link_url (категорийные баннеры не показываем)
+    return (
+        db.query(Banner)
+        .filter(Banner.is_active == True)
+        .filter((Banner.link_url == None) | (~Banner.link_url.like("category:%")))
+        .order_by(Banner.sort_order, Banner.id)
+        .all()
+    )
 
 
 @router.get("/all", response_model=List[BannerOut])
