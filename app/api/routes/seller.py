@@ -27,91 +27,109 @@ router = APIRouter(prefix="/seller", tags=["seller"])
 
 @router.get("/stats")
 def seller_stats(db: Session = Depends(get_db), seller: User = Depends(require_seller)):
+    from app.models.review import Review
+    from app.models.product import ProductImage
+
     now = datetime.utcnow()
-    d7 = now - timedelta(days=7)
+    d7  = now - timedelta(days=7)
     d30 = now - timedelta(days=30)
 
-    # Seller's products
+    # ── Products ──────────────────────────────────────────────
     products = db.query(Product).filter(Product.seller_id == seller.id).all()
     product_ids = [p.id for p in products]
 
-    total_products = len(products)
+    total_products  = len(products)
     active_products = sum(1 for p in products if p.is_active and p.stock > 0)
-    out_of_stock = sum(1 for p in products if p.stock == 0)
+    out_of_stock    = sum(1 for p in products if p.stock == 0)
 
-    # Orders containing seller's products
-    order_ids_q = db.query(OrderItem.order_id).filter(
-        OrderItem.product_id.in_(product_ids)
-    ).distinct().subquery()
+    if not product_ids:
+        return {
+            "products": {"total": 0, "active": 0, "out_of_stock": 0},
+            "orders": {"total": 0, "pending": 0, "confirmed": 0, "processing": 0, "shipped": 0, "delivered": 0, "cancelled": 0},
+            "revenue": {"total": 0, "last_7d": 0, "last_30d": 0},
+            "orders_7d": 0, "orders_30d": 0,
+            "avg_rating": 0.0, "total_reviews": 0,
+            "top_products": [],
+            "chart_7d": [{"date": (now - timedelta(days=i)).strftime("%d.%m"), "revenue": 0} for i in range(6, -1, -1)],
+        }
 
-    all_orders = db.query(Order).filter(Order.id.in_(order_ids_q)).all()
+    # ── Orders ────────────────────────────────────────────────
+    order_ids = [
+        row[0] for row in
+        db.query(OrderItem.order_id)
+          .filter(OrderItem.product_id.in_(product_ids))
+          .distinct().all()
+    ]
+    all_orders = db.query(Order).filter(Order.id.in_(order_ids)).all() if order_ids else []
 
-    def count_status(status):
-        return sum(1 for o in all_orders if o.status == status)
+    def count_status(s):
+        return sum(1 for o in all_orders if o.status == s)
 
     orders_total = len(all_orders)
-    orders_7d = sum(1 for o in all_orders if o.created_at and o.created_at >= d7)
-    orders_30d = sum(1 for o in all_orders if o.created_at and o.created_at >= d30)
+    orders_7d    = sum(1 for o in all_orders if o.created_at and o.created_at >= d7)
+    orders_30d   = sum(1 for o in all_orders if o.created_at and o.created_at >= d30)
 
-    # Revenue from delivered orders only
-    def revenue_from(orders_list):
-        total = 0.0
-        for o in orders_list:
-            if o.status == OrderStatus.delivered:
-                items = db.query(OrderItem).filter(
-                    OrderItem.order_id == o.id,
-                    OrderItem.product_id.in_(product_ids)
-                ).all()
-                total += sum(i.price * i.quantity for i in items)
-        return total
+    # ── Revenue ────────────────────────────────────────────────
+    # Pre-fetch all seller items in those orders in one query
+    all_items = (
+        db.query(OrderItem)
+          .filter(OrderItem.order_id.in_(order_ids), OrderItem.product_id.in_(product_ids))
+          .all()
+    ) if order_ids else []
 
-    rev_total = revenue_from(all_orders)
-    rev_7d = revenue_from([o for o in all_orders if o.created_at and o.created_at >= d7])
-    rev_30d = revenue_from([o for o in all_orders if o.created_at and o.created_at >= d30])
+    delivered_order_ids = {o.id for o in all_orders if o.status == OrderStatus.delivered}
+    delivered_7d_ids    = {o.id for o in all_orders if o.status == OrderStatus.delivered and o.created_at and o.created_at >= d7}
+    delivered_30d_ids   = {o.id for o in all_orders if o.status == OrderStatus.delivered and o.created_at and o.created_at >= d30}
 
-    # Chart: last 7 days
+    rev_total = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_order_ids)
+    rev_7d    = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_7d_ids)
+    rev_30d   = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_30d_ids)
+
+    # ── Chart 7d ──────────────────────────────────────────────
     chart = []
-    for i in range(6, -1, -1):
-        day = now - timedelta(days=i)
-        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
-        day_end = day_start + timedelta(days=1)
-        day_orders = [o for o in all_orders if o.created_at and day_start <= o.created_at < day_end and o.status == OrderStatus.delivered]
-        day_rev = 0.0
-        for o in day_orders:
-            items = db.query(OrderItem).filter(
-                OrderItem.order_id == o.id,
-                OrderItem.product_id.in_(product_ids)
-            ).all()
-            day_rev += sum(it.price * it.quantity for it in items)
+    for days_ago in range(6, -1, -1):
+        day        = now - timedelta(days=days_ago)
+        day_start  = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end    = day_start + timedelta(days=1)
+        day_del_ids = {
+            o.id for o in all_orders
+            if o.status == OrderStatus.delivered and o.created_at and day_start <= o.created_at < day_end
+        }
+        day_rev = sum(i.price * i.quantity for i in all_items if i.order_id in day_del_ids)
         chart.append({"date": day.strftime("%d.%m"), "revenue": round(day_rev)})
 
-    # Ratings
-    from app.models.review import Review
-    reviews = db.query(Review).filter(Review.product_id.in_(product_ids)).all() if product_ids else []
-    avg_rating = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
+    # ── Reviews ────────────────────────────────────────────────
+    reviews     = db.query(Review).filter(Review.product_id.in_(product_ids)).all()
+    avg_rating  = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
     total_reviews = len(reviews)
 
-    # Top products
+    # ── Top products ───────────────────────────────────────────
+    # Fetch images in one query
+    images_by_product: dict = {}
+    for img in db.query(ProductImage).filter(ProductImage.product_id.in_(product_ids)).all():
+        images_by_product.setdefault(img.product_id, []).append(img)
+
     top = sorted(products, key=lambda p: p.sales_count or 0, reverse=True)[:5]
     top_products = []
     for p in top:
-        img = next((i.url for i in p.images if i.is_main), None) or (p.images[0].url if p.images else None)
+        imgs = images_by_product.get(p.id, [])
+        img_url = next((i.url for i in imgs if i.is_main), imgs[0].url if imgs else None)
         top_products.append({
             "id": p.id, "title": p.title, "price": p.price,
             "sales_count": p.sales_count or 0, "stock": p.stock,
-            "image_url": img,
+            "image_url": img_url,
         })
 
     return {
         "products": {"total": total_products, "active": active_products, "out_of_stock": out_of_stock},
         "orders": {
             "total": orders_total,
-            "pending": count_status(OrderStatus.pending),
-            "confirmed": count_status(OrderStatus.confirmed),
+            "pending":    count_status(OrderStatus.pending),
+            "confirmed":  count_status(OrderStatus.confirmed),
             "processing": count_status(OrderStatus.processing),
-            "shipped": count_status(OrderStatus.shipped),
-            "delivered": count_status(OrderStatus.delivered),
-            "cancelled": count_status(OrderStatus.cancelled),
+            "shipped":    count_status(OrderStatus.shipped),
+            "delivered":  count_status(OrderStatus.delivered),
+            "cancelled":  count_status(OrderStatus.cancelled),
         },
         "revenue": {"total": round(rev_total), "last_7d": round(rev_7d), "last_30d": round(rev_30d)},
         "orders_7d": orders_7d,
