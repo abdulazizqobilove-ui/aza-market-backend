@@ -27,6 +27,13 @@ router = APIRouter(prefix="/seller", tags=["seller"])
 
 @router.get("/stats")
 def seller_stats(db: Session = Depends(get_db), seller: User = Depends(require_seller)):
+    try:
+     return _seller_stats_impl(db, seller)
+    except Exception as e:
+     import traceback
+     raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {e}\n{traceback.format_exc()}")
+
+def _seller_stats_impl(db: Session, seller: User):
     from app.models.review import Review
     from app.models.product import ProductImage
 
