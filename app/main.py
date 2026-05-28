@@ -42,6 +42,22 @@ def _run_startup_db():
             pass
     _seed()
 
+# Critical schema migrations run synchronously so columns exist before first request
+from sqlalchemy import text as _sql_sync
+for _stmt in [
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS delivery_date VARCHAR",
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS delivery_time VARCHAR",
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS is_paid BOOLEAN NOT NULL DEFAULT FALSE",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS variants JSONB",
+    "ALTER TABLE mkt_cart_items ADD COLUMN IF NOT EXISTS selected_attrs JSONB",
+    "ALTER TABLE mkt_product_images ADD COLUMN IF NOT EXISTS variant_index INTEGER",
+]:
+    try:
+        with engine.begin() as _conn:
+            _conn.execute(_sql_sync(_stmt))
+    except Exception:
+        pass
+
 threading.Thread(target=_run_startup_db, daemon=True).start()
 
 # Auto-seed categories and users if empty
