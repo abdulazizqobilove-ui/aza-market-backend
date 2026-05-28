@@ -4,7 +4,7 @@ from sqlalchemy import func
 from typing import List, Optional
 from pydantic import BaseModel
 import os, uuid, shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from app.core.database import get_db
 from app.api.deps import require_seller
 from app.models.product import Product
@@ -37,7 +37,7 @@ def _seller_stats_impl(db: Session, seller: User):
     from app.models.review import Review
     from app.models.product import ProductImage
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     d7  = now - timedelta(days=7)
     d30 = now - timedelta(days=30)
 
