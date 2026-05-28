@@ -4,7 +4,7 @@
     "slug": "aza-market",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "azamarket",
     "plugins": [
@@ -16,15 +16,10 @@
       "supportsTablet": false,
       "bundleIdentifier": "tj.azamarket.app"
     },
-    "androidNavigationBar": {
-      "visible": "immersive",
-      "barStyle": "dark-content"
-    },
     "android": {
       "package": "tj.azamarket.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
-        "monochromeImage": "./assets/logo.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
