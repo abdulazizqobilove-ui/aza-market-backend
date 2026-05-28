@@ -20,6 +20,8 @@ class OrderCreate(BaseModel):
     delivery_city: str
     contact_phone: str
     payment_method: str = "cash"
+    delivery_date: Optional[str] = None
+    delivery_time: Optional[str] = None
     item_ids: Optional[List[int]] = None
 
 
@@ -31,6 +33,8 @@ class OrderOut(BaseModel):
     delivery_city: str
     contact_phone: str
     payment_method: str = "cash"
+    delivery_date: Optional[str] = None
+    delivery_time: Optional[str] = None
     created_at: datetime
     items: List[OrderItemOut] = []
 

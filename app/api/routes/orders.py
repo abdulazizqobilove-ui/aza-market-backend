@@ -43,6 +43,8 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         delivery_city=data.delivery_city,
         contact_phone=data.contact_phone,
         payment_method=data.payment_method,
+        delivery_date=data.delivery_date,
+        delivery_time=data.delivery_time,
     )
     db.add(order)
     db.flush()
