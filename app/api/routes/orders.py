@@ -108,6 +108,32 @@ def pay_order(order_id: int, db: Session = Depends(get_db), user: User = Depends
     return _load_order(db, order.id)
 
 
+@router.patch("/{order_id}/mark-paid", response_model=OrderOut)
+def mark_order_paid(
+    order_id: int,
+    db: Session = Depends(get_db),
+    seller: User = Depends(require_seller),
+):
+    """Seller confirms cash/on_delivery payment received."""
+    order = db.query(Order).options(
+        joinedload(Order.items).joinedload(OrderItem.product)
+    ).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Only seller of items in this order can mark paid
+    seller_ids = {item.product.seller_id for item in order.items}
+    if seller.id not in seller_ids:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    if order.is_paid:
+        raise HTTPException(status_code=400, detail="Заказ уже оплачен")
+
+    order.is_paid = True
+    db.commit()
+    return _load_order(db, order.id)
+
+
 @router.patch("/{order_id}/status", response_model=OrderOut)
 def update_order_status(
     order_id: int,
