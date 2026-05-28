@@ -168,16 +168,15 @@ function BannerForm({
         });
 
       if (isEdit && existing) {
-        await api.patch(`/banners/${existing.id}`, {
-          title: title.trim(), subtitle: subtitle.trim() || null,
-          bg_color: COLOR_PRESETS[preset].bg, accent_color: COLOR_PRESETS[preset].accent,
-          emoji, link_url: finalLink,
-        });
-        if (imageUri) {
-          const form = new FormData();
-          form.append("file", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
-          await xhrRequest("POST", `${API_URL}/api/banners/${existing.id}/image`, form).catch(() => {});
-        }
+        const form = new FormData();
+        form.append("title", title.trim() || " ");
+        if (subtitle.trim()) form.append("subtitle", subtitle.trim());
+        form.append("bg_color", COLOR_PRESETS[preset].bg);
+        form.append("accent_color", COLOR_PRESETS[preset].accent);
+        if (emoji) form.append("emoji", emoji);
+        if (finalLink) form.append("link_url", finalLink);
+        if (imageUri) form.append("image", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
+        await xhrRequest("PATCH", `${API_URL}/api/banners/${existing.id}`, form);
         Toast.show({ type: "success", text1: "Баннер обновлён" });
       } else {
         const form = new FormData();

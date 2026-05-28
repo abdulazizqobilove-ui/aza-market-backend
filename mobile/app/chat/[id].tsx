@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Send, Package } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api, { API_URL } from "@/lib/api";
+import api, { imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useThemeColors } from "@/lib/theme";
 
@@ -166,7 +166,7 @@ export default function ChatScreen() {
         {/* Avatar */}
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#e0e7ff", overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
           {chatInfo?.other_avatar ? (
-            <Image source={{ uri: `${API_URL}${chatInfo.other_avatar}` }} style={{ width: 40, height: 40 }} contentFit="cover" />
+            <Image source={{ uri: imgUrl(chatInfo.other_avatar) ?? "" }} style={{ width: 40, height: 40 }} contentFit="cover" />
           ) : (
             <Text style={{ fontSize: 16, fontWeight: "800", color: "#4f46e5" }}>{chatInfo?.other_name?.[0]?.toUpperCase() ?? "?"}</Text>
           )}
@@ -190,7 +190,7 @@ export default function ChatScreen() {
       {chatInfo?.product_image && (
         <View style={{ backgroundColor: c.card, flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 10, gap: 10, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
           <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", backgroundColor: c.iconBg }}>
-            <Image source={{ uri: `${API_URL}${chatInfo.product_image}` }} style={{ width: 44, height: 44 }} contentFit="cover" />
+            <Image source={{ uri: imgUrl(chatInfo.product_image) ?? "" }} style={{ width: 44, height: 44 }} contentFit="cover" />
           </View>
           <Text style={{ flex: 1, fontSize: 13, color: c.textSub, fontWeight: "500" }} numberOfLines={2}>{chatInfo.product_title}</Text>
         </View>
@@ -231,7 +231,7 @@ export default function ChatScreen() {
                   {!mine && (
                     <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "#e0e7ff", alignItems: "center", justifyContent: "center", marginRight: 6, alignSelf: "flex-end", overflow: "hidden" }}>
                       {msg.sender_avatar ? (
-                        <Image source={{ uri: `${API_URL}${msg.sender_avatar}` }} style={{ width: 28, height: 28 }} contentFit="cover" />
+                        <Image source={{ uri: imgUrl(msg.sender_avatar) ?? "" }} style={{ width: 28, height: 28 }} contentFit="cover" />
                       ) : (
                         <Text style={{ fontSize: 11, fontWeight: "700", color: "#4f46e5" }}>{msg.sender_name[0]?.toUpperCase()}</Text>
                       )}

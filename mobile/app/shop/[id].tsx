@@ -4,7 +4,7 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ArrowLeft, Star, Package, Search } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import api, { Product, API_URL } from "@/lib/api";
+import api, { Product, imgUrl } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
 import { useThemeColors } from "@/lib/theme";
 import { SkeletonProductGrid } from "@/components/Skeleton";
@@ -66,7 +66,7 @@ export default function ShopScreen() {
           <View>
             {/* Banner */}
             <View style={{ position: "relative", height: 176, backgroundColor: "#7C3AED" }}>
-              {shop?.shop_banner_url && <Image source={{ uri: `${API_URL}${shop.shop_banner_url}` }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
+              {shop?.shop_banner_url && <Image source={{ uri: imgUrl(shop.shop_banner_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
               <TouchableOpacity onPress={() => router.back()} style={{ position: "absolute", top: 16, left: 16, width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
                 <ArrowLeft size={20} color="white" />
               </TouchableOpacity>
@@ -77,7 +77,7 @@ export default function ShopScreen() {
               <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 16, marginTop: -32, marginBottom: 12 }}>
                 <View style={{ width: 80, height: 80, borderRadius: 16, borderWidth: 4, borderColor: c.card, overflow: "hidden", backgroundColor: "#dbeafe", alignItems: "center", justifyContent: "center" }}>
                   {shop?.shop_logo_url
-                    ? <Image source={{ uri: `${API_URL}${shop.shop_logo_url}` }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
+                    ? <Image source={{ uri: imgUrl(shop.shop_logo_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
                     : <Text style={{ color: "#2563eb", fontSize: 24, fontWeight: "700" }}>{(shop?.shop_name || shop?.username || "?")[0].toUpperCase()}</Text>}
                 </View>
                 <View style={{ flex: 1, paddingBottom: 4 }}>

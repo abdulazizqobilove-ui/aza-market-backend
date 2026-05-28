@@ -7,7 +7,7 @@ import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Star } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import api, { API_URL } from "@/lib/api";
+import api, { imgUrl } from "@/lib/api";
 import { useThemeColors } from "@/lib/theme";
 import { SkeletonReviewItem } from "@/components/Skeleton";
 
@@ -131,7 +131,7 @@ export default function ReviewsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: "row", gap: 8 }}>
                   {r.images.map((url, i) => (
-                    <Image key={i} source={{ uri: `${API_URL}${url}` }} style={{ width: 80, height: 80, borderRadius: 10 }} contentFit="cover" />
+                    <Image key={i} source={{ uri: imgUrl(url) ?? "" }} style={{ width: 80, height: 80, borderRadius: 10 }} contentFit="cover" />
                   ))}
                 </View>
               </ScrollView>

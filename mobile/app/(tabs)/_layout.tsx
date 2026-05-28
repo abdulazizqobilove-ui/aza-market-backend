@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Home, Menu, ShoppingCart, User } from "lucide-react-native";
+import { Home, Menu, ShoppingCart, User, Shield } from "lucide-react-native";
 import { View, Text, Platform, Pressable } from "react-native";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
@@ -95,13 +95,21 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Hide seller/admin screens — they live in separate apps */}
+      {/* Hide seller screens */}
       <Tabs.Screen name="seller-products"  options={{ href: null }} />
       <Tabs.Screen name="seller-orders"    options={{ href: null }} />
       <Tabs.Screen name="seller-stats"     options={{ href: null }} />
       <Tabs.Screen name="seller-shop"      options={{ href: null }} />
       <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-      <Tabs.Screen name="admin-tab"        options={{ href: null }} />
+      {/* Admin tab — only visible for admin users */}
+      <Tabs.Screen
+        name="admin-tab"
+        options={role === "admin" ? {
+          tabBarIcon: ({ focused }) => (
+            <TabIcon focused={focused} icon={(c) => <Shield size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+          ),
+        } : { href: null }}
+      />
       <Tabs.Screen
         name="profile"
         options={{
