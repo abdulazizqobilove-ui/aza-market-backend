@@ -437,30 +437,53 @@ def seed_categories(db: Session = Depends(get_db), _: User = Depends(require_adm
     """Insert all categories + subcategories. Safe to call multiple times."""
     added_roots = 0
     added_subs = 0
+    errors = []
 
-    # 1. Seed root categories
+    # 1. Seed root categories one by one
     for item in SEED_CATEGORIES:
-        exists = db.query(Category).filter(Category.slug == item["slug"]).first()
-        if not exists:
-            db.add(Category(name=item["name"], slug=item["slug"], parent_id=None))
-            added_roots += 1
-    db.commit()
+        try:
+            exists = db.query(Category).filter(Category.slug == item["slug"]).first()
+            if not exists:
+                db.add(Category(name=item["name"], slug=item["slug"], parent_id=None))
+                db.flush()
+                added_roots += 1
+        except Exception as e:
+            db.rollback()
+            errors.append(f"root:{item['slug']}:{str(e)[:60]}")
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        errors.append(f"commit_roots:{str(e)[:80]}")
 
-    # 2. Seed subcategories
+    # 2. Seed subcategories one by one
     for parent_slug, children in SEED_SUBCATEGORIES.items():
         parent = db.query(Category).filter(Category.slug == parent_slug).first()
         if not parent:
             continue
         for child in children:
-            exists = db.query(Category).filter(Category.slug == child["slug"]).first()
-            if not exists:
-                db.add(Category(name=child["name"], slug=child["slug"], parent_id=parent.id))
-                added_subs += 1
-    db.commit()
+            try:
+                exists = db.query(Category).filter(Category.slug == child["slug"]).first()
+                if not exists:
+                    db.add(Category(name=child["name"], slug=child["slug"], parent_id=parent.id))
+                    db.flush()
+                    added_subs += 1
+            except Exception as e:
+                db.rollback()
+                errors.append(f"sub:{child['slug']}:{str(e)[:60]}")
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        errors.append(f"commit_subs:{str(e)[:80]}")
 
-    total = added_roots + added_subs
-    return {"ok": True, "added_roots": added_roots, "added_subs": added_subs,
-            "message": f"Добавлено {added_roots} категорий и {added_subs} подкатегорий"}
+    return {
+        "ok": True,
+        "added_roots": added_roots,
+        "added_subs": added_subs,
+        "errors": errors,
+        "message": f"Добавлено {added_roots} категорий и {added_subs} подкатегорий"
+    }
 
 
 class UserRoleUpdate(BaseModel):

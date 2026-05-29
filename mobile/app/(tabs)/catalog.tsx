@@ -46,28 +46,32 @@ const FEATURED = [
 ];
 
 const CATS = [
-  { id: "furniture",    label: "Мебель",                    emoji: "🛋️",  slug: "home-garden" },
-  { id: "tourism",      label: "Туризм, рыбалка и охота",   emoji: "🎣",  slug: "sport" },
-  { id: "electronics",  label: "Электроника",               emoji: "📱",  slug: "electronics" },
-  { id: "appliances",   label: "Бытовая техника",           emoji: "🏠",  slug: "home-garden" },
-  { id: "clothing",     label: "Одежда",                    emoji: "👕",  slug: "clothing" },
-  { id: "shoes",        label: "Обувь",                     emoji: "👟",  slug: "clothing" },
-  { id: "accessories",  label: "Аксессуары",                emoji: "👜",  slug: "clothing" },
-  { id: "beauty",       label: "Красота и уход",            emoji: "💄",  slug: "beauty" },
-  { id: "health",       label: "Здоровье",                  emoji: "💊",  slug: "beauty" },
-  { id: "home",         label: "Товары для дома",           emoji: "🏡",  slug: "home-garden" },
-  { id: "build",        label: "Строительство и ремонт",    emoji: "🔨",  slug: null },
-  { id: "auto",         label: "Автотовары",                emoji: "🚗",  slug: "auto" },
-  { id: "kids",         label: "Детские товары",            emoji: "🧸",  slug: "kids" },
-  { id: "hobby",        label: "Хобби и творчество",        emoji: "🎨",  slug: null },
-  { id: "sport",        label: "Спорт и отдых",             emoji: "⚽",  slug: "sport" },
-  { id: "food",         label: "Продукты питания",          emoji: "🥕",  slug: "food" },
-  { id: "chem",         label: "Бытовая химия",             emoji: "🧴",  slug: null },
-  { id: "office",       label: "Канцтовары",                emoji: "✏️",  slug: null },
-  { id: "pets",         label: "Зоотовары",                 emoji: "🐾",  slug: null },
-  { id: "books",        label: "Книги",                     emoji: "📖",  slug: null },
-  { id: "garden",       label: "Дача, сад и огород",        emoji: "🌱",  slug: null },
-  { id: "animals",      label: "Животные",                  emoji: "🐄",  slug: null },
+  { id: "warehouse-uz", label: "Товары со склада: Узбекистан", emoji: "🏭",  slug: "warehouse-uz" },
+  { id: "women",        label: "Женщинам",                      emoji: "👗",  slug: "women" },
+  { id: "shoes",        label: "Обувь",                         emoji: "👟",  slug: "shoes" },
+  { id: "kids",         label: "Детям",                         emoji: "🧒",  slug: "kids" },
+  { id: "men",          label: "Мужчинам",                      emoji: "👔",  slug: "men" },
+  { id: "home",         label: "Дом",                           emoji: "🏠",  slug: "home" },
+  { id: "beauty",       label: "Красота",                       emoji: "💄",  slug: "beauty" },
+  { id: "accessories",  label: "Аксессуары",                    emoji: "👜",  slug: "accessories" },
+  { id: "electronics",  label: "Электроника",                   emoji: "📱",  slug: "electronics" },
+  { id: "toys",         label: "Игрушки",                       emoji: "🧸",  slug: "toys" },
+  { id: "furniture",    label: "Мебель",                        emoji: "🛋️",  slug: "furniture" },
+  { id: "adult",        label: "Товары для взрослых",           emoji: "🔞",  slug: "adult" },
+  { id: "food",         label: "Продукты",                      emoji: "🛒",  slug: "food" },
+  { id: "flowers",      label: "Цветы",                         emoji: "💐",  slug: "flowers" },
+  { id: "appliances",   label: "Бытовая техника",              emoji: "🖥️",  slug: "appliances" },
+  { id: "pets",         label: "Зоотовары",                     emoji: "🐾",  slug: "pets" },
+  { id: "sport",        label: "Спорт",                         emoji: "⚽",  slug: "sport" },
+  { id: "auto",         label: "Автотовары",                    emoji: "🚗",  slug: "auto" },
+  { id: "books",        label: "Книги",                         emoji: "📚",  slug: "books" },
+  { id: "jewelry",      label: "Ювелирные изделия",             emoji: "💍",  slug: "jewelry" },
+  { id: "repair",       label: "Для ремонта",                   emoji: "🔨",  slug: "repair" },
+  { id: "garden",       label: "Сад и дача",                    emoji: "🌱",  slug: "garden" },
+  { id: "health",       label: "Здоровье",                      emoji: "💊",  slug: "health" },
+  { id: "adaptive",     label: "Адаптивные товары",             emoji: "♿",  slug: "adaptive" },
+  { id: "office",       label: "Канцтовары",                    emoji: "✏️",  slug: "office" },
+  { id: "sale",         label: "Акции",                         emoji: "🏷️",  slug: "sale" },
 ];
 
 const SORTS = [
@@ -79,6 +83,7 @@ const SORTS = [
 ];
 
 interface ActiveCat { label: string; slug: string | null }
+interface SubCatWithImg { id: number; name: string; slug: string; parent_id: number | null; image_url?: string | null; }
 
 interface Filters {
   minPrice: string;
@@ -104,8 +109,11 @@ export default function CatalogScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [active, setActive] = useState<ActiveCat | null>(null);
   const [activeCatId, setActiveCatId] = useState<number | null>(null);
-  const [subCats, setSubCats] = useState<Category[]>([]);
-  const [activeSubCat, setActiveSubCat] = useState<Category | null>(null);
+  const [subCats, setSubCats] = useState<SubCatWithImg[]>([]);
+  const [subCatsLoading, setSubCatsLoading] = useState(false);
+  const [subCatsChecked, setSubCatsChecked] = useState(false);
+  const [showingAllProducts, setShowingAllProducts] = useState(false);
+  const [activeSubCat, setActiveSubCat] = useState<SubCatWithImg | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -125,15 +133,29 @@ export default function CatalogScreen() {
 
   const goBack = useCallback(() => {
     if (activeSubCatRef.current) {
-      selectSubCat(null);
+      // subcat → back to subcat browser
+      setActiveSubCat(null);
+      setShowingAllProducts(false);
+      setProducts([]);
+      setQ("");
+      setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
+    } else if (showingAllProducts) {
+      // "all products" → back to subcat browser
+      setShowingAllProducts(false);
+      setProducts([]);
+      setQ("");
+      setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
     } else {
       setActive(null);
       setActiveSubCat(null);
       setSubCats([]);
+      setSubCatsChecked(false);
+      setSubCatsLoading(false);
+      setShowingAllProducts(false);
       setQ("");
       setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
     }
-  }, []);
+  }, [showingAllProducts]);
 
   useEffect(() => {
     const unsub = navigation.addListener("tabPress" as any, () => {
@@ -141,6 +163,9 @@ export default function CatalogScreen() {
         setActive(null);
         setActiveSubCat(null);
         setSubCats([]);
+        setSubCatsChecked(false);
+        setSubCatsLoading(false);
+        setShowingAllProducts(false);
         setQ("");
         setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
       }
@@ -150,9 +175,14 @@ export default function CatalogScreen() {
 
   useFocusEffect(useCallback(() => {
     const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (activeSubCatRef.current) { selectSubCat(null); return true; }
+      if (activeSubCatRef.current) {
+        setActiveSubCat(null); setShowingAllProducts(false); setProducts([]); setQ("");
+        setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
+        return true;
+      }
       if (activeRef.current) {
-        setActive(null); setActiveSubCat(null); setSubCats([]); setQ("");
+        setActive(null); setActiveSubCat(null); setSubCats([]);
+        setSubCatsChecked(false); setSubCatsLoading(false); setShowingAllProducts(false); setQ("");
         setFilters({ minPrice: "", maxPrice: "", minRating: null, brand: "" });
         return true;
       }
@@ -207,29 +237,35 @@ export default function CatalogScreen() {
     } catch {} finally { setLoading(false); setLoadingMore(false); }
   }, []);
 
-  const openCat = async (label: string, slug: string | null, initialQ: string = "") => {
+  const openCat = (label: string, slug: string | null, initialQ: string = "") => {
     const emptyFilters: Filters = { minPrice: "", maxPrice: "", minRating: null, brand: "" };
     setActive({ label, slug });
     setActiveSubCat(null);
+    setShowingAllProducts(false);
     setSubCats([]);
+    setSubCatsChecked(false);
+    setSubCatsLoading(true);
     setProducts([]);
     setQ(initialQ);
     setSort("newest");
     setFilters(emptyFilters);
     setPendingFilters(emptyFilters);
     pageRef.current = 1;
-    flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     const cat = categories.find((c) => c.slug === slug);
     const catId = cat?.id ?? null;
     setActiveCatId(catId);
     api.get<ApiBanner[]>("/banners").then((r) => setApiBanners(r.data)).catch(() => {});
     if (catId) {
-      api.get<Category[]>(`/products/categories/${catId}/subcategories`).then((r) => setSubCats(r.data)).catch(() => {});
+      api.get<SubCatWithImg[]>(`/products/categories/${catId}/subcategories`)
+        .then((r) => { setSubCats(r.data); setSubCatsChecked(true); setSubCatsLoading(false); })
+        .catch(() => { setSubCatsChecked(true); setSubCatsLoading(false); });
+    } else {
+      setSubCatsChecked(true);
+      setSubCatsLoading(false);
     }
-    loadProducts(true, catId, null, "newest", initialQ, emptyFilters);
   };
 
-  const selectSubCat = (sub: Category | null) => {
+  const selectSubCat = (sub: SubCatWithImg | null) => {
     setActiveSubCat(sub);
     setProducts([]);
     pageRef.current = 1;
@@ -273,6 +309,74 @@ export default function CatalogScreen() {
     loadProducts(true, activeCatId, activeSubCat?.id ?? null, sort, q, filters);
   }, [sort]);
 
+  // ── Subcategory browser (full-screen list) ────────────────
+  if (active && !activeSubCat && !showingAllProducts) {
+    const clearAll = () => {
+      setActive(null); setSubCats([]); setSubCatsChecked(false); setSubCatsLoading(false); setShowingAllProducts(false);
+    };
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
+        {/* Header */}
+        <View style={{ backgroundColor: c.card, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: c.border }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <TouchableOpacity
+              onPress={clearAll}
+              style={{ width: 36, height: 36, backgroundColor: c.iconBg, borderRadius: 12, alignItems: "center", justifyContent: "center" }}
+            >
+              <ArrowLeft size={18} color={c.textSub} />
+            </TouchableOpacity>
+            <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>{active.label}</Text>
+          </View>
+        </View>
+
+        {subCatsLoading ? (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <ActivityIndicator color="#8B5CF6" size="large" />
+          </View>
+        ) : (
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 96 }}>
+            {/* "Все товары" row */}
+            <TouchableOpacity
+              onPress={() => {
+                const emptyF = { minPrice: "", maxPrice: "", minRating: null as null, brand: "" };
+                setShowingAllProducts(true);
+                loadProducts(true, activeCatId, null, "newest", "", emptyF);
+              }}
+              activeOpacity={0.75}
+              style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: 0.5, borderBottomColor: c.border }}
+            >
+              <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: "#8B5CF6" + "18", alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 28 }}>🏷️</Text>
+              </View>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: "#8B5CF6", flex: 1 }}>Все товары</Text>
+              <ChevronRight size={18} color={c.textMuted} />
+            </TouchableOpacity>
+            {subCats.map((sub) => (
+              <TouchableOpacity
+                key={sub.id}
+                onPress={() => selectSubCat(sub)}
+                activeOpacity={0.75}
+                style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 0.5, borderBottomColor: c.border }}
+              >
+                <View style={{ width: 64, height: 64, borderRadius: 14, backgroundColor: c.iconBg, overflow: "hidden" }}>
+                  {sub.image_url ? (
+                    <Image source={{ uri: imgUrl(sub.image_url) ?? "" }} style={{ width: 64, height: 64 }} contentFit="cover" />
+                  ) : (
+                    <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                      <Text style={{ fontSize: 26 }}>{SUBCAT_EMOJI[sub.slug] ?? "🏷️"}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: "500", color: c.text, flex: 1 }} numberOfLines={2}>{sub.name}</Text>
+                <ChevronRight size={18} color={c.textMuted} />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        )}
+      </SafeAreaView>
+    );
+  }
+
   // ── Products view ──────────────────────────────────────────
   if (active) {
     const banner = apiBanners.find((b) => b.link_url === `category:${active.slug}`) ?? null;
@@ -307,42 +411,6 @@ export default function CatalogScreen() {
             </View>
           )}
         </View>
-
-        {/* Subcategories */}
-        {subCats.length > 0 && (
-          <View style={{ backgroundColor: c.card, marginTop: 10, paddingVertical: 14 }}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 14, gap: 10 }}>
-              {[{ id: -1, name: "Все", slug: "" }, ...subCats].map((s) => {
-                const sel = s.id === -1 ? !activeSubCat : activeSubCat?.id === s.id;
-                const emoji = SUBCAT_EMOJI[s.slug] ?? "🏷️";
-                return (
-                  <TouchableOpacity
-                    key={s.id}
-                    onPress={() => selectSubCat(s.id === -1 ? null : (s as Category))}
-                    activeOpacity={0.7}
-                    style={{ alignItems: "center", gap: 6, width: 68 }}
-                  >
-                    <View style={{
-                      width: 52, height: 52, borderRadius: 16,
-                      backgroundColor: sel ? "#8B5CF6" : c.iconBg,
-                      alignItems: "center", justifyContent: "center",
-                      shadowColor: sel ? "#8B5CF6" : "transparent",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 6,
-                      elevation: sel ? 4 : 0,
-                    }}>
-                      <Text style={{ fontSize: s.id === -1 ? 20 : 22 }}>{s.id === -1 ? "✦" : emoji}</Text>
-                    </View>
-                    <Text style={{ fontSize: 10, fontWeight: sel ? "700" : "500", color: sel ? "#8B5CF6" : c.textMuted, textAlign: "center", lineHeight: 13 }} numberOfLines={2}>
-                      {s.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
 
         {/* Sort + filter row */}
         <View style={{ paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -412,7 +480,7 @@ export default function CatalogScreen() {
               <ArrowLeft size={18} color={c.textSub} />
             </TouchableOpacity>
             <Text style={{ fontSize: 16, fontWeight: "800", color: c.text, flex: 1 }} numberOfLines={1}>
-              {activeSubCat ? activeSubCat.name : active.label}
+              {activeSubCat ? activeSubCat.name : showingAllProducts ? `Все — ${active.label}` : active.label}
             </Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, gap: 8 }}>

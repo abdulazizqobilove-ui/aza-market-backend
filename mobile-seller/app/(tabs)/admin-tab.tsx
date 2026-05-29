@@ -134,9 +134,12 @@ function BannerForm({
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
+    // Точное соотношение баннера: ширина экрана - 24 отступа, высота 250px
+    const bannerW = Math.round(SW - 24);
+    const bannerH = 250;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85,
-      allowsEditing: true, aspect: [16, 6],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.9,
+      allowsEditing: true, aspect: [bannerW, bannerH],
     });
     if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
   };
@@ -168,15 +171,27 @@ function BannerForm({
         });
 
       if (isEdit && existing) {
-        await api.patch(`/banners/${existing.id}`, {
-          title: title.trim(), subtitle: subtitle.trim() || null,
-          bg_color: COLOR_PRESETS[preset].bg, accent_color: COLOR_PRESETS[preset].accent,
-          emoji, link_url: finalLink,
-        });
         if (imageUri) {
+          // Отправляем всё как FormData когда есть фото
           const form = new FormData();
-          form.append("file", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
-          await xhrRequest("POST", `${API_URL}/api/banners/${existing.id}/image`, form).catch(() => {});
+          form.append("title", title.trim() || " ");
+          if (subtitle.trim()) form.append("subtitle", subtitle.trim());
+          form.append("bg_color", COLOR_PRESETS[preset].bg);
+          form.append("accent_color", COLOR_PRESETS[preset].accent);
+          if (emoji) form.append("emoji", emoji);
+          if (finalLink) form.append("link_url", finalLink);
+          form.append("image", { uri: imageUri, name: "banner.jpg", type: "image/jpeg" } as any);
+          await xhrRequest("PATCH", `${API_URL}/api/banners/${existing.id}`, form);
+        } else {
+          // Без фото — FormData patch
+          const form = new FormData();
+          form.append("title", title.trim() || " ");
+          if (subtitle.trim()) form.append("subtitle", subtitle.trim());
+          form.append("bg_color", COLOR_PRESETS[preset].bg);
+          form.append("accent_color", COLOR_PRESETS[preset].accent);
+          if (emoji) form.append("emoji", emoji);
+          if (finalLink) form.append("link_url", finalLink);
+          await xhrRequest("PATCH", `${API_URL}/api/banners/${existing.id}`, form);
         }
         Toast.show({ type: "success", text1: "Баннер обновлён" });
       } else {
@@ -215,7 +230,8 @@ function BannerForm({
       </View>
 
       {/* Live preview */}
-      <View style={{ height: 120, borderRadius: 18, backgroundColor: previewBg, overflow: "hidden", marginBottom: 20 }}>
+      <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "600", marginBottom: 6 }}>ПРЕВЬЮ (250px — как в приложении)</Text>
+      <View style={{ height: 250, borderRadius: 18, backgroundColor: previewBg, overflow: "hidden", marginBottom: 20 }}>
         {previewImg
           ? <Image source={{ uri: previewImg }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
           : <>
@@ -395,7 +411,17 @@ export default function AdminTabScreen() {
 
   const toggleBanner = async (b: Banner) => {
     try {
-      await api.patch(`/banners/${b.id}`, { is_active: !b.is_active });
+      const token = await AsyncStorage.getItem("seller:token");
+      const form = new FormData();
+      form.append("is_active", String(!b.is_active));
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PATCH", `${API_URL}/api/banners/${b.id}`);
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.onload = () => xhr.status < 300 ? resolve() : reject();
+        xhr.onerror = reject;
+        xhr.send(form);
+      });
       setBanners((prev) => prev.map((x) => x.id === b.id ? { ...x, is_active: !x.is_active } : x));
     } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
   };
@@ -438,17 +464,20 @@ export default function AdminTabScreen() {
     ]);
   };
 
-  const reviewPayout = (p: Payout, status: "paid" | "cancelled") => {
-    Alert.alert(status === "paid" ? "Подтвердить выплату?" : "Отклонить выплату?",
+  const reviewPayout = (p: Payout, action: "approve" | "reject") => {
+    const apiStatus = action === "approve" ? "approved" : "rejected";
+    Alert.alert(action === "approve" ? "Подтвердить выплату?" : "Отклонить выплату?",
       `${p.amount.toLocaleString()} сом.`, [
         { text: "Отмена", style: "cancel" },
-        { text: status === "paid" ? "Выплатить" : "Отклонить", style: status === "paid" ? "default" : "destructive",
+        { text: action === "approve" ? "Выплатить" : "Отклонить", style: action === "approve" ? "default" : "destructive",
           onPress: async () => {
             try {
-              await api.patch(`/admin/payouts/${p.id}`, { status });
-              setPayouts((prev) => prev.map((x) => x.id === p.id ? { ...x, status } : x));
-              Toast.show({ type: "success", text1: status === "paid" ? "Выплата подтверждена" : "Выплата отклонена" });
-            } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+              await api.patch(`/admin/payouts/${p.id}`, { status: apiStatus });
+              setPayouts((prev) => prev.map((x) => x.id === p.id ? { ...x, status: apiStatus } : x));
+              Toast.show({ type: "success", text1: action === "approve" ? "Выплата подтверждена" : "Выплата отклонена" });
+            } catch (e: any) {
+              Toast.show({ type: "error", text1: e?.response?.data?.detail || "Ошибка" });
+            }
           }
         },
       ]);
@@ -824,11 +853,11 @@ export default function AdminTabScreen() {
                   </View>
                   {p.status === "pending" && (
                     <View style={{ flexDirection: "row", gap: 10 }}>
-                      <TouchableOpacity onPress={() => reviewPayout(p, "paid")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingVertical: 11, borderRadius: 12 }}>
+                      <TouchableOpacity onPress={() => reviewPayout(p, "approve")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingVertical: 11, borderRadius: 12 }}>
                         <CheckCircle size={15} color="#16a34a" />
                         <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Выплатить</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => reviewPayout(p, "cancelled")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 11, borderRadius: 12 }}>
+                      <TouchableOpacity onPress={() => reviewPayout(p, "reject")} style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#fef2f2", paddingVertical: 11, borderRadius: 12 }}>
                         <XCircle size={15} color="#ef4444" />
                         <Text style={{ fontSize: 13, fontWeight: "600", color: "#ef4444" }}>Отклонить</Text>
                       </TouchableOpacity>
@@ -929,11 +958,28 @@ export default function AdminTabScreen() {
           {/* ── КАТЕГОРИИ ── */}
           {section === "Категории" && (
             <>
-              <TouchableOpacity onPress={() => setCatForm({ visible: true, name: "", slug: "", parent_id: "" })}
-                style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
-                <Plus size={16} color="#fff" />
-                <Text style={{ fontWeight: "700", color: "#fff", fontSize: 14 }}>Новая корневая категория</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TouchableOpacity onPress={() => setCatForm({ visible: true, name: "", slug: "", parent_id: "" })}
+                  style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: P, borderRadius: 14, paddingVertical: 13 }}>
+                  <Plus size={16} color="#fff" />
+                  <Text style={{ fontWeight: "700", color: "#fff", fontSize: 14 }}>Добавить</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    try {
+                      const res = await api.post("/admin/categories/seed");
+                      Toast.show({ type: "success", text1: res.data.message || "Готово" });
+                      const r = await api.get<AdminCategory[]>("/admin/categories");
+                      setAdminCats(r.data);
+                    } catch (e: any) {
+                      Toast.show({ type: "error", text1: e?.response?.data?.detail || "Ошибка" });
+                    }
+                  }}
+                  style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#16a34a", borderRadius: 14, paddingVertical: 13, paddingHorizontal: 16 }}>
+                  <RefreshCw size={16} color="#fff" />
+                  <Text style={{ fontWeight: "700", color: "#fff", fontSize: 14 }}>Заполнить</Text>
+                </TouchableOpacity>
+              </View>
 
               {(() => {
                 const roots = adminCats.filter(cat => !cat.parent_id);

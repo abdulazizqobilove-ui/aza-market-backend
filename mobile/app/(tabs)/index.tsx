@@ -4,9 +4,9 @@ import {
   ActivityIndicator, RefreshControl, ScrollView, Dimensions, Linking,
 } from "react-native";
 import { useRouter, useFocusEffect, useNavigation } from "expo-router";
-import { Search, Mic, Camera, Bell, MapPin, ChevronDown, X } from "lucide-react-native";
+import { Search, Mic, Camera, Bell, MapPin, ChevronDown, X, Package, ChevronRight } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api, { Product, ProductsResponse, imgUrl } from "@/lib/api";
+import api, { Product, ProductsResponse, Order, imgUrl } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import ProductCard from "@/components/ProductCard";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -79,20 +79,22 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
             key={b.id}
             activeOpacity={b.link_url ? 0.85 : 1}
             onPress={() => handleBannerPress(b.link_url)}
-            style={{ width: SW - 24, borderRadius: 16, overflow: "hidden", backgroundColor: b.bg_color }}
+            style={{ width: SW - 24, borderRadius: 16, overflow: "hidden", backgroundColor: b.image_url ? "#111827" : b.bg_color }}
           >
             {b.image_url ? (
               <View style={{ height: 250 }}>
-                <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
-                <View style={{ position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.38)", padding: 20, justifyContent: "flex-end" }}>
-                  <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4 }}>{b.title}</Text>
-                  {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>{b.subtitle}</Text>}
-                  {b.link_url && (
-                    <View style={{ marginTop: 12, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
-                      <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
-                    </View>
-                  )}
-                </View>
+                <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={350} />
+                {(b.title || b.subtitle || b.link_url) && (
+                  <View style={{ position: "absolute", inset: 0, padding: 20, justifyContent: "flex-end" }}>
+                    {b.title ? <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4, textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>{b.title}</Text> : null}
+                    {b.subtitle && <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, textShadowColor: "rgba(0,0,0,0.5)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 }}>{b.subtitle}</Text>}
+                    {b.link_url && (
+                      <View style={{ marginTop: 12, backgroundColor: "#fff", borderRadius: 12, paddingHorizontal: 16, paddingVertical: 8, alignSelf: "flex-start" }}>
+                        <Text style={{ color: b.bg_color, fontWeight: "700", fontSize: 12 }}>Смотреть →</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             ) : (
               <View style={{ padding: 20, minHeight: 200, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
@@ -123,6 +125,83 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
   );
 }
 
+const ACTIVE_STATUS_LABELS: Record<string, string> = {
+  pending: "Ожидает подтверждения",
+  confirmed: "Подтверждён",
+  processing: "Собирается",
+  shipped: "В пути",
+};
+const ACTIVE_STATUS_COLORS: Record<string, string> = {
+  pending: "#f59e0b",
+  confirmed: "#3b82f6",
+  processing: "#7c3aed",
+  shipped: "#8B5CF6",
+};
+const RU_MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+
+function ActiveOrderWidget({ orders, c, isDark, onPress }: { orders: Order[]; c: any; isDark: boolean; onPress: () => void }) {
+  if (orders.length === 0) return null;
+  const order = orders[0];
+  const img = order.items?.[0]?.product?.images?.[0]?.url;
+  const color = ACTIVE_STATUS_COLORS[order.status] || "#8B5CF6";
+  const label = ACTIVE_STATUS_LABELS[order.status] || "Активный";
+
+  let deliverySub = "";
+  if (order.status === "shipped" && order.delivery_date) {
+    const d = new Date(order.delivery_date);
+    deliverySub = `Приедет ${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
+  } else {
+    const parts = [order.delivery_city, order.delivery_address].filter(Boolean);
+    deliverySub = parts.join(", ").slice(0, 45) || "";
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.85}
+      style={{
+        backgroundColor: c.card,
+        borderRadius: 16,
+        marginBottom: 12,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 13,
+        paddingHorizontal: 14,
+        gap: 12,
+        borderLeftWidth: 3,
+        borderLeftColor: color,
+        shadowColor: "#000",
+        shadowOpacity: isDark ? 0.18 : 0.07,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 2 },
+        elevation: 2,
+      }}
+    >
+      <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: color + "18", alignItems: "center", justifyContent: "center" }}>
+        <Package size={20} color={color} strokeWidth={1.8} />
+      </View>
+
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color }} numberOfLines={1}>{label}</Text>
+          {orders.length > 1 && (
+            <View style={{ backgroundColor: color + "22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
+              <Text style={{ fontSize: 10, fontWeight: "800", color }}>{orders.length}</Text>
+            </View>
+          )}
+        </View>
+        {!!deliverySub && <Text style={{ fontSize: 12, color: c.textMuted, marginBottom: 1 }} numberOfLines={1}>{deliverySub}</Text>}
+        <Text style={{ fontSize: 11, color: c.textMuted }}>Заказ №{order.id} · {order.total_price.toLocaleString()} сом.</Text>
+      </View>
+
+      {img ? (
+        <Image source={{ uri: imgUrl(img) ?? "" }} style={{ width: 48, height: 48, borderRadius: 10 }} contentFit="cover" />
+      ) : null}
+      <ChevronRight size={16} color={c.textMuted} />
+    </TouchableOpacity>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const c = useThemeColors();
@@ -149,6 +228,14 @@ export default function HomeScreen() {
   }, [navigation]);
 
   const user = useAuthStore((s) => s.user);
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
+
+  useFocusEffect(useCallback(() => {
+    if (!user) { setActiveOrders([]); return; }
+    api.get<Order[]>("/orders")
+      .then((r) => setActiveOrders(r.data.filter((o) => ["pending","confirmed","processing","shipped"].includes(o.status))))
+      .catch(() => {});
+  }, [user?.id]));
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [address, setAddress] = useState("Душанбе");
@@ -247,9 +334,14 @@ export default function HomeScreen() {
   const Header = useCallback(() => (
     <View style={{ paddingHorizontal: 12, paddingTop: 12 }}>
       {bannersLoaded ? <BannerCarousel banners={banners} /> : <SkeletonBanner />}
-      <Text style={{ fontSize: 16, fontWeight: "800", color: c.text, marginBottom: 8, marginTop: 14 }}>Подобрали для вас</Text>
+      {activeOrders.length > 0 && (
+        <View style={{ marginTop: 12 }}>
+          <ActiveOrderWidget orders={activeOrders} c={c} isDark={isDark} onPress={() => router.push("/orders" as any)} />
+        </View>
+      )}
+      <Text style={{ fontSize: 16, fontWeight: "800", color: c.text, marginBottom: 8, marginTop: activeOrders.length > 0 ? 4 : 14 }}>Подобрали для вас</Text>
     </View>
-  ), [banners, bannersLoaded, c]);
+  ), [banners, bannersLoaded, activeOrders, c, isDark]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>

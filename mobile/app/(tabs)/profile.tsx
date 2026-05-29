@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/auth";
 import { useFavoritesStore } from "@/store/favorites";
-import api, { API_URL, imgUrl, User } from "@/lib/api";
+import api, { API_URL, imgUrl, User, Order } from "@/lib/api";
 import { useThemeColors, useIsDark } from "@/lib/theme";
 import { useThemeStore } from "@/store/theme";
 
@@ -20,6 +20,54 @@ const ROLE_COLORS: Record<string, { bg: string; text: string; label: string }> =
   seller: { bg: "#f0fdf4", text: "#16a34a", label: "Продавец" },
   admin:  { bg: "#faf5ff", text: "#7c3aed", label: "Администратор" },
 };
+
+const ACTIVE_STATUS_LABELS: Record<string, string> = {
+  pending: "Ожидает подтверждения", confirmed: "Подтверждён",
+  processing: "Собирается", shipped: "В пути",
+};
+const ACTIVE_STATUS_COLORS: Record<string, string> = {
+  pending: "#f59e0b", confirmed: "#3b82f6", processing: "#7c3aed", shipped: "#8B5CF6",
+};
+const RU_MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+
+function ActiveOrderBanner({ orders, c, onPress }: { orders: Order[]; c: any; onPress: () => void }) {
+  if (orders.length === 0) return null;
+  const order = orders[0];
+  const img = order.items?.[0]?.product?.images?.[0]?.url;
+  const color = ACTIVE_STATUS_COLORS[order.status] || "#8B5CF6";
+  const label = ACTIVE_STATUS_LABELS[order.status] || "Активный";
+  let sub = "";
+  if (order.status === "shipped" && order.delivery_date) {
+    const d = new Date(order.delivery_date);
+    sub = `Приедет ${d.getDate()} ${RU_MONTHS[d.getMonth()]}`;
+  } else {
+    sub = [order.delivery_city, order.delivery_address].filter(Boolean).join(", ").slice(0, 45);
+  }
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85}
+      style={{ backgroundColor: c.card, borderRadius: 16, flexDirection: "row", alignItems: "center",
+        paddingVertical: 13, paddingHorizontal: 14, gap: 12, borderLeftWidth: 3, borderLeftColor: color,
+        shadowColor: "#000", shadowOpacity: 0.07, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}>
+      <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: color + "18", alignItems: "center", justifyContent: "center" }}>
+        <Package size={20} color={color} strokeWidth={1.8} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color }} numberOfLines={1}>{label}</Text>
+          {orders.length > 1 && (
+            <View style={{ backgroundColor: color + "22", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
+              <Text style={{ fontSize: 10, fontWeight: "800", color }}>{orders.length}</Text>
+            </View>
+          )}
+        </View>
+        {!!sub && <Text style={{ fontSize: 12, color: c.textMuted }} numberOfLines={1}>{sub}</Text>}
+        <Text style={{ fontSize: 11, color: c.textMuted }}>Заказ №{order.id} · {order.total_price.toLocaleString()} сом.</Text>
+      </View>
+      {img ? <Image source={{ uri: imgUrl(img) ?? "" }} style={{ width: 48, height: 48, borderRadius: 10 }} contentFit="cover" /> : null}
+      <ChevronRight size={16} color={c.textMuted} />
+    </TouchableOpacity>
+  );
+}
 
 function Section({ children }: { children: React.ReactNode }) {
   const c = useThemeColors();
@@ -79,12 +127,20 @@ export default function ProfileScreen() {
   const favCount = Object.values(favIds).filter(Boolean).length;
   const [stats, setStats] = useState({ orders: 0, reviews: 0 });
   const [sellerStats, setSellerStats] = useState({ products: 0, balance: 0 });
+  const [activeOrders, setActiveOrders] = useState<Order[]>([]);
 
   useFocusEffect(useCallback(() => {
     if (!user) return;
     let cancelled = false;
     api.get<User>("/users/me").then((r) => { if (!cancelled) updateUser(r.data); }).catch(() => {});
     return () => { cancelled = true; };
+  }, [user?.id]));
+
+  useFocusEffect(useCallback(() => {
+    if (!user || user.role !== "buyer") { setActiveOrders([]); return; }
+    api.get<Order[]>("/orders")
+      .then((r) => setActiveOrders(r.data.filter((o) => ["pending","confirmed","processing","shipped"].includes(o.status))))
+      .catch(() => {});
   }, [user?.id]));
 
   useEffect(() => {
@@ -170,6 +226,11 @@ export default function ProfileScreen() {
         </View>
 
         <View style={{ paddingHorizontal: 16, paddingTop: 16, gap: 12 }}>
+          {/* Active orders widget — buyer */}
+          {user.role === "buyer" && activeOrders.length > 0 && (
+            <ActiveOrderBanner orders={activeOrders} c={c} onPress={() => router.push("/orders" as any)} />
+          )}
+
           {/* Stats row — buyer */}
           {user.role === "buyer" && (
             <View style={{ backgroundColor: c.card, borderRadius: 16, flexDirection: "row" }}>
