@@ -47,7 +47,7 @@ SEED_CATEGORIES = [
     {"name": "Акции",                        "slug": "sale"},
 ]
 
-SEED_SUBCATEGORIES: dict[str, list[dict]] = {
+SEED_SUBCATEGORIES = {
     "warehouse-uz": [
         {"name": "Одежда", "slug": "wuz-clothing"},
         {"name": "Обувь", "slug": "wuz-shoes"},
