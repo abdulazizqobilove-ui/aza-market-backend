@@ -8,6 +8,7 @@ class CategoryOut(BaseModel):
     name: str
     slug: str
     parent_id: Optional[int]
+    image_url: Optional[str] = None
 
     class Config:
         from_attributes = True

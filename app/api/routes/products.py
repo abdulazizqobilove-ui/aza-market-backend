@@ -23,7 +23,29 @@ def get_categories(db: Session = Depends(get_db)):
 
 @router.get("/categories/{cat_id}/subcategories", response_model=List[CategoryOut])
 def get_subcategories(cat_id: int, db: Session = Depends(get_db)):
-    return db.query(Category).filter(Category.parent_id == cat_id).all()
+    subs = db.query(Category).filter(Category.parent_id == cat_id).all()
+    result = []
+    for sub in subs:
+        # Attach representative image from first active product in this subcategory
+        img_row = (
+            db.query(ProductImage.url)
+            .join(Product, Product.id == ProductImage.product_id)
+            .filter(Product.category_id == sub.id, Product.is_active == True, ProductImage.is_main == True)
+            .first()
+        )
+        if not img_row:
+            img_row = (
+                db.query(ProductImage.url)
+                .join(Product, Product.id == ProductImage.product_id)
+                .filter(Product.category_id == sub.id, Product.is_active == True)
+                .first()
+            )
+        cat_out = CategoryOut(
+            id=sub.id, name=sub.name, slug=sub.slug, parent_id=sub.parent_id,
+            image_url=img_row[0] if img_row else None,
+        )
+        result.append(cat_out)
+    return result
 
 
 @router.get("", response_model=dict)
