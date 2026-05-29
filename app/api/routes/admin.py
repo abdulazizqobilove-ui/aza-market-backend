@@ -4,15 +4,118 @@ from typing import List, Optional
 from app.core.database import get_db
 from app.api.deps import require_admin
 from app.models.user import User, UserRole
-from app.models.product import Product
+from app.models.product import Product, Category
 from app.models.order import Order
 from app.models.payout import Payout, PayoutStatus
 from app.schemas.user import UserOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
 from app.schemas.payout import PayoutOut
+from app.schemas.product import CategoryOut
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/admin", tags=["admin"])
+
+
+# ── Category management ──────────────────────────────────────
+
+SEED_CATEGORIES = [
+    {"name": "Товары со склада: Узбекистан", "slug": "warehouse-uz"},
+    {"name": "Женщинам",                     "slug": "women"},
+    {"name": "Обувь",                        "slug": "shoes"},
+    {"name": "Детям",                        "slug": "kids"},
+    {"name": "Мужчинам",                     "slug": "men"},
+    {"name": "Дом",                          "slug": "home"},
+    {"name": "Красота",                      "slug": "beauty"},
+    {"name": "Аксессуары",                   "slug": "accessories"},
+    {"name": "Электроника",                  "slug": "electronics"},
+    {"name": "Игрушки",                      "slug": "toys"},
+    {"name": "Мебель",                       "slug": "furniture"},
+    {"name": "Товары для взрослых",          "slug": "adult"},
+    {"name": "Продукты",                     "slug": "food"},
+    {"name": "Цветы",                        "slug": "flowers"},
+    {"name": "Бытовая техника",             "slug": "appliances"},
+    {"name": "Зоотовары",                    "slug": "pets"},
+    {"name": "Спорт",                        "slug": "sport"},
+    {"name": "Автотовары",                   "slug": "auto"},
+    {"name": "Книги",                        "slug": "books"},
+    {"name": "Ювелирные изделия",            "slug": "jewelry"},
+    {"name": "Для ремонта",                  "slug": "repair"},
+    {"name": "Сад и дача",                   "slug": "garden"},
+    {"name": "Здоровье",                     "slug": "health"},
+    {"name": "Адаптивные товары",            "slug": "adaptive"},
+    {"name": "Канцтовары",                   "slug": "office"},
+    {"name": "Акции",                        "slug": "sale"},
+]
+
+
+class CategoryCreate(BaseModel):
+    name: str
+    slug: str
+    parent_id: Optional[int] = None
+
+
+@router.get("/categories", response_model=List[CategoryOut])
+def list_categories(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    return db.query(Category).order_by(Category.id).all()
+
+
+@router.post("/categories", response_model=CategoryOut)
+def create_category(data: CategoryCreate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    existing = db.query(Category).filter(Category.slug == data.slug).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Категория с таким slug уже существует")
+    cat = Category(name=data.name, slug=data.slug, parent_id=data.parent_id)
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+class CategoryUpdate(BaseModel):
+    name: Optional[str] = None
+    slug: Optional[str] = None
+    parent_id: Optional[int] = None
+
+
+@router.patch("/categories/{cat_id}", response_model=CategoryOut)
+def update_category(cat_id: int, data: CategoryUpdate, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    if data.name is not None:
+        cat.name = data.name
+    if data.slug is not None:
+        existing = db.query(Category).filter(Category.slug == data.slug, Category.id != cat_id).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Slug уже используется")
+        cat.slug = data.slug
+    if data.parent_id is not None:
+        cat.parent_id = data.parent_id
+    db.commit()
+    db.refresh(cat)
+    return cat
+
+
+@router.delete("/categories/{cat_id}", status_code=204)
+def delete_category(cat_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    db.delete(cat)
+    db.commit()
+
+
+@router.post("/categories/seed")
+def seed_categories(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    """Insert default categories if they don't exist. Safe to call multiple times."""
+    added = 0
+    for item in SEED_CATEGORIES:
+        exists = db.query(Category).filter(Category.slug == item["slug"]).first()
+        if not exists:
+            db.add(Category(name=item["name"], slug=item["slug"], parent_id=None))
+            added += 1
+    db.commit()
+    return {"ok": True, "added": added, "message": f"Добавлено {added} категорий"}
 
 
 class UserRoleUpdate(BaseModel):
