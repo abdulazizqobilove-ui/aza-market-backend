@@ -439,43 +439,42 @@ def seed_categories(db: Session = Depends(get_db), _: User = Depends(require_adm
     added_subs = 0
     errors = []
 
-    # 1. Seed root categories one by one
+    # 1. Seed root categories — one savepoint per item so a failure doesn't wipe others
     for item in SEED_CATEGORIES:
+        exists = db.query(Category).filter(Category.slug == item["slug"]).first()
+        if exists:
+            continue
+        sp = db.begin_nested()
         try:
-            exists = db.query(Category).filter(Category.slug == item["slug"]).first()
-            if not exists:
-                db.add(Category(name=item["name"], slug=item["slug"], parent_id=None))
-                db.flush()
-                added_roots += 1
+            db.add(Category(name=item["name"], slug=item["slug"], parent_id=None))
+            sp.commit()
+            added_roots += 1
         except Exception as e:
-            db.rollback()
-            errors.append(f"root:{item['slug']}:{str(e)[:60]}")
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        errors.append(f"commit_roots:{str(e)[:80]}")
+            sp.rollback()
+            errors.append(f"root:{item['slug']}:{str(e)[:80]}")
 
-    # 2. Seed subcategories one by one
+    db.commit()
+
+    # 2. Seed subcategories — one savepoint per item
     for parent_slug, children in SEED_SUBCATEGORIES.items():
         parent = db.query(Category).filter(Category.slug == parent_slug).first()
         if not parent:
+            errors.append(f"no_parent:{parent_slug}")
             continue
         for child in children:
+            exists = db.query(Category).filter(Category.slug == child["slug"]).first()
+            if exists:
+                continue
+            sp = db.begin_nested()
             try:
-                exists = db.query(Category).filter(Category.slug == child["slug"]).first()
-                if not exists:
-                    db.add(Category(name=child["name"], slug=child["slug"], parent_id=parent.id))
-                    db.flush()
-                    added_subs += 1
+                db.add(Category(name=child["name"], slug=child["slug"], parent_id=parent.id))
+                sp.commit()
+                added_subs += 1
             except Exception as e:
-                db.rollback()
-                errors.append(f"sub:{child['slug']}:{str(e)[:60]}")
-    try:
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        errors.append(f"commit_subs:{str(e)[:80]}")
+                sp.rollback()
+                errors.append(f"sub:{child['slug']}:{str(e)[:80]}")
+
+    db.commit()
 
     return {
         "ok": True,
