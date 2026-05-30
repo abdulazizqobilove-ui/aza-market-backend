@@ -352,6 +352,30 @@ export default function OrdersScreen() {
                         </TouchableOpacity>
                       )}
 
+                      {/* Admin: mark COD as paid */}
+                      {user?.role === "admin" && !order.is_paid && order.status !== "cancelled" && (
+                        <TouchableOpacity
+                          disabled={isLoading}
+                          onPress={async () => {
+                            setActionLoading(order.id);
+                            try {
+                              await api.post(`/admin/orders/${order.id}/mark-paid`);
+                              setOrders((prev) => prev.map((o) => o.id === order.id ? { ...o, is_paid: true } : o));
+                              Toast.show({ type: "success", text1: "Заказ помечен как оплаченный ✓" });
+                            } catch {
+                              Toast.show({ type: "error", text1: "Ошибка" });
+                            } finally {
+                              setActionLoading(null);
+                            }
+                          }}
+                          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#f0fdf4", borderRadius: 14, paddingVertical: 12, borderWidth: 1.5, borderColor: "#16a34a" }}>
+                          {isLoading ? <ActivityIndicator size="small" color="#16a34a" /> : <>
+                            <CheckCircle2 size={16} color="#16a34a" />
+                            <Text style={{ fontSize: 14, fontWeight: "700", color: "#16a34a" }}>Получил оплату (наличные)</Text>
+                          </>}
+                        </TouchableOpacity>
+                      )}
+
                       {/* Cancel */}
                       {canCancel && (
                         <TouchableOpacity onPress={() => cancelOrder(order.id)} disabled={isLoading}
