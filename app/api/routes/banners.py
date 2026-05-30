@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
-import os
+import os, uuid, shutil
 
 from app.core.database import get_db
 from app.core.config import settings
@@ -11,6 +11,19 @@ from app.core.upload import upload_image
 from app.api.deps import require_admin
 from app.models.banner import Banner
 from app.models.user import User
+
+
+def _upload_banner_image(file: UploadFile) -> str:
+    try:
+        return upload_image(file, folder="banners")
+    except Exception:
+        ext = os.path.splitext(file.filename or "banner.jpg")[1] or ".jpg"
+        filename = f"banner_{uuid.uuid4().hex}{ext}"
+        dest = os.path.join(settings.UPLOAD_DIR, filename)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        return f"/uploads/{filename}"
 
 router = APIRouter(prefix="/banners", tags=["banners"])
 
@@ -62,8 +75,8 @@ def create_banner(
     admin: User = Depends(require_admin),
 ):
     image_url = None
-    if image:
-        image_url = upload_image(image, folder="banners")
+    if image and image.filename:
+        image_url = _upload_banner_image(image)
 
     banner = Banner(
         title=title, subtitle=subtitle, image_url=image_url,
@@ -104,8 +117,8 @@ def update_banner(
     if sort_order is not None: banner.sort_order = sort_order
     if is_active is not None: banner.is_active = is_active
 
-    if image:
-        banner.image_url = upload_image(image, folder="banners")
+    if image and image.filename:
+        banner.image_url = _upload_banner_image(image)
 
     db.commit()
     db.refresh(banner)

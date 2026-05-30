@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
   TextInput, Modal, RefreshControl, Alert, Dimensions,
@@ -19,7 +19,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { useThemeColors } from "@/lib/theme";
 
-const P = "#8B5CF6";
+const P = "#2563EB";
 const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Категории"] as const;
 type Section = typeof SECTIONS[number];
 
@@ -43,7 +43,7 @@ interface Report { id: number; type: string; target_id: number; reason: string; 
 interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; image_url?: string | null; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
-const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#7c3aed" };
+const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#1D4ED8" };
 const STATUS_COLORS: Record<string, string> = { pending: "#f59e0b", approved: "#16a34a", rejected: "#ef4444", paid: "#16a34a", cancelled: "#ef4444" };
 const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", approved: "Одобрено", rejected: "Отклонено", paid: "Выплачено", cancelled: "Отменено" };
 
@@ -138,8 +138,8 @@ function BannerForm({
     const bannerW = Math.round(SW - 24);
     const bannerH = 250;
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.9,
-      allowsEditing: true, aspect: [bannerW, bannerH],
+      mediaTypes: ["images"], quality: 0.9,
+      allowsEditing: true, aspect: [16, 11],
     });
     if (!result.canceled && result.assets[0]) setImageUri(result.assets[0].uri);
   };
@@ -302,7 +302,7 @@ function BannerForm({
       <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
         {([["none","Никуда","только показ"],["category","Категория","раздел каталога"],["url","Ссылка","внешний сайт"]] as [LinkType,string,string][]).map(([type, label, sub]) => (
           <TouchableOpacity key={type} onPress={() => { setLinkType(type); if (type !== "category") setLinkSlug(null); if (type !== "url") setLinkUrl(""); }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: linkType === type ? (type === "none" ? "#f3f4f6" : "#f5f3ff") : "#fff", borderWidth: 1.5, borderColor: linkType === type ? (type === "none" ? "#6b7280" : P) : "#e5e7eb", alignItems: "center" }}>
+            style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: linkType === type ? (type === "none" ? "#f3f4f6" : "#EFF6FF") : "#fff", borderWidth: 1.5, borderColor: linkType === type ? (type === "none" ? "#6b7280" : P) : "#e5e7eb", alignItems: "center" }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: linkType === type ? (type === "none" ? "#374151" : P) : "#9ca3af" }}>{label}</Text>
             <Text style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>{sub}</Text>
           </TouchableOpacity>
@@ -590,7 +590,7 @@ export default function AdminTabScreen() {
           {section === "Обзор" && (
             <>
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <StatCard label="Пользователей" value={stats?.users ?? 0} icon={Users} color="#8B5CF6" />
+                <StatCard label="Пользователей" value={stats?.users ?? 0} icon={Users} color="#2563EB" />
                 <StatCard label="Продавцов" value={stats?.sellers ?? 0} icon={Store} color="#16a34a" />
               </View>
               <View style={{ flexDirection: "row", gap: 10 }}>
@@ -602,10 +602,10 @@ export default function AdminTabScreen() {
               <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                 {[
                   { label: "Статистика", sub: `Выручка: ${(stats?.revenue?.total ?? 0).toLocaleString()} с.`, icon: BarChart2, color: P, sec: "Статистика" as Section },
-                  { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#8B5CF6", sec: "Пользователи" as Section },
+                  { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#2563EB", sec: "Пользователи" as Section },
                   { label: "Заявки продавцов", sub: pendingApps.length > 0 ? `${pendingApps.length} ожидают` : "Новых нет", icon: UserCheck, color: "#f59e0b", sec: "Заявки" as Section },
                   { label: "Выплаты", sub: pendingPayouts.length > 0 ? `${pendingPayouts.length} ожидают` : "Новых нет", icon: Wallet, color: "#16a34a", sec: "Выплаты" as Section },
-                  { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#6366f1", sec: "Баннеры" as Section },
+                  { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#3B82F6", sec: "Баннеры" as Section },
                 ].map(({ label, sub, icon: Icon, color, sec }, i, arr) => (
                   <TouchableOpacity key={label} onPress={() => setSection(sec)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: i < arr.length - 1 ? 0.5 : 0, borderBottomColor: c.border }}>
                     <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: color + "15", alignItems: "center", justifyContent: "center" }}>
@@ -629,7 +629,7 @@ export default function AdminTabScreen() {
             const ORDER_STATUS: Record<string, { label: string; color: string }> = {
               pending: { label: "Ожидает", color: "#f59e0b" },
               processing: { label: "В обработке", color: "#3b82f6" },
-              shipped: { label: "Отправлен", color: "#8b5cf6" },
+              shipped: { label: "Отправлен", color: "#2563EB" },
               delivered: { label: "Доставлен", color: "#16a34a" },
               cancelled: { label: "Отменён", color: "#ef4444" },
             };
@@ -638,7 +638,7 @@ export default function AdminTabScreen() {
                 {/* Revenue cards */}
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, backgroundColor: P, borderRadius: 16, padding: 16, gap: 4 }}>
-                    <Text style={{ fontSize: 11, color: "#e9d5ff", fontWeight: "600" }}>Общая выручка</Text>
+                    <Text style={{ fontSize: 11, color: "#BFDBFE", fontWeight: "600" }}>Общая выручка</Text>
                     <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue?.total ?? 0).toLocaleString()} с.</Text>
                   </View>
                   <View style={{ flex: 1, gap: 8 }}>
@@ -664,7 +664,7 @@ export default function AdminTabScreen() {
                             <View style={{
                               width: "100%",
                               height: Math.max(4, (d.revenue / maxRev) * 68),
-                              backgroundColor: i === chart.length - 1 ? P : "#e9d5ff",
+                              backgroundColor: i === chart.length - 1 ? P : "#BFDBFE",
                               borderRadius: 6,
                             }} />
                           </View>
@@ -682,7 +682,7 @@ export default function AdminTabScreen() {
                 </View>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <StatCard label="Рейтинг платф." value={stats?.avg_rating ?? 0} icon={Star} color="#f59e0b" />
-                  <StatCard label="Отзывов" value={stats?.total_reviews ?? 0} icon={BarChart2} color="#8b5cf6" />
+                  <StatCard label="Отзывов" value={stats?.total_reviews ?? 0} icon={BarChart2} color="#2563EB" />
                 </View>
 
                 {/* Orders by status */}
@@ -779,7 +779,7 @@ export default function AdminTabScreen() {
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 6 }}>
-                    <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                    <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
                       <UserCheck size={16} color={P} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => toggleUser(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: u.is_active ? "#fef2f2" : "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
@@ -1010,19 +1010,22 @@ export default function AdminTabScreen() {
                         {/* Image thumbnail / upload button */}
                         <TouchableOpacity
                           onPress={async () => {
-                            const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85 });
+                            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                            if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
+                            const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.85 });
                             if (res.canceled || !res.assets[0]) return;
                             const asset = res.assets[0];
                             const form = new FormData();
                             form.append("file", { uri: asset.uri, name: "photo.jpg", type: "image/jpeg" } as any);
-                            const token = await AsyncStorage.getItem("token");
                             try {
-                              await fetch(`${API_URL}/admin/categories/${sub.id}/image`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+                              await api.post(`/admin/categories/${sub.id}/image`, form, {
+                                headers: { "Content-Type": "multipart/form-data" },
+                              });
                               const r = await api.get<AdminCategory[]>("/admin/categories");
                               setAdminCats(r.data);
-                              Toast.show({ type: "success", text1: "Фото обновлено" });
-                            } catch {
-                              Toast.show({ type: "error", text1: "Ошибка загрузки" });
+                              Toast.show({ type: "success", text1: "Фото обновлено ✓" });
+                            } catch (e: any) {
+                              Toast.show({ type: "error", text1: e?.response?.data?.detail ?? e?.message ?? "Ошибка загрузки" });
                             }
                           }}
                           style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: c.iconBg, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: sub.image_url ? "transparent" : c.border, borderStyle: "dashed" }}
@@ -1067,7 +1070,7 @@ export default function AdminTabScreen() {
                 <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>Где менять баннер?</Text>
 
                 {/* Главный экран */}
-                <View style={{ backgroundColor: "#f5f3ff", borderRadius: 16, padding: 14, gap: 12 }}>
+                <View style={{ backgroundColor: "#EFF6FF", borderRadius: 16, padding: 14, gap: 12 }}>
                   {/* Header row */}
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -1120,7 +1123,7 @@ export default function AdminTabScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => toggleBanner(b)}
-                        style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}
+                        style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}
                       >
                         {b.is_active ? <ToggleRight size={18} color={P} /> : <ToggleLeft size={18} color="#9ca3af" />}
                       </TouchableOpacity>
@@ -1155,7 +1158,7 @@ export default function AdminTabScreen() {
                                 onPress={() => setBannerFormState({ visible: true, existing: existingBanner, initialLinkUrl: `category:${cat.slug}` })}
                                 style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: hasBanner ? P : isRoot ? "#f0f9ff" : "#f3f4f6", borderWidth: hasBanner ? 0 : 1, borderColor: isRoot ? "#bae6fd" : "#e5e7eb" }}
                               >
-                                {hasBanner && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#c4b5fd" }} />}
+                                {hasBanner && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#93C5FD" }} />}
                                 <Text style={{ fontSize: 12, fontWeight: isRoot ? "700" : "500", color: hasBanner ? "#fff" : isRoot ? "#0369a1" : "#374151" }}>{cat.name}</Text>
                               </TouchableOpacity>
                             );
@@ -1232,7 +1235,7 @@ export default function AdminTabScreen() {
                     <TouchableOpacity onPress={() => setBannerFormState({ visible: true, existing: b })} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
                       <Pencil size={15} color="#0ea5e9" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                    <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
                       {b.is_active ? <ToggleRight size={20} color={P} /> : <ToggleLeft size={20} color="#9ca3af" />}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => deleteBanner(b.id)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>
