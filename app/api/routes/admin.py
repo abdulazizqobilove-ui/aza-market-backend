@@ -6,7 +6,8 @@ from app.api.deps import require_admin
 from app.core.upload import upload_image as cloud_upload
 from app.models.user import User, UserRole
 from app.models.product import Product, Category
-from app.models.order import Order
+from app.models.order import Order, OrderStatus
+from app.models.payment import Payment, PaymentStatus
 from app.models.payout import Payout, PayoutStatus
 from app.schemas.user import UserOut
 from app.schemas.order import OrderOut, OrderStatusUpdate
@@ -511,6 +512,22 @@ def seed_categories(db: Session = Depends(get_db), _: User = Depends(require_adm
         "errors": errors,
         "message": f"Добавлено {added_roots} категорий и {added_subs} подкатегорий"
     }
+
+
+# ── Пометить заказ как оплачен (наложенный платёж) ────────────
+@router.post("/orders/{order_id}/mark-paid")
+def mark_order_paid(order_id: int, db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Заказ не найден")
+    order.is_paid = True
+    if order.status == OrderStatus.delivered:
+        pass  # уже доставлен — просто фиксируем оплату
+    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    if payment:
+        payment.status = PaymentStatus.paid
+    db.commit()
+    return {"ok": True, "order_id": order_id}
 
 
 class UserRoleUpdate(BaseModel):

@@ -25,6 +25,17 @@ class OrderCreate(BaseModel):
     item_ids: Optional[List[int]] = None
 
 
+class PaymentShortOut(BaseModel):
+    id: int
+    method: str
+    status: str
+    amount: float
+    currency: str
+
+    class Config:
+        from_attributes = True
+
+
 class OrderOut(BaseModel):
     id: int
     status: OrderStatus
@@ -38,6 +49,7 @@ class OrderOut(BaseModel):
     delivery_time: Optional[str] = None
     created_at: datetime
     items: List[OrderItemOut] = []
+    payment: Optional[PaymentShortOut] = None
 
     class Config:
         from_attributes = True

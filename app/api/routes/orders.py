@@ -7,6 +7,7 @@ from app.models.order import Order, OrderItem, OrderStatus
 from app.models.cart import CartItem
 from app.models.product import Product
 from app.models.user import User
+from app.models.payment import Payment, PaymentMethod, PaymentStatus
 from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
 
 PLATFORM_COMMISSION = 0.10  # 10% комиссия платформы
@@ -56,8 +57,18 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         ci.product.sales_count = (ci.product.sales_count or 0) + ci.quantity
 
     db.query(CartItem).filter(CartItem.id.in_(item_ids_to_delete)).delete(synchronize_session=False)
-    db.commit()
 
+    # Создаём запись о платеже
+    method = PaymentMethod.cod if data.payment_method in ("on_delivery", "cod", "cash") else PaymentMethod.card
+    db.add(Payment(
+        order_id=order.id,
+        amount=total,
+        currency="TJS",
+        method=method,
+        status=PaymentStatus.pending,
+    ))
+
+    db.commit()
     return _load_order(db, order.id)
 
 

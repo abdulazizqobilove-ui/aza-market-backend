@@ -4,8 +4,8 @@ from fastapi.staticfiles import StaticFiles
 import os, threading
 from app.core.database import Base, engine
 from app.core.config import settings
-from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats
-from app.models import payment_card, chat  # ensure tables are created
+from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats, payments
+from app.models import payment_card, chat, payment  # ensure tables are created
 
 def _run_startup_db():
     try:
@@ -213,6 +213,7 @@ app.include_router(seller_applications.router, prefix="/api")
 app.include_router(shop.router, prefix="/api")
 app.include_router(banners.router, prefix="/api")
 app.include_router(chats.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
 
 
 @app.get("/api/health")
