@@ -328,9 +328,13 @@ export default function HomeScreen() {
 
 
 
+  const BannerSection = useCallback(() => (
+    bannersLoaded ? <BannerCarousel banners={banners} /> : <SkeletonBanner />
+  ), [banners, bannersLoaded]);
+
   const Header = useCallback(() => (
     <View style={{ paddingHorizontal: 12, paddingTop: 12 }}>
-      {bannersLoaded ? <BannerCarousel banners={banners} /> : <SkeletonBanner />}
+      <BannerSection />
       {activeOrders.length > 0 && (
         <View style={{ marginTop: 12 }}>
           <ActiveOrderWidget orders={activeOrders} c={c} isDark={isDark} onPress={() => router.push("/orders" as any)} />
@@ -338,7 +342,7 @@ export default function HomeScreen() {
       )}
       <Text style={{ fontSize: 16, fontWeight: "800", color: c.text, marginBottom: 8, marginTop: activeOrders.length > 0 ? 4 : 14 }}>Подобрали для вас</Text>
     </View>
-  ), [banners, bannersLoaded, activeOrders, c, isDark]);
+  ), [BannerSection, activeOrders, c, isDark]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
@@ -408,7 +412,7 @@ export default function HomeScreen() {
         keyExtractor={(p) => String(p.id)}
         columnWrapperStyle={{ gap: 2, paddingHorizontal: 2 }}
         contentContainerStyle={{ paddingBottom: 96, gap: 2, paddingTop: 4 }}
-        ListHeaderComponent={<Header />}
+        ListHeaderComponent={Header}
         removeClippedSubviews={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         onEndReached={() => { if (hasMore && !loadingMore && !loading) fetchProducts(false); }}
