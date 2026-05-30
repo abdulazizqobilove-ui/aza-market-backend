@@ -10,7 +10,7 @@ import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
   ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
-  AlertTriangle, Eye, EyeOff, Tag, Flag, BadgeCheck, FileText, ExternalLink,
+  AlertTriangle, Eye, EyeOff, Tag, Flag, BadgeCheck, FileText,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
