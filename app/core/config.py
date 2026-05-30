@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_KEY: str = ""
-    SUPABASE_BUCKET: str = "marketplace"
+    SUPABASE_BUCKET: str = "powerbank"
 
     class Config:
         env_file = ".env"

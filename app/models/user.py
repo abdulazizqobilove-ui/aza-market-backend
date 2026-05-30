@@ -32,6 +32,7 @@ class User(Base):
     shop_description = Column(String, nullable=True)
     shop_banner_url = Column(String, nullable=True)
     shop_logo_url = Column(String, nullable=True)
+    shop_city = Column(String, nullable=True)
 
     products = relationship("Product", back_populates="seller")
     orders = relationship("Order", back_populates="buyer")

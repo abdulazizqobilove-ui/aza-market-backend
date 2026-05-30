@@ -53,6 +53,13 @@ for _stmt in [
     "ALTER TABLE mkt_product_images ADD COLUMN IF NOT EXISTS variant_index INTEGER",
     "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS shop_tag VARCHAR",
     "ALTER TABLE mkt_categories ADD COLUMN IF NOT EXISTS image_url VARCHAR",
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS delivery_service VARCHAR",
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS tracking_number VARCHAR",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS delivery_price FLOAT NOT NULL DEFAULT 0",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS delivery_price_other FLOAT NOT NULL DEFAULT 0",
+    "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS delivery_mode VARCHAR NOT NULL DEFAULT 'service'",
+    "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS shop_city VARCHAR",
+    "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS delivery_cost FLOAT NOT NULL DEFAULT 0",
 ]:
     try:
         with engine.begin() as _conn:

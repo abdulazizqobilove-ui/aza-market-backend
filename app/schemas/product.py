@@ -37,6 +37,9 @@ class ProductCreate(BaseModel):
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
     shop_tag: Optional[str] = None
+    delivery_price: float = 0.0
+    delivery_price_other: float = 0.0
+    delivery_mode: str = "service"
 
 
 class ProductUpdate(BaseModel):
@@ -53,6 +56,9 @@ class ProductUpdate(BaseModel):
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
     shop_tag: Optional[str] = None
+    delivery_price: Optional[float] = None
+    delivery_price_other: Optional[float] = None
+    delivery_mode: Optional[str] = None
 
 
 class ProductOut(BaseModel):
@@ -76,6 +82,10 @@ class ProductOut(BaseModel):
     about: Optional[str] = None
     variants: Optional[List[dict]] = None
     shop_tag: Optional[str] = None
+    delivery_price: float = 0.0
+    delivery_price_other: float = 0.0
+    delivery_mode: str = "service"
+    seller_city: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -99,6 +109,10 @@ class ProductListOut(BaseModel):
     attributes: Optional[dict] = None
     variants: Optional[List[dict]] = None
     shop_tag: Optional[str] = None
+    delivery_price: float = 0.0
+    delivery_price_other: float = 0.0
+    delivery_mode: str = "service"
+    seller_city: Optional[str] = None
 
     class Config:
         from_attributes = True

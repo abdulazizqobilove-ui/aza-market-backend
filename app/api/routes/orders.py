@@ -8,7 +8,7 @@ from app.models.cart import CartItem
 from app.models.product import Product
 from app.models.user import User
 from app.models.payment import Payment, PaymentMethod, PaymentStatus
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderTrackingUpdate
 
 PLATFORM_COMMISSION = 0.10  # 10% комиссия платформы
 
@@ -36,10 +36,26 @@ def create_order(data: OrderCreate, db: Session = Depends(get_db), user: User = 
         if ci.product.stock < ci.quantity:
             raise HTTPException(status_code=400, detail=f"Not enough stock for {ci.product.title}")
 
-    total = sum(ci.product.price * ci.quantity for ci in cart_items)
+    # Compute delivery cost per unique seller
+    seen_sellers: dict[int, float] = {}
+    for ci in cart_items:
+        sid = ci.product.seller_id
+        if sid not in seen_sellers:
+            seller = db.query(User).filter(User.id == sid).first()
+            seller_city = (seller.shop_city or "").strip().lower() if seller else ""
+            buyer_city = (data.delivery_city or "").strip().lower()
+            if seller_city and seller_city == buyer_city:
+                seen_sellers[sid] = ci.product.delivery_price or 0.0
+            else:
+                seen_sellers[sid] = ci.product.delivery_price_other or 0.0
+    delivery_cost = sum(seen_sellers.values())
+
+    subtotal = sum(ci.product.price * ci.quantity for ci in cart_items)
+    total = subtotal + delivery_cost
     order = Order(
         buyer_id=user.id,
         total_price=total,
+        delivery_cost=delivery_cost,
         delivery_address=data.delivery_address,
         delivery_city=data.delivery_city,
         contact_phone=data.contact_phone,
@@ -146,6 +162,38 @@ def mark_order_paid(
         raise HTTPException(status_code=400, detail="Заказ уже оплачен")
 
     order.is_paid = True
+    db.commit()
+    return _load_order(db, order.id)
+
+
+@router.patch("/{order_id}/tracking", response_model=OrderOut)
+def set_tracking(
+    order_id: int,
+    data: OrderTrackingUpdate,
+    db: Session = Depends(get_db),
+    seller: User = Depends(require_seller),
+):
+    """Seller sets delivery service + tracking number. Auto-advances status to 'shipped'."""
+    order = db.query(Order).options(
+        joinedload(Order.items).joinedload(OrderItem.product)
+    ).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    # Only seller who owns items (or admin) can set tracking
+    from app.models.user import UserRole
+    if seller.role != UserRole.admin:
+        seller_ids = {item.product.seller_id for item in order.items}
+        if seller.id not in seller_ids:
+            raise HTTPException(status_code=403, detail="Нет доступа")
+
+    order.delivery_service = data.delivery_service
+    order.tracking_number = data.tracking_number or ""
+
+    # Auto-advance to shipped if not yet there
+    if order.status in (OrderStatus.pending, OrderStatus.confirmed, OrderStatus.processing):
+        order.status = OrderStatus.shipped
+
     db.commit()
     return _load_order(db, order.id)
 

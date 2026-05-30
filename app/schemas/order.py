@@ -45,8 +45,11 @@ class OrderOut(BaseModel):
     contact_phone: str
     payment_method: str = "cash"
     is_paid: bool = False
+    delivery_cost: float = 0.0
     delivery_date: Optional[str] = None
     delivery_time: Optional[str] = None
+    delivery_service: Optional[str] = None
+    tracking_number: Optional[str] = None
     created_at: datetime
     items: List[OrderItemOut] = []
     payment: Optional[PaymentShortOut] = None
@@ -57,3 +60,8 @@ class OrderOut(BaseModel):
 
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
+
+
+class OrderTrackingUpdate(BaseModel):
+    delivery_service: str          # sesamt | apost | other
+    tracking_number: Optional[str] = None

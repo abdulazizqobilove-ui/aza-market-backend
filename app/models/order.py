@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Text, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Text, Boolean, text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -28,6 +28,9 @@ class Order(Base):
     is_paid = Column(Boolean, default=False, nullable=False)
     delivery_date = Column(String, nullable=True)
     delivery_time = Column(String, nullable=True)
+    delivery_cost = Column(Float, default=0.0, nullable=False, server_default=text("0"))
+    delivery_service = Column(String, nullable=True)   # sesamt | apost | other
+    tracking_number = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 

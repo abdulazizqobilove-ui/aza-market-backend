@@ -64,6 +64,7 @@ def list_products(
     query = db.query(Product).options(
         joinedload(Product.category),
         joinedload(Product.images),
+        joinedload(Product.seller),
     ).filter(Product.is_active == True)
 
     if q:

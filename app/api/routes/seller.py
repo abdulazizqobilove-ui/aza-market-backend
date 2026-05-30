@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 from typing import List, Optional
@@ -21,6 +21,7 @@ from app.core.config import settings
 class ShopProfileUpdate(BaseModel):
     shop_name: Optional[str] = None
     shop_description: Optional[str] = None
+    shop_city: Optional[str] = None
 
 router = APIRouter(prefix="/seller", tags=["seller"])
 
@@ -225,13 +226,66 @@ def upload_banner(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"banner_{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    seller.shop_banner_url = f"/uploads/{filename}"
+    from app.core.upload import upload_image as cloud_upload
+    try:
+        seller.shop_banner_url = cloud_upload(file, folder="shops")
+    except Exception:
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"banner_{uuid.uuid4()}{ext}"
+        filepath = os.path.join(settings.UPLOAD_DIR, filename)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        seller.shop_banner_url = f"/uploads/{filename}"
+    db.commit()
+    db.refresh(seller)
+    return seller
+
+
+@router.get("/profile", response_model=UserOut)
+def get_seller_profile(seller: User = Depends(require_seller)):
+    return seller
+
+
+@router.put("/profile", response_model=UserOut)
+def update_seller_profile(
+    shop_name: Optional[str] = Form(None),
+    shop_description: Optional[str] = Form(None),
+    shop_city: Optional[str] = Form(None),
+    logo: Optional[UploadFile] = File(None),
+    banner: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db),
+    seller: User = Depends(require_seller),
+):
+    from app.core.upload import upload_image as cloud_upload
+    if shop_name is not None:
+        seller.shop_name = shop_name.strip() or None
+    if shop_description is not None:
+        seller.shop_description = shop_description.strip() or None
+    if shop_city is not None:
+        seller.shop_city = shop_city.strip() or None
+    if logo and logo.filename:
+        try:
+            seller.shop_logo_url = cloud_upload(logo, folder="shops")
+        except Exception:
+            ext = os.path.splitext(logo.filename)[1]
+            filename = f"logo_{uuid.uuid4()}{ext}"
+            filepath = os.path.join(settings.UPLOAD_DIR, filename)
+            os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+            with open(filepath, "wb") as f:
+                shutil.copyfileobj(logo.file, f)
+            seller.shop_logo_url = f"/uploads/{filename}"
+    if banner and banner.filename:
+        try:
+            seller.shop_banner_url = cloud_upload(banner, folder="shops")
+        except Exception:
+            ext = os.path.splitext(banner.filename)[1]
+            filename = f"banner_{uuid.uuid4()}{ext}"
+            filepath = os.path.join(settings.UPLOAD_DIR, filename)
+            os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+            with open(filepath, "wb") as f:
+                shutil.copyfileobj(banner.file, f)
+            seller.shop_banner_url = f"/uploads/{filename}"
     db.commit()
     db.refresh(seller)
     return seller
@@ -243,13 +297,17 @@ def upload_logo(
     db: Session = Depends(get_db),
     seller: User = Depends(require_seller),
 ):
-    ext = os.path.splitext(file.filename)[1]
-    filename = f"logo_{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    seller.shop_logo_url = f"/uploads/{filename}"
+    from app.core.upload import upload_image as cloud_upload
+    try:
+        seller.shop_logo_url = cloud_upload(file, folder="shops")
+    except Exception:
+        ext = os.path.splitext(file.filename)[1]
+        filename = f"logo_{uuid.uuid4()}{ext}"
+        filepath = os.path.join(settings.UPLOAD_DIR, filename)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        seller.shop_logo_url = f"/uploads/{filename}"
     db.commit()
     db.refresh(seller)
     return seller

@@ -3,10 +3,11 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
-import os, uuid, shutil
+import os
 
 from app.core.database import get_db
 from app.core.config import settings
+from app.core.upload import upload_image
 from app.api.deps import require_admin
 from app.models.banner import Banner
 from app.models.user import User
@@ -62,12 +63,7 @@ def create_banner(
 ):
     image_url = None
     if image:
-        ext = os.path.splitext(image.filename or "banner.jpg")[1] or ".jpg"
-        fname = f"banner_{uuid.uuid4().hex}{ext}"
-        path = os.path.join(settings.UPLOAD_DIR, fname)
-        with open(path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
-        image_url = f"/uploads/{fname}"
+        image_url = upload_image(image, folder="banners")
 
     banner = Banner(
         title=title, subtitle=subtitle, image_url=image_url,
@@ -109,12 +105,7 @@ def update_banner(
     if is_active is not None: banner.is_active = is_active
 
     if image:
-        ext = os.path.splitext(image.filename or "banner.jpg")[1] or ".jpg"
-        fname = f"banner_{uuid.uuid4().hex}{ext}"
-        path = os.path.join(settings.UPLOAD_DIR, fname)
-        with open(path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
-        banner.image_url = f"/uploads/{fname}"
+        banner.image_url = upload_image(image, folder="banners")
 
     db.commit()
     db.refresh(banner)

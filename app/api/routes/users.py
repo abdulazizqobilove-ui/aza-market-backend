@@ -57,13 +57,17 @@ def upload_avatar(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    ext = os.path.splitext(file.filename or "avatar.jpg")[1] or ".jpg"
-    filename = f"avatar_{user.id}_{uuid.uuid4().hex}{ext}"
-    dest = os.path.join(settings.UPLOAD_DIR, filename)
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    with open(dest, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    user.avatar_url = f"/uploads/{filename}"
+    from app.core.upload import upload_image as cloud_upload
+    try:
+        user.avatar_url = cloud_upload(file, folder="avatars")
+    except Exception:
+        ext = os.path.splitext(file.filename or "avatar.jpg")[1] or ".jpg"
+        filename = f"avatar_{user.id}_{uuid.uuid4().hex}{ext}"
+        dest = os.path.join(settings.UPLOAD_DIR, filename)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        user.avatar_url = f"/uploads/{filename}"
     db.commit()
     db.refresh(user)
     return user

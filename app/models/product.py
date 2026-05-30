@@ -41,6 +41,9 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("mkt_categories.id"), nullable=False)
 
     about = Column(Text, nullable=True)
+    delivery_price = Column(Float, default=0.0, nullable=False, server_default=text("0"))
+    delivery_price_other = Column(Float, default=0.0, nullable=False, server_default=text("0"))
+    delivery_mode = Column(String, default="service", nullable=False, server_default=text("'service'"))
     attributes = Column(JSONB, nullable=True, default=dict, server_default=text("'{}'::jsonb"))
     variants = Column(JSONB, nullable=True, default=None)
     shop_tag = Column(String, nullable=True)
@@ -53,6 +56,13 @@ class Product(Base):
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="product", cascade="all, delete-orphan")
     waitlist = relationship("Waitlist", back_populates="product", cascade="all, delete-orphan")
+
+    @property
+    def seller_city(self) -> str | None:
+        try:
+            return self.seller.shop_city if self.seller else None
+        except Exception:
+            return None
 
 
 class ProductImage(Base):
