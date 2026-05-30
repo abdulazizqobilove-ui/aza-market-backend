@@ -539,11 +539,128 @@ class UserActiveUpdate(BaseModel):
 
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+    from app.models.review import Review
+    from app.models.product import ProductImage
+    from app.models.order import OrderItem
+    from datetime import datetime, timedelta, timezone
+
+    now = datetime.now(timezone.utc)
+    d7  = now - timedelta(days=7)
+    d30 = now - timedelta(days=30)
+
+    # ── Basic counts ─────────────────────────────────────────────
+    total_users   = db.query(User).count()
+    total_sellers = db.query(User).filter(User.role == UserRole.seller).count()
+    total_products = db.query(Product).filter(Product.is_active == True).count()
+    all_orders = db.query(Order).all()
+    total_orders = len(all_orders)
+
+    new_users_7d  = db.query(User).filter(User.created_at >= d7).count()
+    new_users_30d = db.query(User).filter(User.created_at >= d30).count()
+
+    # ── Orders by status ─────────────────────────────────────────
+    orders_by_status: dict = {}
+    for o in all_orders:
+        key = o.status.value if hasattr(o.status, "value") else str(o.status)
+        orders_by_status[key] = orders_by_status.get(key, 0) + 1
+
+    orders_7d  = sum(1 for o in all_orders if o.created_at and o.created_at >= d7)
+    orders_30d = sum(1 for o in all_orders if o.created_at and o.created_at >= d30)
+
+    # ── Revenue (delivered orders only) ──────────────────────────
+    order_ids = [o.id for o in all_orders]
+    all_items = (
+        db.query(OrderItem).filter(OrderItem.order_id.in_(order_ids)).all()
+        if order_ids else []
+    )
+    delivered_ids    = {o.id for o in all_orders if o.status == OrderStatus.delivered}
+    delivered_7d_ids = {o.id for o in all_orders if o.status == OrderStatus.delivered and o.created_at and o.created_at >= d7}
+    delivered_30d_ids= {o.id for o in all_orders if o.status == OrderStatus.delivered and o.created_at and o.created_at >= d30}
+
+    rev_total = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_ids)
+    rev_7d    = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_7d_ids)
+    rev_30d   = sum(i.price * i.quantity for i in all_items if i.order_id in delivered_30d_ids)
+
+    # ── Chart 7d ──────────────────────────────────────────────────
+    chart = []
+    for days_ago in range(6, -1, -1):
+        day       = now - timedelta(days=days_ago)
+        day_start = day.replace(hour=0, minute=0, second=0, microsecond=0)
+        day_end   = day_start + timedelta(days=1)
+        day_del_ids = {
+            o.id for o in all_orders
+            if o.status == OrderStatus.delivered and o.created_at and day_start <= o.created_at < day_end
+        }
+        day_rev = sum(i.price * i.quantity for i in all_items if i.order_id in day_del_ids)
+        chart.append({"date": day.strftime("%d.%m"), "revenue": round(day_rev)})
+
+    # ── Reviews ───────────────────────────────────────────────────
+    reviews = db.query(Review).all()
+    avg_rating    = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0.0
+    total_reviews = len(reviews)
+
+    # ── Top sellers ───────────────────────────────────────────────
+    sellers = db.query(User).filter(User.role == UserRole.seller).all()
+    seller_ids = [s.id for s in sellers]
+    products_by_seller: dict = {}
+    for p in db.query(Product).filter(Product.seller_id.in_(seller_ids)).all():
+        products_by_seller.setdefault(p.seller_id, []).append(p)
+
+    seller_rev: dict = {}
+    if order_ids:
+        for item in all_items:
+            if item.order_id not in delivered_ids:
+                continue
+            prod = next((p for pl in products_by_seller.values() for p in pl if p.id == item.product_id), None)
+            if prod:
+                seller_rev[prod.seller_id] = seller_rev.get(prod.seller_id, 0) + item.price * item.quantity
+
+    top_sellers = sorted(sellers, key=lambda s: seller_rev.get(s.id, 0), reverse=True)[:5]
+    top_sellers_out = [
+        {
+            "id": s.id,
+            "username": s.username,
+            "shop_name": s.shop_name or s.username,
+            "revenue": round(seller_rev.get(s.id, 0)),
+            "products": len(products_by_seller.get(s.id, [])),
+        }
+        for s in top_sellers
+    ]
+
+    # ── Top products ──────────────────────────────────────────────
+    all_prods = db.query(Product).filter(Product.is_active == True).all()
+    prod_ids  = [p.id for p in all_prods]
+    images_by_product: dict = {}
+    for img in db.query(ProductImage).filter(ProductImage.product_id.in_(prod_ids)).all():
+        images_by_product.setdefault(img.product_id, []).append(img)
+
+    top5 = sorted(all_prods, key=lambda p: p.sales_count or 0, reverse=True)[:5]
+    top_products_out = []
+    for p in top5:
+        imgs = images_by_product.get(p.id, [])
+        img_url = next((i.url for i in imgs if i.is_main), imgs[0].url if imgs else None)
+        top_products_out.append({
+            "id": p.id, "title": p.title, "price": p.price,
+            "sales_count": p.sales_count or 0, "stock": p.stock,
+            "image_url": img_url,
+        })
+
     return {
-        "users": db.query(User).count(),
-        "products": db.query(Product).filter(Product.is_active == True).count(),
-        "orders": db.query(Order).count(),
-        "sellers": db.query(User).filter(User.role == UserRole.seller).count(),
+        "users": total_users,
+        "products": total_products,
+        "orders": total_orders,
+        "sellers": total_sellers,
+        "new_users_7d": new_users_7d,
+        "new_users_30d": new_users_30d,
+        "revenue": {"total": round(rev_total), "last_7d": round(rev_7d), "last_30d": round(rev_30d)},
+        "orders_by_status": orders_by_status,
+        "orders_7d": orders_7d,
+        "orders_30d": orders_30d,
+        "avg_rating": avg_rating,
+        "total_reviews": total_reviews,
+        "top_sellers": top_sellers_out,
+        "top_products": top_products_out,
+        "chart_7d": chart,
     }
 
 
