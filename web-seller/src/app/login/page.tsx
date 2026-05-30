@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(0);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const codeRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [codeDigits, setCodeDigits] = useState(["", "", "", ""]);
@@ -40,7 +41,8 @@ export default function LoginPage() {
     if (raw.length < 9) { setError("Введите корректный номер телефона"); return; }
     setLoading(true); setError("");
     try {
-      await api.post("/auth/phone/send", { phone: "+992" + raw });
+      const r = await api.post<{ ok: boolean; dev_code?: string }>("/auth/phone/send", { phone: "+992" + raw });
+      if (r.data.dev_code) setDevCode(r.data.dev_code);
       setStep("code"); setCountdown(60);
       setCodeDigits(["", "", "", ""]);
       setTimeout(() => codeRefs.current[0]?.focus(), 100);
@@ -139,9 +141,15 @@ export default function LoginPage() {
                 ← Назад
               </button>
               <h2 className="text-xl font-bold text-gray-900 mb-1">Введите код</h2>
-              <p className="text-gray-500 text-sm mb-6">
+              <p className="text-gray-500 text-sm mb-4">
                 Код отправлен на <span className="font-semibold text-gray-800">+992 {formatPhone(phone)}</span>
               </p>
+              {devCode && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-4 text-center">
+                  <p className="text-xs text-yellow-600 font-medium mb-0.5">Код для входа (dev режим)</p>
+                  <p className="text-2xl font-bold text-yellow-800 tracking-widest">{devCode}</p>
+                </div>
+              )}
 
               <div className="space-y-5">
                 <div className="flex gap-3 justify-center">

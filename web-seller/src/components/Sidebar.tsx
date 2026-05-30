@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, BarChart2,
   Settings, LogOut, ShoppingBag as Logo, ChevronRight,
-  Bell, BadgeCheck,
+  Bell, BadgeCheck, Wallet,
 } from "lucide-react";
 import { logout, getUser } from "@/lib/api";
 import { clsx } from "clsx";
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/products",  icon: Package,          label: "Товары" },
   { href: "/orders",    icon: ShoppingBag,       label: "Заказы" },
   { href: "/analytics", icon: BarChart2,         label: "Аналитика" },
+  { href: "/finances",  icon: Wallet,            label: "Финансы" },
   { href: "/settings",  icon: Settings,          label: "Настройки" },
 ];
 
@@ -72,7 +73,9 @@ export default function Sidebar() {
               <p className="text-sm font-semibold text-gray-800 truncate">{user?.shop_name || user?.full_name || user?.username}</p>
               {user?.is_verified && <BadgeCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />}
             </div>
-            <p className="text-xs text-gray-400 truncate">{user?.phone}</p>
+            <p className="text-xs text-teal-600 font-semibold truncate">
+              {(user?.balance ?? 0).toLocaleString("ru-RU")} сом.
+            </p>
           </div>
           <button onClick={logout} title="Выйти" className="opacity-0 group-hover:opacity-100 transition">
             <LogOut className="w-4 h-4 text-gray-400 hover:text-red-500 transition" />
