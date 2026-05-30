@@ -68,6 +68,19 @@ export interface Product {
   category: Category; images: ProductImage[];
   variants?: ProductVariant[] | null;
   shop_tag?: string | null;
+  delivery_price?: number;
+  delivery_price_other?: number;
+  delivery_mode?: string;
+  seller_city?: string | null;
+  barcode?: string | null;
+  seller_verified?: boolean | null;
+  documents?: ProductDocument[];
+}
+export interface ProductDocument {
+  id: number;
+  doc_type: "certificate" | "invoice" | "other";
+  url: string;
+  filename?: string | null;
 }
 export interface ProductsResponse { total: number; page: number; pages: number; items: Product[]; }
 export interface User {
@@ -75,6 +88,7 @@ export interface User {
   role: "buyer" | "seller" | "admin"; is_active: boolean; balance: number;
   avatar_url?: string; created_at: string; shop_name?: string;
   shop_description?: string; shop_banner_url?: string; shop_logo_url?: string;
+  is_verified?: boolean;
 }
 export interface CartItem { id: number; quantity: number; product: Product; selected_attrs?: Record<string, string> | null; }
 export interface OrderItem { id: number; quantity: number; price: number; product: Product; }
@@ -83,6 +97,8 @@ export interface Order {
   id: number; status: OrderStatus; total_price: number;
   delivery_address: string; delivery_city: string; contact_phone: string;
   is_paid: boolean; payment_method: string;
+  delivery_cost?: number;
   delivery_date?: string | null; delivery_time?: string | null;
+  delivery_service?: string | null; tracking_number?: string | null;
   created_at: string; items: OrderItem[];
 }

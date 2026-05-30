@@ -20,6 +20,7 @@ class SellerApplication(Base):
     description = Column(Text, nullable=True)
     status = Column(Enum(ApplicationStatus), default=ApplicationStatus.pending, nullable=False)
     admin_comment = Column(String, nullable=True)
+    registration_doc_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="seller_applications")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -8,6 +8,8 @@ from app.models.user import User, UserRole
 from app.models.seller_application import SellerApplication, ApplicationStatus
 from app.models.notification import Notification
 from datetime import datetime
+import os, uuid, shutil
+from app.core.config import settings
 
 router = APIRouter(prefix="/seller-applications", tags=["seller-applications"])
 
@@ -17,6 +19,20 @@ class ApplicationCreate(BaseModel):
     description: Optional[str] = None
 
 
+def _upload_reg_doc(file: UploadFile) -> str:
+    from app.core.upload import upload_image as cloud_upload
+    try:
+        return cloud_upload(file, folder="reg_docs")
+    except Exception:
+        ext = os.path.splitext(file.filename or "doc.jpg")[1] or ".jpg"
+        filename = f"regdoc_{uuid.uuid4().hex}{ext}"
+        dest = os.path.join(settings.UPLOAD_DIR, filename)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        with open(dest, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        return f"/uploads/{filename}"
+
+
 class ApplicationOut(BaseModel):
     id: int
     user_id: int
@@ -24,6 +40,7 @@ class ApplicationOut(BaseModel):
     description: Optional[str]
     status: ApplicationStatus
     admin_comment: Optional[str]
+    registration_doc_url: Optional[str] = None
     created_at: datetime
     username: Optional[str] = None
     phone: Optional[str] = None
@@ -38,7 +55,9 @@ class ApplicationReview(BaseModel):
 
 @router.post("", response_model=ApplicationOut, status_code=201)
 def submit_application(
-    data: ApplicationCreate,
+    shop_name: str = Form(...),
+    description: Optional[str] = Form(None),
+    registration_doc: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -54,7 +73,16 @@ def submit_application(
     if existing:
         raise HTTPException(status_code=400, detail="Заявка уже отправлена")
 
-    app = SellerApplication(user_id=user.id, shop_name=data.shop_name, description=data.description)
+    reg_doc_url = None
+    if registration_doc and registration_doc.filename:
+        reg_doc_url = _upload_reg_doc(registration_doc)
+
+    app = SellerApplication(
+        user_id=user.id,
+        shop_name=shop_name,
+        description=description,
+        registration_doc_url=reg_doc_url,
+    )
     db.add(app)
     db.commit()
     db.refresh(app)

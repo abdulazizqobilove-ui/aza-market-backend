@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView,
   ActivityIndicator, Modal, Pressable, Alert, Dimensions,
@@ -16,7 +16,7 @@ import Toast from "react-native-toast-message";
 import api, { API_URL } from "@/lib/api";
 import { useThemeColors } from "@/lib/theme";
 
-const P = "#8B5CF6";
+const P = "#2563EB";
 const COMMISSION = 0.1;
 const DRAFT_KEY = "draft_new_product";
 const LOW_STOCK = 5;
@@ -45,7 +45,7 @@ export const COLOR_PALETTE = [
   { name: "Зелёный",     hex: "#22c55e" },
   { name: "Голубой",     hex: "#38bdf8" },
   { name: "Синий",       hex: "#3b82f6" },
-  { name: "Фиолетовый",  hex: "#8b5cf6" },
+  { name: "Фиолетовый",  hex: "#2563EB" },
   { name: "Чёрный",      hex: "#111827" },
   { name: "Тёмно-серый", hex: "#6b7280" },
   { name: "Серый",       hex: "#d1d5db" },
@@ -86,7 +86,8 @@ export default function NewProductScreen() {
 
   const [form, setForm] = useState({
     title: "", description: "", about: "", price: "", original_price: "",
-    stock: "", brand: "", category_id: "", sku: genSKU(), shop_tag: "",
+    stock: "", brand: "", category_id: "", sku: genSKU(), shop_tag: "", barcode: "",
+    delivery_price: "", delivery_price_other: "", delivery_mode: "service",
   });
 
   const draftTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -322,6 +323,10 @@ export default function NewProductScreen() {
         category_id: parseInt(form.category_id),
         variants: variantsArr,
         shop_tag: form.shop_tag.trim() || undefined,
+        barcode: form.barcode.trim() || undefined,
+        delivery_price: parseFloat(form.delivery_price) || 0,
+        delivery_price_other: parseFloat(form.delivery_price_other) || 0,
+        delivery_mode: form.delivery_mode,
       });
 
       const photosToUpload = colors.length > 0
@@ -370,7 +375,7 @@ export default function NewProductScreen() {
           <ArrowLeft size={18} color={c.textSub} />
         </TouchableOpacity>
         <Text style={{ fontSize: 17, fontWeight: "800", color: c.text, flex: 1 }}>Новый товар</Text>
-        <TouchableOpacity onPress={() => setShowPreview(true)} style={{ width: 36, height: 36, backgroundColor: "#f5f3ff", borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 4 }}>
+        <TouchableOpacity onPress={() => setShowPreview(true)} style={{ width: 36, height: 36, backgroundColor: "#EFF6FF", borderRadius: 12, alignItems: "center", justifyContent: "center", marginRight: 4 }}>
           <Eye size={18} color={P} />
         </TouchableOpacity>
       </View>
@@ -396,14 +401,14 @@ export default function NewProductScreen() {
           <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>Фотографии</Text>
 
           {colors.length > 0 ? (
-            <View style={{ backgroundColor: "#f5f3ff", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ backgroundColor: "#EFF6FF", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Camera size={18} color={P} />
               <Text style={{ fontSize: 13, color: P, fontWeight: "600", flex: 1 }}>Фото добавляются по цветам — смотри раздел «Размеры и цвета» ниже</Text>
             </View>
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                <TouchableOpacity onPress={pickPhotos} style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: "#f5f3ff", borderWidth: 2, borderStyle: "dashed", borderColor: "#c4b5fd", alignItems: "center", justifyContent: "center" }}>
+                <TouchableOpacity onPress={pickPhotos} style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
                   <Camera size={24} color={P} />
                   <Text style={{ fontSize: 11, color: P, marginTop: 4, fontWeight: "600" }}>Добавить</Text>
                 </TouchableOpacity>
@@ -474,9 +479,20 @@ export default function NewProductScreen() {
               <Text style={{ fontSize: 12, color: c.textSub }}>SKU (артикул)</Text>
               <TextInput value={form.sku} onChangeText={(v) => set("sku", v)} placeholderTextColor={c.textMuted} style={{ backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text, fontFamily: "monospace" }} />
             </View>
-            <TouchableOpacity onPress={() => set("sku", genSKU())} style={{ marginTop: 18, width: 44, height: 46, backgroundColor: "#f5f3ff", borderRadius: 14, alignItems: "center", justifyContent: "center" }}>
+            <TouchableOpacity onPress={() => set("sku", genSKU())} style={{ marginTop: 18, width: 44, height: 46, backgroundColor: "#EFF6FF", borderRadius: 14, alignItems: "center", justifyContent: "center" }}>
               <RotateCcw size={16} color={P} />
             </TouchableOpacity>
+          </View>
+          <View style={{ gap: 4 }}>
+            <Text style={{ fontSize: 12, color: c.textSub }}>Штрихкод (EAN/UPC)</Text>
+            <TextInput
+              value={form.barcode}
+              onChangeText={(v) => set("barcode", v)}
+              placeholder="Например: 4607001819008"
+              placeholderTextColor={c.textMuted}
+              keyboardType="numeric"
+              style={{ backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text, fontFamily: "monospace" }}
+            />
           </View>
         </View>
 
@@ -644,12 +660,12 @@ export default function NewProductScreen() {
               />
               <TouchableOpacity
                 onPress={() => { const v = sizeInput.trim(); if (v && !sizes.includes(v)) setSizes((p) => [...p, v]); setSizeInput(""); }}
-                style={{ width: 44, height: 44, backgroundColor: "#f5f3ff", borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
+                style={{ width: 44, height: 44, backgroundColor: "#EFF6FF", borderRadius: 12, alignItems: "center", justifyContent: "center" }}>
                 <Plus size={18} color={P} />
               </TouchableOpacity>
             </View>
             {sizes.length > 0 && (
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, backgroundColor: "#f5f3ff", borderRadius: 12, padding: 10 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, backgroundColor: "#EFF6FF", borderRadius: 12, padding: 10 }}>
                 {sizes.map((s) => (
                   <TouchableOpacity key={s} onPress={() => setSizes((p) => p.filter((x) => x !== s))}
                     style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: P, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
@@ -782,7 +798,7 @@ export default function NewProductScreen() {
                         contentContainerStyle={{ gap: 8, padding: 10 }}
                         style={{ backgroundColor: c.card }}>
                         <TouchableOpacity onPress={() => pickColorPhotos(variantName)}
-                          style={{ width: 80, height: 80, borderRadius: 14, backgroundColor: "#f5f3ff", borderWidth: 2, borderStyle: "dashed", borderColor: "#c4b5fd", alignItems: "center", justifyContent: "center" }}>
+                          style={{ width: 80, height: 80, borderRadius: 14, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
                           <Camera size={20} color={P} />
                           <Text style={{ fontSize: 10, color: P, marginTop: 3, fontWeight: "600" }}>Фото</Text>
                         </TouchableOpacity>
@@ -817,7 +833,7 @@ export default function NewProductScreen() {
         <View style={{ backgroundColor: c.card, borderRadius: 20, padding: 16, gap: 12 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>Характеристики</Text>
-            <TouchableOpacity onPress={addAttr} style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#f5f3ff", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
+            <TouchableOpacity onPress={addAttr} style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#EFF6FF", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10 }}>
               <Plus size={13} color={P} />
               <Text style={{ fontSize: 13, color: P, fontWeight: "600" }}>Добавить</Text>
             </TouchableOpacity>
@@ -856,6 +872,71 @@ export default function NewProductScreen() {
             style={{ backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text }}
           />
           <Text style={{ fontSize: 11, color: c.textMuted }}>Покупатель увидит эту метку как кнопку-фильтр в вашем магазине</Text>
+        </View>
+
+        {/* Delivery */}
+        <View style={{ backgroundColor: c.card, borderRadius: 20, padding: 16, gap: 12 }}>
+          <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>Доставка</Text>
+
+          {/* Delivery mode */}
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, color: c.textSub }}>Кто доставляет</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {[
+                { key: "service", label: "🚛 Служба доставки" },
+                { key: "self",    label: "🙋 Сам доставляю" },
+              ].map((m) => (
+                <TouchableOpacity key={m.key} onPress={() => set("delivery_mode", m.key)}
+                  style={{ flex: 1, paddingVertical: 11, borderRadius: 14, alignItems: "center",
+                    backgroundColor: form.delivery_mode === m.key ? P + "18" : c.inputBg,
+                    borderWidth: 1.5, borderColor: form.delivery_mode === m.key ? P : c.border }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: form.delivery_mode === m.key ? P : c.textSub }}>{m.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* City delivery price */}
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, color: c.textSub }}>Доставка по вашему городу</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity onPress={() => set("delivery_price", "0")}
+                style={{ flex: 1, paddingVertical: 11, borderRadius: 14, alignItems: "center",
+                  backgroundColor: (!form.delivery_price || form.delivery_price === "0") ? "#dcfce7" : c.inputBg,
+                  borderWidth: 1.5, borderColor: (!form.delivery_price || form.delivery_price === "0") ? "#16a34a" : c.border }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: (!form.delivery_price || form.delivery_price === "0") ? "#16a34a" : c.textSub }}>Бесплатно</Text>
+              </TouchableOpacity>
+              <TextInput
+                value={form.delivery_price === "0" ? "" : form.delivery_price}
+                onChangeText={(v) => set("delivery_price", v)}
+                placeholder="Сумма, сом."
+                placeholderTextColor={c.textMuted}
+                keyboardType="numeric"
+                style={{ flex: 1, backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.border }}
+              />
+            </View>
+          </View>
+
+          {/* Other city delivery price */}
+          <View style={{ gap: 6 }}>
+            <Text style={{ fontSize: 12, color: c.textSub }}>Доставка в другой город</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity onPress={() => set("delivery_price_other", "0")}
+                style={{ flex: 1, paddingVertical: 11, borderRadius: 14, alignItems: "center",
+                  backgroundColor: (!form.delivery_price_other || form.delivery_price_other === "0") ? "#dcfce7" : c.inputBg,
+                  borderWidth: 1.5, borderColor: (!form.delivery_price_other || form.delivery_price_other === "0") ? "#16a34a" : c.border }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: (!form.delivery_price_other || form.delivery_price_other === "0") ? "#16a34a" : c.textSub }}>Бесплатно</Text>
+              </TouchableOpacity>
+              <TextInput
+                value={form.delivery_price_other === "0" ? "" : form.delivery_price_other}
+                onChangeText={(v) => set("delivery_price_other", v)}
+                placeholder="Сумма, сом."
+                placeholderTextColor={c.textMuted}
+                keyboardType="numeric"
+                style={{ flex: 1, backgroundColor: c.inputBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, fontSize: 14, color: c.text, borderWidth: 1, borderColor: c.border }}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Sticky Save */}

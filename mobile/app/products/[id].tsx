@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import {
   View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
   Dimensions, Animated, Share, Modal, Alert,
@@ -9,7 +9,7 @@ import {
   ChevronLeft, Heart, Star, ShoppingCart, Plus, Minus,
   Clock, Store, ChevronRight, MessageCircle,
   Share2, ChevronDown, ChevronUp, Flag, X,
-  Truck, RotateCcw, ShieldCheck, Package,
+  Truck, RotateCcw, ShieldCheck, Package, BadgeCheck, FileText,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
@@ -22,7 +22,7 @@ import { useThemeColors, useIsDark } from "@/lib/theme";
 import { SkeletonProductDetail } from "@/components/Skeleton";
 
 const { width } = Dimensions.get("window");
-const P = "#8B5CF6";
+const P = "#2563EB";
 
 const SIZE_NUMBER_MAP: Record<string, string> = {
   "XS": "44", "S": "46", "M": "48", "L": "50",
@@ -32,7 +32,7 @@ const SIZE_NUMBER_MAP: Record<string, string> = {
 const COLOR_MAP: Record<string, string> = {
   "Красный": "#ef4444", "Розовый": "#ec4899", "Оранжевый": "#f97316",
   "Жёлтый": "#eab308", "Зелёный": "#22c55e", "Голубой": "#38bdf8",
-  "Синий": "#3b82f6", "Фиолетовый": "#8b5cf6", "Чёрный": "#111827",
+  "Синий": "#3b82f6", "Фиолетовый": "#2563EB", "Чёрный": "#111827",
   "Тёмно-серый": "#6b7280", "Серый": "#d1d5db", "Белый": "#f9fafb",
   "Коричневый": "#92400e", "Бежевый": "#d4b896", "Бордовый": "#881337",
   "Хаки": "#84754e", "Золотой": "#d97706", "Серебряный": "#9ca3af",
@@ -240,6 +240,7 @@ export default function ProductScreen() {
 
   const specs: { key: string; value: string }[] = [];
   specs.push({ key: "Артикул", value: product.sku || `AZA-${String(product.id).padStart(5, "0")}` });
+  if (product.barcode) specs.push({ key: "Штрихкод", value: product.barcode });
   if (product.brand) specs.push({ key: "Бренд", value: product.brand });
   if (product.category?.name) specs.push({ key: "Категория", value: product.category.name });
   attrEntries.forEach(({ key, values }) => specs.push({ key, value: values.join(", ") }));
@@ -484,10 +485,14 @@ export default function ProductScreen() {
         <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 14 }}>
           <Text style={{ fontSize: 18, fontWeight: "800", color: c.text }}>Доставка</Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-            <Truck size={20} color={P} />
+            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: !product.delivery_price ? "#dcfce7" : "#f3f4f6", alignItems: "center", justifyContent: "center" }}>
+              <Truck size={18} color={!product.delivery_price ? "#16a34a" : "#6b7280"} />
+            </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>1–3 рабочих дня</Text>
-              <Text style={{ fontSize: 13, color: c.textSub, marginTop: 2, lineHeight: 18 }}>Доставка по всему Таджикистану курьером или на пункт выдачи</Text>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: !product.delivery_price ? "#16a34a" : c.text }}>
+                {!product.delivery_price ? "Бесплатная доставка" : `Доставка ${product.delivery_price.toLocaleString()} сом.`}
+              </Text>
+              <Text style={{ fontSize: 13, color: c.textSub, marginTop: 2, lineHeight: 18 }}>1–3 рабочих дня · по всему Таджикистану</Text>
             </View>
           </View>
           <View style={{ height: 1, backgroundColor: c.border }} />
@@ -504,7 +509,7 @@ export default function ProductScreen() {
         <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 14 }}>
           <Text style={{ fontSize: 18, fontWeight: "800", color: c.text }}>Возврат и гарантия</Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#ede9fe", alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}>
               <RotateCcw size={18} color={P} />
             </View>
             <View style={{ flex: 1 }}>
@@ -524,6 +529,28 @@ export default function ProductScreen() {
           </View>
         </View>
 
+        {/* Authenticity documents */}
+        {product.documents && product.documents.length > 0 && (
+          <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 12 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <ShieldCheck size={18} color="#2563EB" />
+              <Text style={{ fontSize: 16, fontWeight: "800", color: c.text }}>Документы на товар</Text>
+            </View>
+            {product.documents.map((doc) => {
+              const docLabel = doc.doc_type === "certificate" ? "Сертификат" : doc.doc_type === "invoice" ? "Инвойс поставщика" : "Документ";
+              return (
+                <View key={doc.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#eff6ff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12 }}>
+                  <FileText size={18} color="#2563EB" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#1D4ED8" }}>{docLabel}</Text>
+                    {doc.filename && <Text style={{ fontSize: 11, color: "#3B82F6", marginTop: 2 }} numberOfLines={1}>{doc.filename}</Text>}
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Seller */}
         <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: c.card, borderRadius: 16, padding: 16 }}>
           <Text style={{ fontSize: 18, fontWeight: "800", color: c.text, marginBottom: 14 }}>Продавец</Text>
@@ -538,7 +565,12 @@ export default function ProductScreen() {
                 : <Store size={24} color="#2563EB" />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>{shop?.shop_name || shop?.username || "Магазин"}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 15, fontWeight: "800", color: c.text }}>{shop?.shop_name || shop?.username || "Магазин"}</Text>
+                {product.seller_verified && (
+                  <BadgeCheck size={16} color="#2563EB" />
+                )}
+              </View>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 }}>
                 <Star size={13} color="#facc15" fill="#facc15" />
                 <Text style={{ fontSize: 13, fontWeight: "700", color: c.text }}>{shop?.rating?.toFixed(1) ?? "—"}</Text>

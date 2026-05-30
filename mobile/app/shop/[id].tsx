@@ -1,18 +1,56 @@
-import { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, TextInput, ScrollView, ActivityIndicator } from "react-native";
+﻿import { useEffect, useState } from "react";
+import { View, Text, TouchableOpacity, FlatList, TextInput, ScrollView, ActivityIndicator, Dimensions } from "react-native";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Star, Package, Search } from "lucide-react-native";
+import { ArrowLeft, Star, Package, Search, BadgeCheck } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api, { Product, imgUrl } from "@/lib/api";
 import ProductCard from "@/components/ProductCard";
 import { useThemeColors } from "@/lib/theme";
 import { SkeletonProductGrid } from "@/components/Skeleton";
 
+const { width: SW } = Dimensions.get("window");
+
+const BANNER_COLORS = [
+  ["#1D4ED8","#1D4ED8"], ["#0EA5E9","#3B82F6"], ["#10B981","#0EA5E9"],
+  ["#F59E0B","#EF4444"], ["#EC4899","#2563EB"], ["#14B8A6","#3B82F6"],
+  ["#3B82F6","#EC4899"], ["#EF4444","#F97316"],
+];
+function bannerColors(name: string): [string, string] {
+  const code = (name || "A").charCodeAt(0);
+  return BANNER_COLORS[code % BANNER_COLORS.length];
+}
+
+function ShopBanner({ bannerUrl, name, height = 176 }: { bannerUrl?: string | null; name: string; height?: number }) {
+  const [c1, c2] = bannerColors(name);
+  const letter = (name || "?")[0].toUpperCase();
+  if (bannerUrl) {
+    return <Image source={{ uri: bannerUrl }} style={{ width: "100%", height }} contentFit="cover" />;
+  }
+  return (
+    <View style={{ width: "100%", height, backgroundColor: c1, overflow: "hidden", alignItems: "center", justifyContent: "center" }}>
+      {/* Decorative circles */}
+      <View style={{ position: "absolute", width: SW * 0.7, height: SW * 0.7, borderRadius: SW * 0.35, backgroundColor: c2, opacity: 0.5, top: -SW * 0.25, right: -SW * 0.2 }} />
+      <View style={{ position: "absolute", width: SW * 0.4, height: SW * 0.4, borderRadius: SW * 0.2, backgroundColor: "rgba(255,255,255,0.12)", bottom: -SW * 0.1, left: -SW * 0.05 }} />
+      <View style={{ position: "absolute", width: 60, height: 60, borderRadius: 30, backgroundColor: "rgba(255,255,255,0.1)", top: 20, left: SW * 0.35 }} />
+      {/* Watermark letter */}
+      <Text style={{ position: "absolute", fontSize: 140, fontWeight: "900", color: "rgba(255,255,255,0.12)", bottom: -30, right: 10, lineHeight: 140 }}>
+        {letter}
+      </Text>
+      {/* Shop name */}
+      <Text style={{ fontSize: 20, fontWeight: "800", color: "#fff", textShadowColor: "rgba(0,0,0,0.25)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6, letterSpacing: 0.3 }}>
+        {name || "Магазин"}
+      </Text>
+      <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginTop: 4, letterSpacing: 1 }}>AZA MARKET</Text>
+    </View>
+  );
+}
+
 interface ShopInfo {
   id: number; username: string; shop_name?: string; shop_description?: string;
   shop_banner_url?: string; shop_logo_url?: string;
   products_count?: number; rating?: number; reviews_count?: number;
+  is_verified?: boolean;
 }
 
 const SORTS = [
@@ -65,8 +103,12 @@ export default function ShopScreen() {
         ListHeaderComponent={
           <View>
             {/* Banner */}
-            <View style={{ position: "relative", height: 176, backgroundColor: "#7C3AED" }}>
-              {shop?.shop_banner_url && <Image source={{ uri: imgUrl(shop.shop_banner_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />}
+            <View style={{ position: "relative", height: 176 }}>
+              <ShopBanner
+                bannerUrl={imgUrl(shop?.shop_banner_url)}
+                name={shop?.shop_name || shop?.username || ""}
+                height={176}
+              />
               <TouchableOpacity onPress={() => router.back()} style={{ position: "absolute", top: 16, left: 16, width: 40, height: 40, backgroundColor: "rgba(0,0,0,0.3)", borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
                 <ArrowLeft size={20} color="white" />
               </TouchableOpacity>
@@ -81,7 +123,15 @@ export default function ShopScreen() {
                     : <Text style={{ color: "#2563eb", fontSize: 24, fontWeight: "700" }}>{(shop?.shop_name || shop?.username || "?")[0].toUpperCase()}</Text>}
                 </View>
                 <View style={{ flex: 1, paddingBottom: 4 }}>
-                  <Text style={{ fontSize: 18, fontWeight: "700", color: c.text }}>{shop?.shop_name || shop?.username}</Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "700", color: c.text }}>{shop?.shop_name || shop?.username}</Text>
+                    {shop?.is_verified && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#eff6ff", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 }}>
+                        <BadgeCheck size={13} color="#2563EB" />
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: "#2563EB" }}>Верифицирован</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               </View>
 
@@ -114,9 +164,9 @@ export default function ShopScreen() {
                   <TouchableOpacity
                     key={s.key}
                     onPress={() => setSort(s.key)}
-                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: sort === s.key ? "#8B5CF6" : c.border, backgroundColor: sort === s.key ? "#eff6ff" : "transparent" }}
+                    style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: sort === s.key ? "#2563EB" : c.border, backgroundColor: sort === s.key ? "#eff6ff" : "transparent" }}
                   >
-                    <Text style={{ fontSize: 12, fontWeight: "500", color: sort === s.key ? "#8B5CF6" : c.textMuted }}>{s.label}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: sort === s.key ? "#2563EB" : c.textMuted }}>{s.label}</Text>
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -128,7 +178,7 @@ export default function ShopScreen() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}>
                   <TouchableOpacity
                     onPress={() => setTagFilter(null)}
-                    style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === null ? "#8B5CF6" : c.iconBg }}
+                    style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === null ? "#2563EB" : c.iconBg }}
                   >
                     <Text style={{ fontSize: 13, fontWeight: "700", color: tagFilter === null ? "#fff" : c.textSub }}>Все</Text>
                   </TouchableOpacity>
@@ -136,7 +186,7 @@ export default function ShopScreen() {
                     <TouchableOpacity
                       key={tag}
                       onPress={() => setTagFilter(tagFilter === tag ? null : tag)}
-                      style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === tag ? "#8B5CF6" : c.iconBg }}
+                      style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 22, backgroundColor: tagFilter === tag ? "#2563EB" : c.iconBg }}
                     >
                       <Text style={{ fontSize: 13, fontWeight: "700", color: tagFilter === tag ? "#fff" : c.textSub }}>{tag}</Text>
                     </TouchableOpacity>

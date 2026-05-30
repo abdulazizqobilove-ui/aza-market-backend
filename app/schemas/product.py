@@ -24,6 +24,16 @@ class ProductImageOut(BaseModel):
         from_attributes = True
 
 
+class ProductDocumentOut(BaseModel):
+    id: int
+    doc_type: str
+    url: str
+    filename: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class ProductCreate(BaseModel):
     title: str
     description: Optional[str] = None
@@ -86,6 +96,9 @@ class ProductOut(BaseModel):
     delivery_price_other: float = 0.0
     delivery_mode: str = "service"
     seller_city: Optional[str] = None
+    barcode: Optional[str] = None
+    documents: List[ProductDocumentOut] = []
+    seller_verified: Optional[bool] = None
 
     class Config:
         from_attributes = True
@@ -113,6 +126,8 @@ class ProductListOut(BaseModel):
     delivery_price_other: float = 0.0
     delivery_mode: str = "service"
     seller_city: Optional[str] = None
+    barcode: Optional[str] = None
+    seller_verified: Optional[bool] = None
 
     class Config:
         from_attributes = True

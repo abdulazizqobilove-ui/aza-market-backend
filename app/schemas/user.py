@@ -33,6 +33,8 @@ class UserOut(BaseModel):
     shop_description: Optional[str] = None
     shop_banner_url: Optional[str] = None
     shop_logo_url: Optional[str] = None
+    shop_city: Optional[str] = None
+    is_verified: bool = False
 
     class Config:
         from_attributes = True

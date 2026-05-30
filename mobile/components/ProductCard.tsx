@@ -1,8 +1,8 @@
-import { View, Text, FlatList, TouchableOpacity as RNTouch } from "react-native";
+﻿import { View, Text, FlatList, TouchableOpacity as RNTouch } from "react-native";
 import { TouchableOpacity } from "react-native-gesture-handler";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
-import { Star, Heart, ShoppingCart } from "lucide-react-native";
+import { Star, Heart, ShoppingCart, Truck, BadgeCheck } from "lucide-react-native";
 import { useRef, useState } from "react";
 import Toast from "react-native-toast-message";
 import { Product, imgUrl } from "@/lib/api";
@@ -109,7 +109,30 @@ export default function ProductCard({ product }: { product: Product }) {
             <Star size={10} color={product.reviews_count > 0 ? "#facc15" : c.placeholder} fill={product.reviews_count > 0 ? "#facc15" : c.placeholder} />
             <Text style={{ fontSize: 10, color: c.textSub }}>{product.reviews_count > 0 && product.rating ? Number(product.rating).toFixed(1) : "0.0"}</Text>
             <Text style={{ fontSize: 10, color: c.textMuted }}>· {product.reviews_count}</Text>
+            {product.seller_verified && <BadgeCheck size={10} color="#2563EB" style={{ marginLeft: 2 }} />}
           </View>
+          {(() => {
+            const dp = product.delivery_price ?? 0;
+            const dpo = product.delivery_price_other ?? 0;
+            const free = dp === 0 && dpo === 0;
+            const label = free
+              ? "Бесплатная доставка"
+              : dp === 0 && dpo > 0
+              ? `Бесплатно · ${dpo.toLocaleString()} в др. город`
+              : dp > 0 && dpo === 0
+              ? `Доставка ${dp.toLocaleString()} сом.`
+              : dp === dpo
+              ? `Доставка ${dp.toLocaleString()} сом.`
+              : `${dp.toLocaleString()}–${dpo.toLocaleString()} сом.`;
+            return (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 3, marginTop: 4 }}>
+                <Truck size={10} color={free ? "#16a34a" : "#6b7280"} />
+                <Text style={{ fontSize: 10, fontWeight: "600", color: free ? "#16a34a" : "#6b7280" }} numberOfLines={1}>
+                  {label}
+                </Text>
+              </View>
+            );
+          })()}
         </View>
       </RNTouch>
 
@@ -126,7 +149,7 @@ export default function ProductCard({ product }: { product: Product }) {
         }}
         style={{ marginHorizontal: 8, marginBottom: 8 }}
       >
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#8B5CF6", borderRadius: 10, paddingVertical: 11 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#2563EB", borderRadius: 10, paddingVertical: 11 }}>
           <ShoppingCart size={14} color="#fff" />
           <Text style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}>
             {inCart ? "В корзине" : deliveryDate()}

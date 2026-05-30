@@ -1,8 +1,9 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ArrowLeft, Store, CheckCircle } from "lucide-react-native";
+import { ArrowLeft, Store, CheckCircle, FileText, X } from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
 import Toast from "react-native-toast-message";
 import api from "@/lib/api";
 import { useThemeColors } from "@/lib/theme";
@@ -13,8 +14,19 @@ export default function BecomeSellerScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ shop_name: "", description: "", phone: "" });
+  const [regDoc, setRegDoc] = useState<{ uri: string; name: string; type: string } | null>(null);
 
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const pickDoc = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.85 });
+    if (!res.canceled && res.assets[0]) {
+      const a = res.assets[0];
+      const name = a.fileName || `reg_doc_${Date.now()}.jpg`;
+      const type = a.mimeType || "image/jpeg";
+      setRegDoc({ uri: a.uri, name, type });
+    }
+  };
 
   const submit = async () => {
     if (!form.shop_name.trim()) {
@@ -22,7 +34,11 @@ export default function BecomeSellerScreen() {
     }
     setLoading(true);
     try {
-      await api.post("/seller-applications", { shop_name: form.shop_name.trim(), description: form.description.trim() });
+      const fd = new FormData();
+      fd.append("shop_name", form.shop_name.trim());
+      if (form.description.trim()) fd.append("description", form.description.trim());
+      if (regDoc) fd.append("registration_doc", { uri: regDoc.uri, name: regDoc.name, type: regDoc.type } as any);
+      await api.post("/seller-applications", fd, { headers: { "Content-Type": "multipart/form-data" } });
       setSubmitted(true);
     } catch (e: any) {
       const msg = e?.response?.data?.detail || "Не удалось отправить заявку";
@@ -45,7 +61,7 @@ export default function BecomeSellerScreen() {
           </View>
           <Text style={{ fontSize: 20, fontWeight: "800", color: c.text, textAlign: "center" }}>Заявка отправлена!</Text>
           <Text style={{ color: c.textSub, textAlign: "center", fontSize: 14, lineHeight: 20 }}>Мы рассмотрим вашу заявку в течение 24 часов и сообщим о результате.</Text>
-          <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: "#8B5CF6", paddingHorizontal: 32, paddingVertical: 12, borderRadius: 16, marginTop: 8 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ backgroundColor: "#2563EB", paddingHorizontal: 32, paddingVertical: 12, borderRadius: 16, marginTop: 8 }}>
             <Text style={{ color: "#fff", fontWeight: "700" }}>На главную</Text>
           </TouchableOpacity>
         </View>
@@ -64,7 +80,7 @@ export default function BecomeSellerScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }} keyboardShouldPersistTaps="handled">
         {/* Header card */}
-        <View style={{ backgroundColor: "#8B5CF6", borderRadius: 20, padding: 24, alignItems: "center", gap: 12 }}>
+        <View style={{ backgroundColor: "#2563EB", borderRadius: 20, padding: 24, alignItems: "center", gap: 12 }}>
           <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "rgba(255,255,255,0.2)", alignItems: "center", justifyContent: "center" }}>
             <Store size={32} color="white" />
           </View>
@@ -124,9 +140,26 @@ export default function BecomeSellerScreen() {
               style={{ backgroundColor: c.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text, textAlignVertical: "top", minHeight: 70 }}
             />
           </View>
+          <View>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginBottom: 6 }}>Свидетельство о регистрации ИП/ООО (необязательно)</Text>
+            {regDoc ? (
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#eff6ff", borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, gap: 10 }}>
+                <FileText size={18} color="#2563EB" />
+                <Text style={{ flex: 1, fontSize: 13, color: "#1D4ED8" }} numberOfLines={1}>{regDoc.name}</Text>
+                <TouchableOpacity onPress={() => setRegDoc(null)}>
+                  <X size={16} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity onPress={pickDoc} style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: c.inputBg, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderStyle: "dashed", borderWidth: 1, borderColor: c.border }}>
+                <FileText size={18} color={c.textMuted} />
+                <Text style={{ fontSize: 13, color: c.textMuted }}>Прикрепить документ (фото)</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        <TouchableOpacity onPress={submit} disabled={loading} style={{ backgroundColor: "#8B5CF6", paddingVertical: 16, borderRadius: 16, alignItems: "center" }}>
+        <TouchableOpacity onPress={submit} disabled={loading} style={{ backgroundColor: "#2563EB", paddingVertical: 16, borderRadius: 16, alignItems: "center" }}>
           {loading ? <ActivityIndicator color="white" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Отправить заявку</Text>}
         </TouchableOpacity>
 

@@ -47,10 +47,12 @@ class Product(Base):
     attributes = Column(JSONB, nullable=True, default=dict, server_default=text("'{}'::jsonb"))
     variants = Column(JSONB, nullable=True, default=None)
     shop_tag = Column(String, nullable=True)
+    barcode = Column(String, nullable=True)
 
     seller = relationship("User", back_populates="products")
     category = relationship("Category", back_populates="products")
     images = relationship("ProductImage", back_populates="product", cascade="all, delete-orphan")
+    documents = relationship("ProductDocument", back_populates="product", cascade="all, delete-orphan")
     order_items = relationship("OrderItem", back_populates="product")
     cart_items = relationship("CartItem", back_populates="product")
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
@@ -61,6 +63,13 @@ class Product(Base):
     def seller_city(self) -> str | None:
         try:
             return self.seller.shop_city if self.seller else None
+        except Exception:
+            return None
+
+    @property
+    def seller_verified(self) -> bool | None:
+        try:
+            return self.seller.is_verified if self.seller else None
         except Exception:
             return None
 

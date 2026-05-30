@@ -10,7 +10,7 @@ import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
   ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
-  AlertTriangle, Eye, EyeOff, Tag, Flag,
+  AlertTriangle, Eye, EyeOff, Tag, Flag, BadgeCheck, FileText, ExternalLink,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -34,8 +34,8 @@ interface Stats {
   top_sellers: { id: number; username: string; shop_name: string; revenue: number; products: number }[];
   chart_7d: { date: string; revenue: number }[];
 }
-interface AppUser { id: number; username?: string; phone?: string; full_name?: string; role: string; is_active: boolean; created_at: string; }
-interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; created_at: string; }
+interface AppUser { id: number; username?: string; phone?: string; full_name?: string; role: string; is_active: boolean; is_verified?: boolean; created_at: string; }
+interface SellerApp { id: number; user_id: number; username?: string; phone?: string; shop_name: string; description?: string; status: string; registration_doc_url?: string | null; admin_comment?: string | null; created_at: string; }
 interface Banner { id: number; title: string; subtitle?: string; bg_color: string; accent_color: string; emoji?: string; is_active: boolean; sort_order: number; image_url?: string | null; link_url?: string | null; }
 interface Payout { id: number; seller_id: number; amount: number; status: string; comment?: string; created_at: string; }
 interface AdminProduct { id: number; title: string; price: number; stock: number; is_active: boolean; seller_id: number; }
@@ -447,6 +447,14 @@ export default function AdminTabScreen() {
     } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
   };
 
+  const toggleVerify = async (u: AppUser) => {
+    try {
+      await api.patch(`/admin/users/${u.id}/verify`);
+      setUsers((prev) => prev.map((x) => x.id === u.id ? { ...x, is_verified: !x.is_verified } : x));
+      Toast.show({ type: "success", text1: u.is_verified ? "Верификация снята" : "Продавец верифицирован ✓" });
+    } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+  };
+
   const changeRole = (u: AppUser) => {
     const roles: Array<"buyer" | "seller" | "admin"> = ["buyer", "seller", "admin"];
     const options = roles.filter((r) => r !== u.role).map((r) => ({
@@ -766,7 +774,10 @@ export default function AdminTabScreen() {
                     <Text style={{ fontSize: 16, fontWeight: "800", color: ROLE_COLORS[u.role] || P }}>{(u.full_name || u.username || u.phone || "?")[0].toUpperCase()}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: u.is_active ? c.text : c.textMuted }} numberOfLines={1}>{u.full_name || u.username || u.phone}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: u.is_active ? c.text : c.textMuted }} numberOfLines={1}>{u.full_name || u.username || u.phone}</Text>
+                      {u.is_verified && <BadgeCheck size={14} color="#2563EB" />}
+                    </View>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 3 }}>
                       <View style={{ backgroundColor: (ROLE_COLORS[u.role] || P) + "18", paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
                         <Text style={{ fontSize: 10, fontWeight: "700", color: ROLE_COLORS[u.role] || P }}>{ROLE_LABELS[u.role] || u.role}</Text>
@@ -779,6 +790,11 @@ export default function AdminTabScreen() {
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 6 }}>
+                    {u.role === "seller" && (
+                      <TouchableOpacity onPress={() => toggleVerify(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: u.is_verified ? "#eff6ff" : c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                        <BadgeCheck size={16} color={u.is_verified ? P : c.textMuted} />
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
                       <UserCheck size={16} color={P} />
                     </TouchableOpacity>
@@ -807,6 +823,13 @@ export default function AdminTabScreen() {
                       <Text style={{ fontSize: 15, fontWeight: "700", color: c.text }}>{app.shop_name}</Text>
                       <Text style={{ fontSize: 12, color: c.textSub, marginTop: 2 }}>{app.username}{app.phone ? ` · ${app.phone}` : ""}</Text>
                       {app.description && <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 4 }} numberOfLines={3}>{app.description}</Text>}
+                      {app.registration_doc_url && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, backgroundColor: "#eff6ff", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, alignSelf: "flex-start" }}>
+                          <FileText size={12} color="#2563EB" />
+                          <Text style={{ fontSize: 11, color: "#1D4ED8", fontWeight: "600" }}>Свидетельство приложено</Text>
+                        </View>
+                      )}
+                      {app.admin_comment && <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 4, fontStyle: "italic" }}>{app.admin_comment}</Text>}
                       <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 6 }}>{new Date(app.created_at).toLocaleDateString("ru-RU")}</Text>
                     </View>
                     <View style={{ backgroundColor: STATUS_COLORS[app.status] + "18", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
