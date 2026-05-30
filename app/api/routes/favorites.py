@@ -16,6 +16,7 @@ def get_favorites(db: Session = Depends(get_db), user: User = Depends(get_curren
     favs = db.query(Favorite).options(
         joinedload(Favorite.product).joinedload(Product.category),
         joinedload(Favorite.product).joinedload(Product.images),
+        joinedload(Favorite.product).joinedload(Product.seller),
     ).filter(Favorite.user_id == user.id).all()
     return [ProductListOut.model_validate(f.product) for f in favs]
 
