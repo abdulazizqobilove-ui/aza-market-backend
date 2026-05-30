@@ -83,7 +83,7 @@ function BannerCarousel({ banners }: { banners: Banner[] }) {
           >
             {b.image_url ? (
               <View style={{ height: 250 }}>
-                <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" transition={350} />
+                <Image source={{ uri: imgUrl(b.image_url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" cachePolicy="memory-disk" />
                 {(b.title || b.subtitle || b.link_url) && (
                   <View style={{ position: "absolute", inset: 0, padding: 20, justifyContent: "flex-end" }}>
                     {b.title ? <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900", lineHeight: 26, marginBottom: 4, textShadowColor: "rgba(0,0,0,0.6)", textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }}>{b.title}</Text> : null}
@@ -313,11 +313,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchProducts(true);
-  }, []);
-
-  useFocusEffect(useCallback(() => {
     loadBanners();
-  }, [loadBanners]));
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);
