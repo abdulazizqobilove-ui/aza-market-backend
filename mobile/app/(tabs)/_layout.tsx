@@ -1,11 +1,16 @@
-import { Tabs } from "expo-router";
-import { Home, Menu, ShoppingCart, User, Shield } from "lucide-react-native";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import { Home, Menu, ShoppingCart, User, Heart } from "lucide-react-native";
 import { View, Text, Platform, Pressable } from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 import { useThemeColors, useIsDark } from "@/lib/theme";
 
-const PRIMARY = "#8B5CF6";
+const PRIMARY = "#2563EB";
+
+// Порядок табов для свайпа
+const TAB_ROUTES = ["/", "/catalog", "/cart", "/favorites", "/profile"] as const;
 
 function Badge({ count }: { count: number }) {
   if (!count) return null;
@@ -21,12 +26,7 @@ function TabIcon({ icon, focused, count }: { icon: (color: string) => React.Reac
   const color = focused ? PRIMARY : (isDark ? "#475569" : "#9ca3af");
   return (
     <View style={{ alignItems: "center", justifyContent: "center", marginTop: 6 }}>
-      <View style={{
-        width: 48, height: 32, borderRadius: 16,
-        backgroundColor: "transparent",
-        alignItems: "center", justifyContent: "center",
-        position: "relative",
-      }}>
+      <View style={{ width: 48, height: 32, borderRadius: 16, backgroundColor: "transparent", alignItems: "center", justifyContent: "center", position: "relative" }}>
         {icon(color)}
         {!!count && <Badge count={count} />}
       </View>
@@ -34,15 +34,44 @@ function TabIcon({ icon, focused, count }: { icon: (color: string) => React.Reac
   );
 }
 
-export default function TabsLayout() {
-  const user = useAuthStore((s) => s.user);
-  const cartCount = useCartStore((s) => s.count)();
-  const c = useThemeColors();
-  const isDark = useIsDark();
+function SwipeTabsWrapper({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const role = user?.role ?? "guest";
-  const isGuest = role === "guest";
-  const isBuyer = role === "buyer";
+  const currentIndex = TAB_ROUTES.findIndex(
+    (r) => r === pathname || (r !== "/" && pathname.startsWith(r))
+  );
+
+  const navigate = (route: string) => {
+    router.navigate(route as any);
+  };
+
+  const swipe = Gesture.Pan()
+    .activeOffsetX([-30, 30])   // нужно 30px горизонтально чтобы активировать
+    .failOffsetY([-20, 20])     // если двигается вертикально — не перехватывать
+    .onEnd((e) => {
+      const isSwipeLeft  = e.translationX < -60 || e.velocityX < -500;
+      const isSwipeRight = e.translationX >  60 || e.velocityX >  500;
+
+      if (isSwipeLeft && currentIndex < TAB_ROUTES.length - 1) {
+        runOnJS(navigate)(TAB_ROUTES[currentIndex + 1]);
+      } else if (isSwipeRight && currentIndex > 0) {
+        runOnJS(navigate)(TAB_ROUTES[currentIndex - 1]);
+      }
+    });
+
+  return (
+    <GestureDetector gesture={swipe}>
+      <View style={{ flex: 1 }}>
+        {children}
+      </View>
+    </GestureDetector>
+  );
+}
+
+export default function TabsLayout() {
+  const cartCount = useCartStore((s) => s.count)();
+  const isDark = useIsDark();
 
   const tabOptions = {
     headerShown: false,
@@ -67,57 +96,59 @@ export default function TabsLayout() {
       left: 0,
       right: 0,
     },
+    sceneStyle: { flex: 1 },
   };
 
   return (
-    <Tabs screenOptions={tabOptions}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={(c) => <Home size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="catalog"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={(c) => <Menu size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} count={cartCount} icon={(c) => <ShoppingCart size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
-          ),
-        }}
-      />
-      {/* Hide seller screens */}
-      <Tabs.Screen name="seller-products"  options={{ href: null }} />
-      <Tabs.Screen name="seller-orders"    options={{ href: null }} />
-      <Tabs.Screen name="seller-stats"     options={{ href: null }} />
-      <Tabs.Screen name="seller-shop"      options={{ href: null }} />
-      <Tabs.Screen name="seller-analytics" options={{ href: null }} />
-      {/* Admin tab — only visible for admin users */}
-      <Tabs.Screen
-        name="admin-tab"
-        options={role === "admin" ? {
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={(c) => <Shield size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
-          ),
-        } : { href: null }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon={(c) => <User size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
-          ),
-        }}
-      />
-    </Tabs>
+    <SwipeTabsWrapper>
+      <Tabs screenOptions={tabOptions}>
+        <Tabs.Screen
+          name="index"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} icon={(c) => <Home size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="catalog"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} icon={(c) => <Menu size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="cart"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} count={cartCount} icon={(c) => <ShoppingCart size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+            ),
+          }}
+        />
+        <Tabs.Screen name="seller-products"  options={{ href: null }} />
+        <Tabs.Screen name="seller-orders"    options={{ href: null }} />
+        <Tabs.Screen name="seller-stats"     options={{ href: null }} />
+        <Tabs.Screen name="seller-shop"      options={{ href: null }} />
+        <Tabs.Screen name="seller-analytics" options={{ href: null }} />
+        <Tabs.Screen
+          name="favorites"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} icon={(c) => <Heart size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} fill={focused ? c : "none"} />} />
+            ),
+          }}
+        />
+        <Tabs.Screen name="admin-tab" options={{ href: null }} />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            tabBarIcon: ({ focused }) => (
+              <TabIcon focused={focused} icon={(c) => <User size={24} color={c} strokeWidth={focused ? 2.5 : 1.8} />} />
+            ),
+          }}
+        />
+      </Tabs>
+    </SwipeTabsWrapper>
   );
 }
