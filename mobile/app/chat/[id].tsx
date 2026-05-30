@@ -8,7 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Send, Package } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import api, { imgUrl } from "@/lib/api";
+import api, { imgUrl, API_URL } from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
 import { useThemeColors } from "@/lib/theme";
 
