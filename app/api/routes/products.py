@@ -42,7 +42,7 @@ def get_subcategories(cat_id: int, db: Session = Depends(get_db)):
             )
         cat_out = CategoryOut(
             id=sub.id, name=sub.name, slug=sub.slug, parent_id=sub.parent_id,
-            image_url=img_row[0] if img_row else None,
+            image_url=sub.image_url if sub.image_url else (img_row[0] if img_row else None),
         )
         result.append(cat_out)
     return result

@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
 from app.api.deps import require_admin
+from app.core.upload import upload_image as cloud_upload
 from app.models.user import User, UserRole
 from app.models.product import Product, Category
 from app.models.order import Order
@@ -440,6 +441,23 @@ def delete_category(cat_id: int, db: Session = Depends(get_db), _: User = Depend
         raise HTTPException(status_code=404, detail="Категория не найдена")
     db.delete(cat)
     db.commit()
+
+
+@router.post("/categories/{cat_id}/image", response_model=CategoryOut)
+def upload_category_image(
+    cat_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin),
+):
+    cat = db.query(Category).filter(Category.id == cat_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Категория не найдена")
+    url = cloud_upload(file, folder="categories")
+    cat.image_url = url
+    db.commit()
+    db.refresh(cat)
+    return CategoryOut(id=cat.id, name=cat.name, slug=cat.slug, parent_id=cat.parent_id, image_url=cat.image_url)
 
 
 @router.post("/categories/seed")

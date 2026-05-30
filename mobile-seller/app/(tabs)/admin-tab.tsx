@@ -40,7 +40,7 @@ interface Banner { id: number; title: string; subtitle?: string; bg_color: strin
 interface Payout { id: number; seller_id: number; amount: number; status: string; comment?: string; created_at: string; }
 interface AdminProduct { id: number; title: string; price: number; stock: number; is_active: boolean; seller_id: number; }
 interface Report { id: number; type: string; target_id: number; reason: string; comment?: string; status: string; reporter_id: number; created_at: string; }
-interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; }
+interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; image_url?: string | null; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
 const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#7c3aed" };
@@ -1006,8 +1006,33 @@ export default function AdminTabScreen() {
                     </View>
                     {/* Subcategories */}
                     {subsOf(root.id).map((sub) => (
-                      <View key={sub.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10, paddingLeft: 24, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
-                        <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: c.textMuted }} />
+                      <View key={sub.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14, paddingVertical: 10, paddingLeft: 16, borderBottomWidth: 0.5, borderBottomColor: c.border }}>
+                        {/* Image thumbnail / upload button */}
+                        <TouchableOpacity
+                          onPress={async () => {
+                            const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.85 });
+                            if (res.canceled || !res.assets[0]) return;
+                            const asset = res.assets[0];
+                            const form = new FormData();
+                            form.append("file", { uri: asset.uri, name: "photo.jpg", type: "image/jpeg" } as any);
+                            const token = await AsyncStorage.getItem("token");
+                            try {
+                              await fetch(`${API_URL}/admin/categories/${sub.id}/image`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+                              const r = await api.get<AdminCategory[]>("/admin/categories");
+                              setAdminCats(r.data);
+                              Toast.show({ type: "success", text1: "Фото обновлено" });
+                            } catch {
+                              Toast.show({ type: "error", text1: "Ошибка загрузки" });
+                            }
+                          }}
+                          style={{ width: 44, height: 44, borderRadius: 10, backgroundColor: c.iconBg, overflow: "hidden", alignItems: "center", justifyContent: "center", borderWidth: 1.5, borderColor: sub.image_url ? "transparent" : c.border, borderStyle: "dashed" }}
+                        >
+                          {sub.image_url ? (
+                            <Image source={{ uri: imgUrl(sub.image_url) ?? "" }} style={{ width: 44, height: 44 }} contentFit="cover" />
+                          ) : (
+                            <ImagePlus size={16} color={c.textMuted} />
+                          )}
+                        </TouchableOpacity>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 13, fontWeight: "500", color: c.textSub }}>{sub.name}</Text>
                           <Text style={{ fontSize: 10, color: c.textMuted }}>{sub.slug}</Text>
