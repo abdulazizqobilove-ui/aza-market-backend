@@ -20,6 +20,7 @@ def get_waitlist(db: Session = Depends(get_db), user: User = Depends(get_current
     products = db.query(Product).options(
         joinedload(Product.category),
         joinedload(Product.images),
+        joinedload(Product.seller),
     ).filter(Product.id.in_(product_ids)).all()
     product_map = {p.id: p for p in products}
     return [
