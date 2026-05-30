@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { View, Text, TouchableOpacity, FlatList, ActivityIndicator, Alert, RefreshControl, TextInput, ScrollView } from "react-native";
 import { Image } from "expo-image";
 import { useRouter } from "expo-router";
@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/auth";
 import { useThemeColors } from "@/lib/theme";
 import { SkeletonSellerProductRow } from "@/components/Skeleton";
 
-const P = "#8B5CF6";
+const P = "#2563EB";
 
 export default function SellerProductsScreen() {
   const router = useRouter();
@@ -83,13 +83,22 @@ export default function SellerProductsScreen() {
             <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>Мои товары</Text>
             <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{products.length} товаров · {activeCount} активных</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/seller/new-product" as any)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: P, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 }}
-          >
-            <Plus size={15} color="#fff" />
-            <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Добавить</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <TouchableOpacity
+              onPress={() => router.push("/seller/import-products" as any)}
+              style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: "#f0fdf4", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, borderWidth: 1.5, borderColor: "#16a34a" }}
+            >
+              <Text style={{ fontSize: 14 }}>📊</Text>
+              <Text style={{ color: "#16a34a", fontWeight: "700", fontSize: 12 }}>Импорт</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push("/seller/new-product" as any)}
+              style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: P, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 14 }}
+            >
+              <Plus size={15} color="#fff" />
+              <Text style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}>Добавить</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Search */}

@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ArrowLeft, X, Camera, Plus, Trash2, Search, ChevronRight, Check, Eye, TrendingUp, AlertTriangle, RotateCcw, FileText } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import api, { Product, API_URL, imgUrl } from "@/lib/api";
@@ -14,6 +15,23 @@ const P = "#2563EB";
 const COMMISSION = 0.1;
 const LOW_STOCK = 5;
 const { width: SW } = Dimensions.get("window");
+
+const cropTo3x4 = async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
+  const { uri, width, height } = asset;
+  if (!width || !height) return uri;
+  const ratio = width / height;
+  const target = 3 / 4;
+  if (Math.abs(ratio - target) <= 0.04) return uri;
+  let cropW = width, cropH = height, originX = 0, originY = 0;
+  if (ratio > target) { cropW = Math.round(height * target); originX = Math.round((width - cropW) / 2); }
+  else { cropH = Math.round(width / target); originY = Math.round((height - cropH) / 2); }
+  const result = await ImageManipulator.manipulateAsync(uri, [{ crop: { originX, originY, width: cropW, height: cropH } }], { compress: 0.88, format: ImageManipulator.SaveFormat.JPEG });
+  return result.uri;
+};
+
+const SPAM_RE = /(\+?\d[\d\s\-().]{7,}\d|wa\.me|whatsapp|ватсап|вотсап|t\.me|telegram\.me|телеграм|@[a-zA-Z0-9_]{3,}|https?:\/\/|www\.|\.com\b|\.ru\b|\.tj\b|\.net\b|\.org\b|\.kz\b|\.uz\b|\bхит\b|\bтоп\b|\bлучший\b|\bлучшая цена\b|\bлидер продаж\b|\bакция\b|\bраспродажа\b|\bпозвони(те)?\b|\bзвони(те)?\b|\bпиши(те)?\b|\bнапиши(те)?\b|\bскидк[аиу]\b|\bбесплатн\b|\bQR.?код|\bпродано \d|\bкупи(те)?\b|\bзаходи(те)?\b)/i;
+const hasSpam = (t: string) => SPAM_RE.test(t);
+const SPAM_FIELDS = ["title", "description", "about", "brand", "shop_tag"];
 
 interface Category { id: number; name: string; slug: string; parent_id?: number | null; }
 interface Attr { key: string; value: string; }
@@ -160,6 +178,11 @@ export default function EditProductScreen() {
   }, [id]);
 
   const set = (key: string, val: string) => {
+    if (SPAM_FIELDS.includes(key) && hasSpam(val)) {
+      Toast.show({ type: "error", text1: "Запрещено ⛔", text2: "Ссылки, телефоны и реклама недопустимы", visibilityTime: 2500 });
+      setErrors((e) => ({ ...e, [key]: "Ссылки, телефоны и реклама запрещены" }));
+      return;
+    }
     setForm((f) => ({ ...f, [key]: val }));
     if (errors[key]) setErrors((e) => { const n = { ...e }; delete n[key]; return n; });
   };
@@ -171,6 +194,10 @@ export default function EditProductScreen() {
     if (!form.title.trim()) e.title = "Введите название";
     if (!hasVariants && (!form.price || parseFloat(form.price) <= 0)) e.price = "Введите корректную цену";
     if (!form.category_id) e.category_id = "Выберите категорию";
+    SPAM_FIELDS.forEach((f) => {
+      const v = (form as any)[f] as string;
+      if (v && hasSpam(v)) e[f] = "Ссылки, телефоны и реклама запрещены";
+    });
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -188,10 +215,11 @@ export default function EditProductScreen() {
   const pickPhotos = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.92 });
     if (!result.canceled) {
-      const picked = result.assets.map((a) => ({
-        uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, type: a.mimeType || "image/jpeg",
+      const croppedUris = await Promise.all(result.assets.map(cropTo3x4));
+      const picked = result.assets.map((a, i) => ({
+        uri: croppedUris[i], name: a.fileName || `photo_${Date.now()}_${i}.jpg`, type: a.mimeType || "image/jpeg",
       }));
       setNewPhotos((prev) => [...prev, ...picked].slice(0, 8 - existingImages.length));
     }
@@ -220,10 +248,11 @@ export default function EditProductScreen() {
   const pickColorNewPhotos = async (colorName: string) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.92 });
     if (!result.canceled) {
-      const picked = result.assets.map((a) => ({
-        uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, type: a.mimeType || "image/jpeg",
+      const croppedUris = await Promise.all(result.assets.map(cropTo3x4));
+      const picked = result.assets.map((a, i) => ({
+        uri: croppedUris[i], name: a.fileName || `photo_${Date.now()}_${i}.jpg`, type: a.mimeType || "image/jpeg",
       }));
       setColorNewPhotos((prev) => {
         const existing = prev[colorName] || [];
@@ -384,9 +413,10 @@ export default function EditProductScreen() {
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                <TouchableOpacity onPress={pickPhotos} style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
-                  <Camera size={24} color={P} />
-                  <Text style={{ fontSize: 11, color: P, marginTop: 4, fontWeight: "600" }}>Добавить</Text>
+                <TouchableOpacity onPress={pickPhotos} style={{ width: 63, height: 84, borderRadius: 14, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
+                  <Camera size={22} color={P} />
+                  <Text style={{ fontSize: 10, color: P, marginTop: 4, fontWeight: "600" }}>Добавить</Text>
+                  <Text style={{ fontSize: 9, color: "#93C5FD", fontWeight: "600" }}>3×4</Text>
                 </TouchableOpacity>
                 {existingImages.map((img) => (
                   <View key={img.id} style={{ width: 84, height: 84, borderRadius: 16, overflow: "hidden" }}>

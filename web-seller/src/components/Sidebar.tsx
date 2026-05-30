@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Package, ShoppingBag, BarChart2,
   Settings, LogOut, ShoppingBag as Logo, ChevronRight,
-  Bell, BadgeCheck, Wallet,
+  Bell, BadgeCheck, Wallet, Upload,
 } from "lucide-react";
 import { logout, getUser } from "@/lib/api";
 import { clsx } from "clsx";
@@ -12,6 +12,7 @@ import { clsx } from "clsx";
 const NAV = [
   { href: "/overview",  icon: LayoutDashboard, label: "Обзор" },
   { href: "/products",  icon: Package,          label: "Товары" },
+  { href: "/import",    icon: Upload,           label: "Импорт" },
   { href: "/orders",    icon: ShoppingBag,       label: "Заказы" },
   { href: "/analytics", icon: BarChart2,         label: "Аналитика" },
   { href: "/finances",  icon: Wallet,            label: "Финансы" },

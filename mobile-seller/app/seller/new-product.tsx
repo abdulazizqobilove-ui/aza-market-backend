@@ -11,6 +11,7 @@ import {
   Search, Eye, AlertTriangle, TrendingUp, RotateCcw, Check,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import api, { API_URL } from "@/lib/api";
@@ -21,6 +22,35 @@ const COMMISSION = 0.1;
 const DRAFT_KEY = "draft_new_product";
 const LOW_STOCK = 5;
 const { width: SW } = Dimensions.get("window");
+
+// Auto-crop to 3:4 if not already 3:4 (±4% tolerance)
+const cropTo3x4 = async (asset: ImagePicker.ImagePickerAsset): Promise<string> => {
+  const { uri, width, height } = asset;
+  if (!width || !height) return uri;
+  const ratio = width / height;
+  const target = 3 / 4;
+  if (Math.abs(ratio - target) <= 0.04) return uri; // already 3:4
+
+  let cropW = width, cropH = height, originX = 0, originY = 0;
+  if (ratio > target) {
+    cropW = Math.round(height * target);
+    originX = Math.round((width - cropW) / 2);
+  } else {
+    cropH = Math.round(width / target);
+    originY = Math.round((height - cropH) / 2);
+  }
+  const result = await ImageManipulator.manipulateAsync(
+    uri,
+    [{ crop: { originX, originY, width: cropW, height: cropH } }],
+    { compress: 0.88, format: ImageManipulator.SaveFormat.JPEG }
+  );
+  return result.uri;
+};
+
+// Spam / ad filter — blocks phones, links, advertising phrases
+const SPAM_RE = /(\+?\d[\d\s\-().]{7,}\d|wa\.me|whatsapp|ватсап|вотсап|t\.me|telegram\.me|телеграм|@[a-zA-Z0-9_]{3,}|https?:\/\/|www\.|\.com\b|\.ru\b|\.tj\b|\.net\b|\.org\b|\.kz\b|\.uz\b|\bхит\b|\bтоп\b|\bлучший\b|\bлучшая цена\b|\bлидер продаж\b|\bакция\b|\bраспродажа\b|\bпозвони(те)?\b|\bзвони(те)?\b|\bпиши(те)?\b|\bнапиши(те)?\b|\bскидк[аиу]\b|\bбесплатн\b|\bQR.?код|\bпродано \d|\bкупи(те)?\b|\bзаходи(те)?\b)/i;
+const hasSpam = (t: string) => SPAM_RE.test(t);
+const SPAM_FIELDS = ["title", "description", "about", "brand", "shop_tag"];
 
 interface Category { id: number; name: string; slug: string; parent_id?: number | null; }
 interface Attr { key: string; value: string; }
@@ -142,6 +172,12 @@ export default function NewProductScreen() {
   }, []);
 
   const set = (key: string, val: string) => {
+    // Spam check for text fields
+    if (SPAM_FIELDS.includes(key) && hasSpam(val)) {
+      Toast.show({ type: "error", text1: "Запрещено ⛔", text2: "Ссылки, телефоны и реклама недопустимы", visibilityTime: 2500 });
+      setErrors((e) => ({ ...e, [key]: "Ссылки, телефоны и реклама запрещены" }));
+      return; // block the value
+    }
     const next = { ...form, [key]: val };
     setForm(next);
     saveDraft(next, attrs, photos, selectedRoot, sizes, colors);
@@ -159,6 +195,11 @@ export default function NewProductScreen() {
     if (hasVariants && colors.some((c) => !variantPrices[c] || parseFloat(variantPrices[c]) <= 0))
       e.price = "Укажите цену для каждого варианта";
     if (!form.category_id) e.category_id = "Выберите категорию";
+    // Spam check
+    SPAM_FIELDS.forEach((f) => {
+      const v = (form as any)[f] as string;
+      if (v && hasSpam(v)) e[f] = "Ссылки, телефоны и реклама запрещены";
+    });
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -179,11 +220,14 @@ export default function NewProductScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85,
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 0.92,
     });
     if (!result.canceled) {
-      const picked = result.assets.map((a) => ({
-        uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, type: a.mimeType || "image/jpeg",
+      const croppedUris = await Promise.all(result.assets.map(cropTo3x4));
+      const picked = result.assets.map((a, i) => ({
+        uri: croppedUris[i], name: a.fileName || `photo_${Date.now()}_${i}.jpg`, type: a.mimeType || "image/jpeg",
       }));
       const next = [...photos, ...picked].slice(0, 8);
       setPhotos(next);
@@ -217,11 +261,14 @@ export default function NewProductScreen() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") { Toast.show({ type: "error", text1: "Нет доступа к галерее" }); return; }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"], allowsMultipleSelection: true, quality: 0.85,
+      mediaTypes: ["images"],
+      allowsMultipleSelection: true,
+      quality: 0.92,
     });
     if (!result.canceled) {
-      const picked = result.assets.map((a) => ({
-        uri: a.uri, name: a.fileName || `photo_${Date.now()}.jpg`, type: a.mimeType || "image/jpeg",
+      const croppedUris = await Promise.all(result.assets.map(cropTo3x4));
+      const picked = result.assets.map((a, i) => ({
+        uri: croppedUris[i], name: a.fileName || `photo_${Date.now()}_${i}.jpg`, type: a.mimeType || "image/jpeg",
       }));
       setColorPhotos((prev) => {
         const existing = prev[colorName] || [];
@@ -400,6 +447,14 @@ export default function NewProductScreen() {
         <View style={{ backgroundColor: c.card, borderRadius: 20, padding: 16, gap: 12 }}>
           <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }}>Фотографии</Text>
 
+          {/* Photo requirements */}
+          <View style={{ backgroundColor: "#f8fafc", borderRadius: 14, padding: 12, gap: 6, borderWidth: 1, borderColor: "#e2e8f0" }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: "#475569" }}>📋 Требования к фото</Text>
+            <Text style={{ fontSize: 11, color: "#64748b" }}>✅ Формат: JPG, PNG, WEBP · Мин. 700×933px · Макс. 10 МБ</Text>
+            <Text style={{ fontSize: 11, color: "#ef4444", fontWeight: "600" }}>🚫 Запрещено на фото:</Text>
+            <Text style={{ fontSize: 11, color: "#64748b" }}>• Цены, скидки, QR-коды{"\n"}• Контакты, ссылки на сайты{"\n"}• «Хит», «Топ», «Лучший», «Лидер продаж»{"\n"}• Призывы: «Позвоните», «Купите», «Заходите»{"\n"}• Количество продаж («Продано 500 штук»)</Text>
+          </View>
+
           {colors.length > 0 ? (
             <View style={{ backgroundColor: "#EFF6FF", borderRadius: 14, padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
               <Camera size={18} color={P} />
@@ -408,13 +463,14 @@ export default function NewProductScreen() {
           ) : (
             <>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
-                <TouchableOpacity onPress={pickPhotos} style={{ width: 84, height: 84, borderRadius: 16, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
-                  <Camera size={24} color={P} />
-                  <Text style={{ fontSize: 11, color: P, marginTop: 4, fontWeight: "600" }}>Добавить</Text>
+                <TouchableOpacity onPress={pickPhotos} style={{ width: 63, height: 84, borderRadius: 14, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
+                  <Camera size={22} color={P} />
+                  <Text style={{ fontSize: 10, color: P, marginTop: 4, fontWeight: "600" }}>Добавить</Text>
+                  <Text style={{ fontSize: 9, color: "#93C5FD", fontWeight: "600" }}>3×4</Text>
                 </TouchableOpacity>
                 {photos.map((p, i) => (
-                  <TouchableOpacity key={i} onPress={() => handlePhotoTap(i)} style={{ width: 84, height: 84, borderRadius: 16, overflow: "hidden", borderWidth: swapIdx === i ? 3 : 0, borderColor: P }}>
-                    <Image source={{ uri: p.uri }} style={{ width: 84, height: 84 }} contentFit="cover" />
+                  <TouchableOpacity key={i} onPress={() => handlePhotoTap(i)} style={{ width: 63, height: 84, borderRadius: 14, overflow: "hidden", borderWidth: swapIdx === i ? 3 : 0, borderColor: P }}>
+                    <Image source={{ uri: p.uri }} style={{ width: 63, height: 84 }} contentFit="cover" />
                     <TouchableOpacity onPress={() => setPreviewPhoto(p.uri)} style={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 11, alignItems: "center", justifyContent: "center" }}>
                       <Eye size={11} color="#fff" />
                     </TouchableOpacity>
@@ -798,13 +854,13 @@ export default function NewProductScreen() {
                         contentContainerStyle={{ gap: 8, padding: 10 }}
                         style={{ backgroundColor: c.card }}>
                         <TouchableOpacity onPress={() => pickColorPhotos(variantName)}
-                          style={{ width: 80, height: 80, borderRadius: 14, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
-                          <Camera size={20} color={P} />
-                          <Text style={{ fontSize: 10, color: P, marginTop: 3, fontWeight: "600" }}>Фото</Text>
+                          style={{ width: 60, height: 80, borderRadius: 12, backgroundColor: "#EFF6FF", borderWidth: 2, borderStyle: "dashed", borderColor: "#93C5FD", alignItems: "center", justifyContent: "center" }}>
+                          <Camera size={18} color={P} />
+                          <Text style={{ fontSize: 9, color: P, marginTop: 3, fontWeight: "600" }}>3×4</Text>
                         </TouchableOpacity>
                         {cPhotos.map((p, i) => (
-                          <View key={i} style={{ width: 80, height: 80, borderRadius: 14, overflow: "hidden" }}>
-                            <Image source={{ uri: p.uri }} style={{ width: 80, height: 80 }} contentFit="cover" />
+                          <View key={i} style={{ width: 60, height: 80, borderRadius: 12, overflow: "hidden" }}>
+                            <Image source={{ uri: p.uri }} style={{ width: 60, height: 80 }} contentFit="cover" />
                             <TouchableOpacity onPress={() => setPreviewPhoto(p.uri)}
                               style={{ position: "absolute", top: 3, left: 3, width: 20, height: 20, backgroundColor: "rgba(0,0,0,0.5)", borderRadius: 10, alignItems: "center", justifyContent: "center" }}>
                               <Eye size={10} color="#fff" />

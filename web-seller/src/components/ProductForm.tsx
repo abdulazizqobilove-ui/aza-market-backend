@@ -249,14 +249,47 @@ export default function ProductForm({ product }: { product?: Product }) {
     if (rootId) loadSubCats(rootId);
   };
 
+  const SPAM_RE = /(\+?\d[\d\s\-().]{7,}\d|wa\.me|whatsapp|ватсап|вотсап|t\.me|telegram\.me|телеграм|@[a-zA-Z0-9_]{3,}|https?:\/\/|www\.|\.com\b|\.ru\b|\.tj\b|\.net\b|\.org\b|\.kz\b|\.uz\b|\bхит\b|\bтоп\b|\bлучший\b|\bлучшая цена\b|\bлидер продаж\b|\bакция\b|\bраспродажа\b|\bпозвони(те)?\b|\bзвони(те)?\b|\bпиши(те)?\b|\bнапиши(те)?\b|\bскидк[аиу]\b|\bбесплатн\b|\bQR.?код|\bпродано \d|\bкупи(те)?\b|\bзаходи(те)?\b)/i;
+  const SPAM_FIELDS = ["title", "description", "about", "brand", "shop_tag"];
+
   const set = (k: keyof FormState, v: string | boolean) => {
+    if (typeof v === "string" && SPAM_FIELDS.includes(k) && SPAM_RE.test(v)) {
+      setErrors(e => ({ ...e, [k]: "Ссылки, телефоны и реклама запрещены" }));
+      return;
+    }
     setForm(f => ({ ...f, [k]: v }));
     if (typeof v === "string" && errors[k]) setErrors(e => { const n = { ...e }; delete n[k]; return n; });
   };
 
+  // Auto-crop to 3:4 using Canvas (no library needed)
+  const cropTo3x4 = (file: File): Promise<File> =>
+    new Promise((resolve) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const ratio = w / h, target = 3 / 4;
+        URL.revokeObjectURL(url);
+        if (Math.abs(ratio - target) <= 0.04) { resolve(file); return; }
+        let cW = w, cH = h, oX = 0, oY = 0;
+        if (ratio > target) { cW = Math.round(h * target); oX = Math.round((w - cW) / 2); }
+        else { cH = Math.round(w / target); oY = Math.round((h - cH) / 2); }
+        const canvas = document.createElement("canvas");
+        canvas.width = cW; canvas.height = cH;
+        canvas.getContext("2d")!.drawImage(img, oX, oY, cW, cH, 0, 0, cW, cH);
+        canvas.toBlob(blob => {
+          if (!blob) { resolve(file); return; }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), { type: "image/jpeg" }));
+        }, "image/jpeg", 0.88);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+
   // Photo handlers
-  const addPhotos = (files: File[]) => {
-    const newOnes = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+  const addPhotos = async (files: File[]) => {
+    const cropped = await Promise.all(files.map(cropTo3x4));
+    const newOnes = cropped.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
     setPhotos(prev => [...prev, ...newOnes].slice(0, 10));
   };
   const removePhoto = (i: number) => {
@@ -283,8 +316,9 @@ export default function ProductForm({ product }: { product?: Product }) {
     setVariantPrices(prev => { const n = { ...prev }; delete n[name]; return n; });
     setVariantStocks(prev => { const n = { ...prev }; delete n[name]; return n; });
   };
-  const addColorPhotos = (color: string, files: File[]) => {
-    const newOnes = files.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
+  const addColorPhotos = async (color: string, files: File[]) => {
+    const cropped = await Promise.all(files.map(cropTo3x4));
+    const newOnes = cropped.map(f => ({ file: f, preview: URL.createObjectURL(f) }));
     setColorPhotos(prev => ({ ...prev, [color]: [...(prev[color] || []), ...newOnes].slice(0, 8) }));
   };
   const removeColorPhoto = (color: string, idx: number) => {
@@ -609,6 +643,12 @@ export default function ProductForm({ product }: { product?: Product }) {
         {!hasVariants && (
           <Section title="Фотографии" icon={ImageIcon}>
             <div className="pt-2 space-y-3">
+              {/* Photo requirements */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs space-y-1">
+                <p className="font-semibold text-slate-600">📋 Требования к фото</p>
+                <p className="text-slate-500">✅ Формат: JPG, PNG, WEBP · Мин. 700×933px · Макс. 10 МБ · Авто-кроп 3×4</p>
+                <p className="text-red-500 font-semibold">🚫 Запрещено на фото: цены, скидки, QR-коды, контакты, «хит/топ/лучший», призывы к действию</p>
+              </div>
               <p className="text-xs text-gray-500">Первое фото будет главным. Нажмите на два фото чтобы поменять их местами.</p>
               <div className="flex flex-wrap gap-2">
                 {photos.map((p, i) => (
