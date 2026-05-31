@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState, useRef } from "react";
 import {
-  View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
+  View, Text, TouchableOpacity, ScrollView, FlatList, ActivityIndicator,
   Dimensions, Animated, Share, Modal, Alert,
 } from "react-native";
 import { Image } from "expo-image";
@@ -81,7 +81,7 @@ export default function ProductScreen() {
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>({});
   const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
 
-  const imgScrollRef = useRef<ScrollView>(null);
+  const imgScrollRef = useRef<FlatList>(null);
   const favScale = useRef(new Animated.Value(1)).current;
   const isFav = product ? !!favIds[product.id] : false;
   const cartItem = product ? items.find((i) => {
@@ -176,7 +176,7 @@ export default function ProductScreen() {
   };
 
   const scrollToImage = (i: number) => {
-    imgScrollRef.current?.scrollTo({ x: i * width, animated: true });
+    imgScrollRef.current?.scrollToIndex({ index: i, animated: true });
     setActiveImage(i);
   };
 
@@ -248,7 +248,7 @@ export default function ProductScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       {/* Floating top buttons */}
-      <View style={{ position: "absolute", top: 16, left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, zIndex: 10 }}>
+      <View style={{ position: "absolute", top: 52, left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, zIndex: 10 }}>
         <TouchableOpacity onPress={() => router.back()} style={{ width: 40, height: 40, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
           <ChevronLeft size={22} color="#374151" />
         </TouchableOpacity>
@@ -273,22 +273,38 @@ export default function ProductScreen() {
 
         {/* Image gallery */}
         <View style={{ backgroundColor: c.iconBg }}>
-          <ScrollView
-            ref={imgScrollRef}
-            horizontal pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            scrollEventThrottle={16}
-            onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
-            style={{ height: width * (4 / 3) }}
-          >
-            {visibleImages.length > 0 ? visibleImages.map((img) => (
-              <Image key={img.id} source={{ uri: imgUrl(img.url) ?? "" }} style={{ width, height: width * (4 / 3) }} contentFit="cover" />
-            )) : (
-              <View style={{ width, height: width * (4 / 3), alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 80 }}>📦</Text>
-              </View>
-            )}
-          </ScrollView>
+          {visibleImages.length > 0 ? (
+            <FlatList
+              ref={imgScrollRef}
+              data={visibleImages}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              snapToInterval={width}
+              snapToAlignment="center"
+              keyExtractor={(img) => String(img.id)}
+              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+              onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
+              style={{ height: width * (4 / 3) }}
+              renderItem={({ item: img }) => (
+                <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width, height: width * (4 / 3) }} contentFit="cover" />
+              )}
+            />
+          ) : (
+            <View style={{ width, height: width * (4 / 3), alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 80 }}>📦</Text>
+            </View>
+          )}
+          {/* Dot indicators */}
+          {visibleImages.length > 1 && (
+            <View style={{ position: "absolute", bottom: 10, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 }}>
+              {visibleImages.map((_, i) => (
+                <View key={i} style={{ width: i === activeImage ? 20 : 6, height: 6, borderRadius: 3, backgroundColor: i === activeImage ? "#fff" : "rgba(255,255,255,0.5)" }} />
+              ))}
+            </View>
+          )}
+          {/* Thumbnail strip */}
           {visibleImages.length > 1 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
               {visibleImages.map((img, i) => (
@@ -382,7 +398,7 @@ export default function ProductScreen() {
                   const hex = COLOR_MAP[val] ?? "#9ca3af";
                   return (
                     <TouchableOpacity key={val}
-                      onPress={() => { setSelectedAttrs((prev) => ({ ...prev, [key]: val })); setActiveImage(0); imgScrollRef.current?.scrollTo({ x: 0, animated: true }); }}
+                      onPress={() => { setSelectedAttrs((prev) => ({ ...prev, [key]: val })); setActiveImage(0); imgScrollRef.current?.scrollToIndex({ index: 0, animated: true }); }}
                       style={{ width: 70, height: 70, borderRadius: 16, overflow: "hidden", borderWidth: sel ? 3 : 1.5, borderColor: sel ? P : "transparent" }}>
                       {img ? (
                         <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />

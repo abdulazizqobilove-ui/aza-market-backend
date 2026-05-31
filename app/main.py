@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os, threading
 from app.core.database import Base, engine
 from app.core.config import settings
-from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats, payments, product_documents, feedback
+from app.api.routes import auth, products, cart, orders, seller, users, reviews, favorites, admin, waitlist, notifications, seller_applications, shop, banners, chats, payments, product_documents, feedback, reports
 from app.models import payment_card, chat, payment, product_document  # ensure tables are created
 
 def _run_startup_db():
@@ -62,6 +62,16 @@ for _stmt in [
     "ALTER TABLE mkt_orders ADD COLUMN IF NOT EXISTS delivery_cost FLOAT NOT NULL DEFAULT 0",
     "ALTER TABLE mkt_users ADD COLUMN IF NOT EXISTS is_verified BOOLEAN NOT NULL DEFAULT FALSE",
     "ALTER TABLE mkt_products ADD COLUMN IF NOT EXISTS barcode VARCHAR",
+    """CREATE TABLE IF NOT EXISTS mkt_reports (
+        id SERIAL PRIMARY KEY,
+        reporter_id INTEGER REFERENCES mkt_users(id) ON DELETE SET NULL,
+        type VARCHAR NOT NULL,
+        target_id INTEGER NOT NULL,
+        reason TEXT NOT NULL,
+        status VARCHAR NOT NULL DEFAULT 'new',
+        admin_note TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+    )""",
     "ALTER TABLE mkt_seller_applications ADD COLUMN IF NOT EXISTS registration_doc_url VARCHAR",
     """CREATE TABLE IF NOT EXISTS mkt_product_documents (
         id SERIAL PRIMARY KEY,
@@ -234,6 +244,7 @@ app.include_router(banners.router, prefix="/api")
 app.include_router(chats.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(feedback.router, prefix="/api")
+app.include_router(reports.router, prefix="/api")
 
 
 @app.get("/api/health")

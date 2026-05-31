@@ -1,6 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+﻿import { useEffect, useState, useRef } from "react";
 import {
-  View, Text, TouchableOpacity, ScrollView, ActivityIndicator,
+  View, Text, TouchableOpacity, ScrollView, FlatList, ActivityIndicator,
   Dimensions, Animated, Share, Modal, Alert,
 } from "react-native";
 import { Image } from "expo-image";
@@ -22,7 +22,7 @@ import { useThemeColors, useIsDark } from "@/lib/theme";
 import { SkeletonProductDetail } from "@/components/Skeleton";
 
 const { width } = Dimensions.get("window");
-const P = "#8B5CF6";
+const P = "#2563EB";
 
 const SIZE_NUMBER_MAP: Record<string, string> = {
   "XS": "44", "S": "46", "M": "48", "L": "50",
@@ -32,7 +32,7 @@ const SIZE_NUMBER_MAP: Record<string, string> = {
 const COLOR_MAP: Record<string, string> = {
   "Красный": "#ef4444", "Розовый": "#ec4899", "Оранжевый": "#f97316",
   "Жёлтый": "#eab308", "Зелёный": "#22c55e", "Голубой": "#38bdf8",
-  "Синий": "#3b82f6", "Фиолетовый": "#8b5cf6", "Чёрный": "#111827",
+  "Синий": "#3b82f6", "Фиолетовый": "#2563EB", "Чёрный": "#111827",
   "Тёмно-серый": "#6b7280", "Серый": "#d1d5db", "Белый": "#f9fafb",
   "Коричневый": "#92400e", "Бежевый": "#d4b896", "Бордовый": "#881337",
   "Хаки": "#84754e", "Золотой": "#d97706", "Серебряный": "#9ca3af",
@@ -81,7 +81,7 @@ export default function ProductScreen() {
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>({});
   const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
 
-  const imgScrollRef = useRef<ScrollView>(null);
+  const imgScrollRef = useRef<FlatList>(null);
   const favScale = useRef(new Animated.Value(1)).current;
   const isFav = product ? !!favIds[product.id] : false;
   const cartItem = product ? items.find((i) => {
@@ -176,7 +176,7 @@ export default function ProductScreen() {
   };
 
   const scrollToImage = (i: number) => {
-    imgScrollRef.current?.scrollTo({ x: i * width, animated: true });
+    imgScrollRef.current?.scrollToIndex({ index: i, animated: true });
     setActiveImage(i);
   };
 
@@ -247,7 +247,7 @@ export default function ProductScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
       {/* Floating top buttons */}
-      <View style={{ position: "absolute", top: 16, left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, zIndex: 10 }}>
+      <View style={{ position: "absolute", top: 52, left: 0, right: 0, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, zIndex: 10 }}>
         <TouchableOpacity onPress={() => router.back()} style={{ width: 40, height: 40, backgroundColor: "rgba(255,255,255,0.92)", borderRadius: 20, alignItems: "center", justifyContent: "center" }}>
           <ChevronLeft size={22} color="#374151" />
         </TouchableOpacity>
@@ -272,22 +272,38 @@ export default function ProductScreen() {
 
         {/* Image gallery */}
         <View style={{ backgroundColor: c.iconBg }}>
-          <ScrollView
-            ref={imgScrollRef}
-            horizontal pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            scrollEventThrottle={16}
-            onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
-            style={{ height: width * (4 / 3) }}
-          >
-            {visibleImages.length > 0 ? visibleImages.map((img) => (
-              <Image key={img.id} source={{ uri: imgUrl(img.url) ?? "" }} style={{ width, height: width * (4 / 3) }} contentFit="cover" />
-            )) : (
-              <View style={{ width, height: width * (4 / 3), alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 80 }}>📦</Text>
-              </View>
-            )}
-          </ScrollView>
+          {visibleImages.length > 0 ? (
+            <FlatList
+              ref={imgScrollRef}
+              data={visibleImages}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              snapToInterval={width}
+              snapToAlignment="center"
+              keyExtractor={(img) => String(img.id)}
+              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+              onMomentumScrollEnd={(e) => setActiveImage(Math.round(e.nativeEvent.contentOffset.x / width))}
+              style={{ height: width * (4 / 3) }}
+              renderItem={({ item: img }) => (
+                <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width, height: width * (4 / 3) }} contentFit="cover" />
+              )}
+            />
+          ) : (
+            <View style={{ width, height: width * (4 / 3), alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 80 }}>📦</Text>
+            </View>
+          )}
+          {/* Dot indicators */}
+          {visibleImages.length > 1 && (
+            <View style={{ position: "absolute", bottom: 10, left: 0, right: 0, flexDirection: "row", justifyContent: "center", gap: 6 }}>
+              {visibleImages.map((_, i) => (
+                <View key={i} style={{ width: i === activeImage ? 20 : 6, height: 6, borderRadius: 3, backgroundColor: i === activeImage ? "#fff" : "rgba(255,255,255,0.5)", transition: "width 0.2s" as any }} />
+              ))}
+            </View>
+          )}
+          {/* Thumbnail strip */}
           {visibleImages.length > 1 && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 10, gap: 8 }}>
               {visibleImages.map((img, i) => (
@@ -381,7 +397,7 @@ export default function ProductScreen() {
                   const hex = COLOR_MAP[val] ?? "#9ca3af";
                   return (
                     <TouchableOpacity key={val}
-                      onPress={() => { setSelectedAttrs((prev) => ({ ...prev, [key]: val })); setActiveImage(0); imgScrollRef.current?.scrollTo({ x: 0, animated: true }); }}
+                      onPress={() => { setSelectedAttrs((prev) => ({ ...prev, [key]: val })); setActiveImage(0); imgScrollRef.current?.scrollToIndex({ index: 0, animated: true }); }}
                       style={{ width: 70, height: 70, borderRadius: 16, overflow: "hidden", borderWidth: sel ? 3 : 1.5, borderColor: sel ? P : "transparent" }}>
                       {img ? (
                         <Image source={{ uri: imgUrl(img.url) ?? "" }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
@@ -504,7 +520,7 @@ export default function ProductScreen() {
         <View style={{ marginHorizontal: 16, marginTop: 12, backgroundColor: c.card, borderRadius: 16, padding: 16, gap: 14 }}>
           <Text style={{ fontSize: 18, fontWeight: "800", color: c.text }}>Возврат и гарантия</Text>
           <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
-            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#ede9fe", alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#DBEAFE", alignItems: "center", justifyContent: "center" }}>
               <RotateCcw size={18} color={P} />
             </View>
             <View style={{ flex: 1 }}>
