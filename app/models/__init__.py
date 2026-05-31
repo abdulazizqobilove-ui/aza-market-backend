@@ -11,3 +11,4 @@ from app.models.notification import Notification
 from app.models.seller_application import SellerApplication
 from app.models.banner import Banner
 from app.models.product_document import ProductDocument
+from app.models.feedback import Feedback
