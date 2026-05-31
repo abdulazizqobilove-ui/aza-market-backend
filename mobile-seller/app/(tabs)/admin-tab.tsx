@@ -10,7 +10,7 @@ import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
   ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
-  AlertTriangle, Eye, EyeOff, Tag, Flag, BadgeCheck, FileText,
+  AlertTriangle, Eye, EyeOff, Tag, Flag, BadgeCheck, FileText, MessageSquare,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -20,7 +20,7 @@ import Toast from "react-native-toast-message";
 import { useThemeColors } from "@/lib/theme";
 
 const P = "#2563EB";
-const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Категории"] as const;
+const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Обращения", "Категории"] as const;
 type Section = typeof SECTIONS[number];
 
 interface Stats {
@@ -41,6 +41,7 @@ interface Payout { id: number; seller_id: number; amount: number; status: string
 interface AdminProduct { id: number; title: string; price: number; stock: number; is_active: boolean; seller_id: number; }
 interface Report { id: number; type: string; target_id: number; reason: string; comment?: string; status: string; reporter_id: number; created_at: string; }
 interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; image_url?: string | null; }
+interface FeedbackItem { id: number; type: string; title: string; message: string; status: string; admin_reply?: string | null; created_at: string; seller_name?: string; seller_phone?: string; seller_shop?: string; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
 const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#1D4ED8" };
@@ -354,6 +355,11 @@ export default function AdminTabScreen() {
   const [catSlots, setCatSlots] = useState<ApiCategory[]>([]);
   const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [feedbackFilter, setFeedbackFilter] = useState<"all"|"new"|"replied">("all");
+  const [replyModal, setReplyModal] = useState<{ visible: boolean; item: FeedbackItem | null }>({ visible: false, item: null });
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
   const [adminCats, setAdminCats] = useState<AdminCategory[]>([]);
   const [catForm, setCatForm] = useState<{ visible: boolean; id?: number; name: string; slug: string; parent_id: string }>({ visible: false, name: "", slug: "", parent_id: "" });
   const [loading, setLoading] = useState(true);
@@ -372,6 +378,7 @@ export default function AdminTabScreen() {
         api.get<AdminProduct[]>("/admin/products"),
         api.get<Report[]>("/admin/reports"),
         api.get<AdminCategory[]>("/admin/categories"),
+        api.get<FeedbackItem[]>("/feedback/admin/all"),
       ]);
       if (sRes.status === "fulfilled") setStats(sRes.value.data);
       if (uRes.status === "fulfilled") setUsers(uRes.value.data);
@@ -381,6 +388,7 @@ export default function AdminTabScreen() {
       if (apRes.status === "fulfilled") setAdminProducts(apRes.value.data);
       if (rpRes.status === "fulfilled") setReports(rpRes.value.data);
       if (acRes.status === "fulfilled") setAdminCats(acRes.value.data);
+      try { const fbR = await api.get<FeedbackItem[]>("/feedback/admin/all"); setFeedbackItems(fbR.data); } catch {}
       if (cRes.status === "fulfilled") {
         const roots = cRes.value.data;
         const subResults = await Promise.allSettled(
@@ -975,6 +983,147 @@ export default function AdminTabScreen() {
                   )}
                 </View>
               ))}
+            </>
+          )}
+
+          {/* ── ОБРАЩЕНИЯ СЕЛЛЕРОВ ── */}
+          {section === "Обращения" && (
+            <>
+              {/* Filter chips */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["all", "new", "replied"] as const).map(f => (
+                  <TouchableOpacity key={f} onPress={() => setFeedbackFilter(f)}
+                    style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: feedbackFilter === f ? P : c.iconBg }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: feedbackFilter === f ? "#fff" : c.textSub }}>
+                      {f === "all" ? "Все" : f === "new" ? "Новые" : "Отвечено"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <View style={{ flex: 1 }} />
+                <View style={{ backgroundColor: feedbackItems.filter(f => f.status === "new").length > 0 ? "#ef4444" : c.iconBg, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: feedbackItems.filter(f => f.status === "new").length > 0 ? "#fff" : c.textMuted }}>
+                    {feedbackItems.filter(f => f.status === "new").length} новых
+                  </Text>
+                </View>
+              </View>
+
+              {feedbackItems.filter(f => feedbackFilter === "all" || f.status === feedbackFilter || (feedbackFilter === "replied" && (f.status === "replied" || f.status === "done"))).length === 0 ? (
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <MessageSquare size={44} color={c.border} />
+                  <Text style={{ color: c.textMuted, marginTop: 12, fontWeight: "500" }}>Обращений нет</Text>
+                </View>
+              ) : feedbackItems
+                  .filter(f => feedbackFilter === "all" || f.status === feedbackFilter || (feedbackFilter === "replied" && (f.status === "replied" || f.status === "done")))
+                  .map(fb => {
+                const typeEmoji = fb.type === "suggestion" ? "💡" : fb.type === "bug" ? "🐛" : fb.type === "question" ? "❓" : "⚠️";
+                const typeLabel = fb.type === "suggestion" ? "Предложение" : fb.type === "bug" ? "Ошибка" : fb.type === "question" ? "Вопрос" : "Жалоба";
+                const stColor = fb.status === "new" ? "#ef4444" : fb.status === "read" ? "#2563EB" : "#16a34a";
+                const stLabel = fb.status === "new" ? "Новое" : fb.status === "read" ? "Прочитано" : fb.status === "replied" ? "Ответили" : "Решено";
+                return (
+                  <View key={fb.id} style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden", borderLeftWidth: 3, borderLeftColor: stColor }}>
+                    <View style={{ padding: 14, gap: 8 }}>
+                      {/* Header */}
+                      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 20 }}>{typeEmoji}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }} numberOfLines={1}>{fb.title}</Text>
+                          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>
+                            {typeLabel} · {fb.seller_shop || fb.seller_name || "Продавец"} · {new Date(fb.created_at).toLocaleDateString("ru-RU")}
+                          </Text>
+                          {fb.seller_phone && <Text style={{ fontSize: 11, color: "#2563EB", marginTop: 1 }}>{fb.seller_phone}</Text>}
+                        </View>
+                        <View style={{ backgroundColor: stColor + "20", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 10, fontWeight: "700", color: stColor }}>{stLabel}</Text>
+                        </View>
+                      </View>
+
+                      {/* Message */}
+                      <View style={{ backgroundColor: c.iconBg, borderRadius: 12, padding: 12 }}>
+                        <Text style={{ fontSize: 13, color: c.text, lineHeight: 20 }}>{fb.message}</Text>
+                      </View>
+
+                      {/* Existing reply */}
+                      {fb.admin_reply && (
+                        <View style={{ backgroundColor: "#eff6ff", borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: P }}>
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: P, marginBottom: 4 }}>Ваш ответ:</Text>
+                          <Text style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 18 }}>{fb.admin_reply}</Text>
+                        </View>
+                      )}
+
+                      {/* Actions */}
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => { setReplyModal({ visible: true, item: fb }); setReplyText(fb.admin_reply || ""); }}
+                          style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: P + "15", paddingVertical: 10, borderRadius: 12 }}>
+                          <MessageSquare size={14} color={P} />
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: P }}>{fb.admin_reply ? "Изменить ответ" : "Ответить"}</Text>
+                        </TouchableOpacity>
+                        {fb.status !== "done" && (
+                          <TouchableOpacity
+                            onPress={async () => {
+                              try {
+                                await api.patch(`/feedback/admin/${fb.id}`, { status: "done", reply: fb.admin_reply || null });
+                                const r = await api.get<FeedbackItem[]>("/feedback/admin/all");
+                                setFeedbackItems(r.data);
+                                Toast.show({ type: "success", text1: "Отмечено как решено" });
+                              } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+                            }}
+                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 }}>
+                            <CheckCircle size={14} color="#16a34a" />
+                            <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Решено</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Reply modal */}
+              <Modal visible={replyModal.visible} animationType="slide" transparent>
+                <View style={{ flex: 1, backgroundColor: "#00000060", justifyContent: "flex-end" }}>
+                  <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>Ответить</Text>
+                      <TouchableOpacity onPress={() => setReplyModal({ visible: false, item: null })} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                        <X size={16} color={c.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                    {replyModal.item && (
+                      <View style={{ backgroundColor: c.iconBg, borderRadius: 12, padding: 12 }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: c.textMuted, marginBottom: 4 }}>ОБРАЩЕНИЕ</Text>
+                        <Text style={{ fontSize: 13, color: c.text }} numberOfLines={2}>{replyModal.item.title}</Text>
+                      </View>
+                    )}
+                    <TextInput
+                      value={replyText} onChangeText={setReplyText}
+                      multiline numberOfLines={4} textAlignVertical="top"
+                      placeholder="Напишите ответ продавцу..."
+                      placeholderTextColor={c.textMuted}
+                      style={{ backgroundColor: c.iconBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text, minHeight: 100 }}
+                    />
+                    <TouchableOpacity
+                      disabled={replying || !replyText.trim()}
+                      onPress={async () => {
+                        if (!replyModal.item) return;
+                        setReplying(true);
+                        try {
+                          await api.patch(`/feedback/admin/${replyModal.item.id}`, { status: "replied", reply: replyText.trim() });
+                          const r = await api.get<FeedbackItem[]>("/feedback/admin/all");
+                          setFeedbackItems(r.data);
+                          setReplyModal({ visible: false, item: null });
+                          Toast.show({ type: "success", text1: "Ответ отправлен!" });
+                        } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+                        finally { setReplying(false); }
+                      }}
+                      style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center", opacity: (replying || !replyText.trim()) ? 0.5 : 1 }}>
+                      {replying ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Отправить ответ</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
             </>
           )}
 

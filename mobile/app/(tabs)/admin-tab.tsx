@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
   TextInput, Modal, RefreshControl, Alert, Dimensions,
@@ -10,7 +10,7 @@ import {
   Users, Package, ShoppingBag, TrendingUp, CheckCircle, XCircle,
   Plus, Trash2, ToggleLeft, ToggleRight, Shield, Wallet,
   ChevronRight, UserCheck, UserX, Store, RefreshCw, Star, BarChart2, X, ImagePlus, Pencil,
-  AlertTriangle, Eye, EyeOff, Tag, Flag,
+  AlertTriangle, Eye, EyeOff, Tag, Flag, MessageSquare,
 } from "lucide-react-native";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
@@ -19,8 +19,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Toast from "react-native-toast-message";
 import { useThemeColors } from "@/lib/theme";
 
-const P = "#8B5CF6";
-const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Категории"] as const;
+const P = "#2563EB";
+const SECTIONS = ["Обзор", "Статистика", "Пользователи", "Заявки", "Выплаты", "Баннеры", "Товары", "Жалобы", "Обращения", "Категории"] as const;
 type Section = typeof SECTIONS[number];
 
 interface Stats {
@@ -41,9 +41,10 @@ interface Payout { id: number; seller_id: number; amount: number; status: string
 interface AdminProduct { id: number; title: string; price: number; stock: number; is_active: boolean; seller_id: number; }
 interface Report { id: number; type: string; target_id: number; reason: string; comment?: string; status: string; reporter_id: number; created_at: string; }
 interface AdminCategory { id: number; name: string; slug: string; parent_id: number | null; }
+interface FeedbackItem { id: number; type: string; title: string; message: string; status: string; admin_reply?: string | null; created_at: string; seller_name?: string; seller_phone?: string; seller_shop?: string; }
 
 const ROLE_LABELS: Record<string, string> = { buyer: "Покупатель", seller: "Продавец", admin: "Админ" };
-const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#7c3aed" };
+const ROLE_COLORS: Record<string, string> = { buyer: "#3b82f6", seller: "#16a34a", admin: "#1D4ED8" };
 const STATUS_COLORS: Record<string, string> = { pending: "#f59e0b", approved: "#16a34a", rejected: "#ef4444", paid: "#16a34a", cancelled: "#ef4444" };
 const STATUS_LABELS: Record<string, string> = { pending: "Ожидает", approved: "Одобрено", rejected: "Отклонено", paid: "Выплачено", cancelled: "Отменено" };
 
@@ -73,7 +74,7 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
 }
 
 const COLOR_PRESETS = [
-  { bg: "#7C3AED", accent: "#C4B5FD", label: "Фиолетовый" },
+  { bg: "#1D4ED8", accent: "#93C5FD", label: "Фиолетовый" },
   { bg: "#DC2626", accent: "#FCA5A5", label: "Красный" },
   { bg: "#059669", accent: "#6EE7B7", label: "Зелёный" },
   { bg: "#2563EB", accent: "#93C5FD", label: "Синий" },
@@ -213,19 +214,20 @@ function BannerForm({
         </TouchableOpacity>
       </View>
 
-      {/* Live preview */}
-      <View style={{ height: 120, borderRadius: 18, backgroundColor: previewBg, overflow: "hidden", marginBottom: 20 }}>
+      {/* Live preview — точные размеры как у реального баннера */}
+      <Text style={{ fontSize: 11, color: "#9ca3af", fontWeight: "600", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Превью (как будет выглядеть)</Text>
+      <View style={{ height: 250, borderRadius: 18, backgroundColor: previewBg, overflow: "hidden", marginBottom: 20 }}>
         {previewImg
           ? <Image source={{ uri: previewImg }} style={{ width: "100%", height: "100%" }} contentFit="cover" />
           : <>
-              <View style={{ position: "absolute", right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: previewAccent, opacity: 0.25 }} />
-              <View style={{ position: "absolute", right: 30, bottom: -30, width: 80, height: 80, borderRadius: 40, backgroundColor: previewAccent, opacity: 0.15 }} />
+              <View style={{ position: "absolute", right: -20, top: -20, width: 200, height: 200, borderRadius: 100, backgroundColor: previewAccent, opacity: 0.25 }} />
+              <View style={{ position: "absolute", right: 30, bottom: -30, width: 120, height: 120, borderRadius: 60, backgroundColor: previewAccent, opacity: 0.15 }} />
             </>
         }
-        <View style={{ position: "absolute", inset: 0, padding: 18, justifyContent: "flex-end" }}>
-          {!previewImg && <Text style={{ fontSize: 28, marginBottom: 4 }}>{emoji}</Text>}
-          <Text style={{ fontSize: 16, fontWeight: "900", color: "#fff" }} numberOfLines={1}>{title || "Заголовок баннера"}</Text>
-          {subtitle ? <Text style={{ fontSize: 12, color: previewImg ? "#fff" : previewAccent, marginTop: 2 }} numberOfLines={1}>{subtitle}</Text> : null}
+        <View style={{ position: "absolute", inset: 0, backgroundColor: previewImg ? "rgba(0,0,0,0.38)" : "transparent", padding: 20, justifyContent: "flex-end" }}>
+          {!previewImg && <Text style={{ fontSize: 32, marginBottom: 6 }}>{emoji}</Text>}
+          <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }} numberOfLines={2}>{title || "Заголовок баннера"}</Text>
+          {subtitle ? <Text style={{ fontSize: 13, color: "#ffffffcc", marginTop: 4 }} numberOfLines={1}>{subtitle}</Text> : null}
         </View>
       </View>
 
@@ -285,7 +287,7 @@ function BannerForm({
       <View style={{ flexDirection: "row", gap: 6, marginBottom: 12 }}>
         {([["none","Никуда","только показ"],["category","Категория","раздел каталога"],["url","Ссылка","внешний сайт"]] as [LinkType,string,string][]).map(([type, label, sub]) => (
           <TouchableOpacity key={type} onPress={() => { setLinkType(type); if (type !== "category") setLinkSlug(null); if (type !== "url") setLinkUrl(""); }}
-            style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: linkType === type ? (type === "none" ? "#f3f4f6" : "#f5f3ff") : "#fff", borderWidth: 1.5, borderColor: linkType === type ? (type === "none" ? "#6b7280" : P) : "#e5e7eb", alignItems: "center" }}>
+            style={{ flex: 1, paddingVertical: 9, borderRadius: 12, backgroundColor: linkType === type ? (type === "none" ? "#f3f4f6" : "#EFF6FF") : "#fff", borderWidth: 1.5, borderColor: linkType === type ? (type === "none" ? "#6b7280" : P) : "#e5e7eb", alignItems: "center" }}>
             <Text style={{ fontSize: 12, fontWeight: "700", color: linkType === type ? (type === "none" ? "#374151" : P) : "#9ca3af" }}>{label}</Text>
             <Text style={{ fontSize: 9, color: "#9ca3af", marginTop: 1 }}>{sub}</Text>
           </TouchableOpacity>
@@ -337,6 +339,11 @@ export default function AdminTabScreen() {
   const [catSlots, setCatSlots] = useState<ApiCategory[]>([]);
   const [adminProducts, setAdminProducts] = useState<AdminProduct[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [feedbackFilter, setFeedbackFilter] = useState<"all"|"new"|"replied">("all");
+  const [replyModal, setReplyModal] = useState<{ visible: boolean; item: FeedbackItem | null }>({ visible: false, item: null });
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
   const [adminCats, setAdminCats] = useState<AdminCategory[]>([]);
   const [catForm, setCatForm] = useState<{ visible: boolean; id?: number; name: string; slug: string; parent_id: string }>({ visible: false, name: "", slug: "", parent_id: "" });
   const [loading, setLoading] = useState(true);
@@ -364,6 +371,7 @@ export default function AdminTabScreen() {
       if (apRes.status === "fulfilled") setAdminProducts(apRes.value.data);
       if (rpRes.status === "fulfilled") setReports(rpRes.value.data);
       if (acRes.status === "fulfilled") setAdminCats(acRes.value.data);
+      try { const fbR = await api.get<FeedbackItem[]>("/feedback/admin/all"); setFeedbackItems(fbR.data); } catch {}
       if (cRes.status === "fulfilled") {
         const roots = cRes.value.data;
         const subResults = await Promise.allSettled(
@@ -560,7 +568,7 @@ export default function AdminTabScreen() {
           {section === "Обзор" && (
             <>
               <View style={{ flexDirection: "row", gap: 10 }}>
-                <StatCard label="Пользователей" value={stats?.users ?? 0} icon={Users} color="#8B5CF6" />
+                <StatCard label="Пользователей" value={stats?.users ?? 0} icon={Users} color="#2563EB" />
                 <StatCard label="Продавцов" value={stats?.sellers ?? 0} icon={Store} color="#16a34a" />
               </View>
               <View style={{ flexDirection: "row", gap: 10 }}>
@@ -572,10 +580,10 @@ export default function AdminTabScreen() {
               <View style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden" }}>
                 {[
                   { label: "Статистика", sub: `Выручка: ${(stats?.revenue?.total ?? 0).toLocaleString()} с.`, icon: BarChart2, color: P, sec: "Статистика" as Section },
-                  { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#8B5CF6", sec: "Пользователи" as Section },
+                  { label: "Пользователи", sub: `${stats?.users ?? 0} аккаунтов`, icon: Users, color: "#2563EB", sec: "Пользователи" as Section },
                   { label: "Заявки продавцов", sub: pendingApps.length > 0 ? `${pendingApps.length} ожидают` : "Новых нет", icon: UserCheck, color: "#f59e0b", sec: "Заявки" as Section },
                   { label: "Выплаты", sub: pendingPayouts.length > 0 ? `${pendingPayouts.length} ожидают` : "Новых нет", icon: Wallet, color: "#16a34a", sec: "Выплаты" as Section },
-                  { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#6366f1", sec: "Баннеры" as Section },
+                  { label: "Баннеры", sub: `${banners.length} баннеров`, icon: TrendingUp, color: "#3B82F6", sec: "Баннеры" as Section },
                 ].map(({ label, sub, icon: Icon, color, sec }, i, arr) => (
                   <TouchableOpacity key={label} onPress={() => setSection(sec)} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: i < arr.length - 1 ? 0.5 : 0, borderBottomColor: c.border }}>
                     <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: color + "15", alignItems: "center", justifyContent: "center" }}>
@@ -599,7 +607,7 @@ export default function AdminTabScreen() {
             const ORDER_STATUS: Record<string, { label: string; color: string }> = {
               pending: { label: "Ожидает", color: "#f59e0b" },
               processing: { label: "В обработке", color: "#3b82f6" },
-              shipped: { label: "Отправлен", color: "#8b5cf6" },
+              shipped: { label: "Отправлен", color: "#2563EB" },
               delivered: { label: "Доставлен", color: "#16a34a" },
               cancelled: { label: "Отменён", color: "#ef4444" },
             };
@@ -608,7 +616,7 @@ export default function AdminTabScreen() {
                 {/* Revenue cards */}
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <View style={{ flex: 1, backgroundColor: P, borderRadius: 16, padding: 16, gap: 4 }}>
-                    <Text style={{ fontSize: 11, color: "#e9d5ff", fontWeight: "600" }}>Общая выручка</Text>
+                    <Text style={{ fontSize: 11, color: "#BFDBFE", fontWeight: "600" }}>Общая выручка</Text>
                     <Text style={{ fontSize: 20, fontWeight: "900", color: "#fff" }}>{(stats?.revenue?.total ?? 0).toLocaleString()} с.</Text>
                   </View>
                   <View style={{ flex: 1, gap: 8 }}>
@@ -634,7 +642,7 @@ export default function AdminTabScreen() {
                             <View style={{
                               width: "100%",
                               height: Math.max(4, (d.revenue / maxRev) * 68),
-                              backgroundColor: i === chart.length - 1 ? P : "#e9d5ff",
+                              backgroundColor: i === chart.length - 1 ? P : "#BFDBFE",
                               borderRadius: 6,
                             }} />
                           </View>
@@ -652,7 +660,7 @@ export default function AdminTabScreen() {
                 </View>
                 <View style={{ flexDirection: "row", gap: 10 }}>
                   <StatCard label="Рейтинг платф." value={stats?.avg_rating ?? 0} icon={Star} color="#f59e0b" />
-                  <StatCard label="Отзывов" value={stats?.total_reviews ?? 0} icon={BarChart2} color="#8b5cf6" />
+                  <StatCard label="Отзывов" value={stats?.total_reviews ?? 0} icon={BarChart2} color="#2563EB" />
                 </View>
 
                 {/* Orders by status */}
@@ -749,7 +757,7 @@ export default function AdminTabScreen() {
                     </View>
                   </View>
                   <View style={{ flexDirection: "row", gap: 6 }}>
-                    <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                    <TouchableOpacity onPress={() => changeRole(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
                       <UserCheck size={16} color={P} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => toggleUser(u)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: u.is_active ? "#fef2f2" : "#f0fdf4", alignItems: "center", justifyContent: "center" }}>
@@ -925,6 +933,133 @@ export default function AdminTabScreen() {
             </>
           )}
 
+          {/* ── ОБРАЩЕНИЯ СЕЛЛЕРОВ ── */}
+          {section === "Обращения" && (
+            <>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {(["all", "new", "replied"] as const).map(f => (
+                  <TouchableOpacity key={f} onPress={() => setFeedbackFilter(f)}
+                    style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: feedbackFilter === f ? P : c.iconBg }}>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: feedbackFilter === f ? "#fff" : c.textSub }}>
+                      {f === "all" ? "Все" : f === "new" ? "Новые" : "Отвечено"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                <View style={{ flex: 1 }} />
+                <View style={{ backgroundColor: feedbackItems.filter(f => f.status === "new").length > 0 ? "#ef4444" : c.iconBg, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: feedbackItems.filter(f => f.status === "new").length > 0 ? "#fff" : c.textMuted }}>
+                    {feedbackItems.filter(f => f.status === "new").length} новых
+                  </Text>
+                </View>
+              </View>
+
+              {feedbackItems.filter(f => feedbackFilter === "all" || f.status === feedbackFilter || (feedbackFilter === "replied" && (f.status === "replied" || f.status === "done"))).length === 0 ? (
+                <View style={{ backgroundColor: c.card, borderRadius: 16, padding: 40, alignItems: "center" }}>
+                  <MessageSquare size={44} color={c.border} />
+                  <Text style={{ color: c.textMuted, marginTop: 12, fontWeight: "500" }}>Обращений нет</Text>
+                </View>
+              ) : feedbackItems
+                  .filter(f => feedbackFilter === "all" || f.status === feedbackFilter || (feedbackFilter === "replied" && (f.status === "replied" || f.status === "done")))
+                  .map(fb => {
+                const typeEmoji = fb.type === "suggestion" ? "💡" : fb.type === "bug" ? "🐛" : fb.type === "question" ? "❓" : "⚠️";
+                const typeLabel = fb.type === "suggestion" ? "Предложение" : fb.type === "bug" ? "Ошибка" : fb.type === "question" ? "Вопрос" : "Жалоба";
+                const stColor = fb.status === "new" ? "#ef4444" : fb.status === "read" ? "#2563EB" : "#16a34a";
+                const stLabel = fb.status === "new" ? "Новое" : fb.status === "read" ? "Прочитано" : fb.status === "replied" ? "Ответили" : "Решено";
+                return (
+                  <View key={fb.id} style={{ backgroundColor: c.card, borderRadius: 16, overflow: "hidden", borderLeftWidth: 3, borderLeftColor: stColor }}>
+                    <View style={{ padding: 14, gap: 8 }}>
+                      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+                        <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                          <Text style={{ fontSize: 20 }}>{typeEmoji}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 14, fontWeight: "700", color: c.text }} numberOfLines={1}>{fb.title}</Text>
+                          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2 }}>
+                            {typeLabel} · {fb.seller_shop || fb.seller_name || "Продавец"} · {new Date(fb.created_at).toLocaleDateString("ru-RU")}
+                          </Text>
+                          {fb.seller_phone && <Text style={{ fontSize: 11, color: "#2563EB", marginTop: 1 }}>{fb.seller_phone}</Text>}
+                        </View>
+                        <View style={{ backgroundColor: stColor + "20", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                          <Text style={{ fontSize: 10, fontWeight: "700", color: stColor }}>{stLabel}</Text>
+                        </View>
+                      </View>
+                      <View style={{ backgroundColor: c.iconBg, borderRadius: 12, padding: 12 }}>
+                        <Text style={{ fontSize: 13, color: c.text, lineHeight: 20 }}>{fb.message}</Text>
+                      </View>
+                      {fb.admin_reply && (
+                        <View style={{ backgroundColor: "#eff6ff", borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: P }}>
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: P, marginBottom: 4 }}>Ваш ответ:</Text>
+                          <Text style={{ fontSize: 13, color: "#1e3a8a", lineHeight: 18 }}>{fb.admin_reply}</Text>
+                        </View>
+                      )}
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                        <TouchableOpacity onPress={() => { setReplyModal({ visible: true, item: fb }); setReplyText(fb.admin_reply || ""); }}
+                          style={{ flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: P + "15", paddingVertical: 10, borderRadius: 12 }}>
+                          <MessageSquare size={14} color={P} />
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: P }}>{fb.admin_reply ? "Изменить ответ" : "Ответить"}</Text>
+                        </TouchableOpacity>
+                        {fb.status !== "done" && (
+                          <TouchableOpacity onPress={async () => {
+                            try {
+                              await api.patch(`/feedback/admin/${fb.id}`, { status: "done", reply: fb.admin_reply || null });
+                              const r = await api.get<FeedbackItem[]>("/feedback/admin/all");
+                              setFeedbackItems(r.data);
+                              Toast.show({ type: "success", text1: "Отмечено как решено" });
+                            } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+                          }}
+                          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#f0fdf4", paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12 }}>
+                            <CheckCircle size={14} color="#16a34a" />
+                            <Text style={{ fontSize: 13, fontWeight: "600", color: "#16a34a" }}>Решено</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+
+              <Modal visible={replyModal.visible} animationType="slide" transparent>
+                <View style={{ flex: 1, backgroundColor: "#00000060", justifyContent: "flex-end" }}>
+                  <View style={{ backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, gap: 14 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                      <Text style={{ fontSize: 17, fontWeight: "800", color: c.text }}>Ответить</Text>
+                      <TouchableOpacity onPress={() => setReplyModal({ visible: false, item: null })} style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
+                        <X size={16} color={c.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                    {replyModal.item && (
+                      <View style={{ backgroundColor: c.iconBg, borderRadius: 12, padding: 12 }}>
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: c.textMuted, marginBottom: 4 }}>ОБРАЩЕНИЕ</Text>
+                        <Text style={{ fontSize: 13, color: c.text }} numberOfLines={2}>{replyModal.item.title}</Text>
+                      </View>
+                    )}
+                    <TextInput value={replyText} onChangeText={setReplyText}
+                      multiline numberOfLines={4} textAlignVertical="top"
+                      placeholder="Напишите ответ продавцу..."
+                      placeholderTextColor={c.textMuted}
+                      style={{ backgroundColor: c.iconBg, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, fontSize: 14, color: c.text, minHeight: 100 }} />
+                    <TouchableOpacity disabled={replying || !replyText.trim()}
+                      onPress={async () => {
+                        if (!replyModal.item) return;
+                        setReplying(true);
+                        try {
+                          await api.patch(`/feedback/admin/${replyModal.item.id}`, { status: "replied", reply: replyText.trim() });
+                          const r = await api.get<FeedbackItem[]>("/feedback/admin/all");
+                          setFeedbackItems(r.data);
+                          setReplyModal({ visible: false, item: null });
+                          Toast.show({ type: "success", text1: "Ответ отправлен!" });
+                        } catch { Toast.show({ type: "error", text1: "Ошибка" }); }
+                        finally { setReplying(false); }
+                      }}
+                      style={{ backgroundColor: P, borderRadius: 14, paddingVertical: 14, alignItems: "center", opacity: (replying || !replyText.trim()) ? 0.5 : 1 }}>
+                      {replying ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Отправить ответ</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </Modal>
+            </>
+          )}
+
           {/* ── КАТЕГОРИИ ── */}
           {section === "Категории" && (
             <>
@@ -997,7 +1132,7 @@ export default function AdminTabScreen() {
                 {/* Главный экран */}
                 <TouchableOpacity
                   onPress={() => setBannerFormState({ visible: true, existing: banners.find(b => !b.link_url) ?? null, initialLinkUrl: null })}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#f5f3ff", borderRadius: 16, padding: 14 }}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#EFF6FF", borderRadius: 16, padding: 14 }}
                 >
                   <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: P, alignItems: "center", justifyContent: "center" }}>
                     <Text style={{ fontSize: 22 }}>🏠</Text>
@@ -1032,7 +1167,7 @@ export default function AdminTabScreen() {
                                 onPress={() => setBannerFormState({ visible: true, existing: existingBanner, initialLinkUrl: `category:${cat.slug}` })}
                                 style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: hasBanner ? P : isRoot ? "#f0f9ff" : "#f3f4f6", borderWidth: hasBanner ? 0 : 1, borderColor: isRoot ? "#bae6fd" : "#e5e7eb" }}
                               >
-                                {hasBanner && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#c4b5fd" }} />}
+                                {hasBanner && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: "#93C5FD" }} />}
                                 <Text style={{ fontSize: 12, fontWeight: isRoot ? "700" : "500", color: hasBanner ? "#fff" : isRoot ? "#0369a1" : "#374151" }}>{cat.name}</Text>
                               </TouchableOpacity>
                             );
@@ -1109,7 +1244,7 @@ export default function AdminTabScreen() {
                     <TouchableOpacity onPress={() => setBannerFormState({ visible: true, existing: b })} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f0f9ff", alignItems: "center", justifyContent: "center" }}>
                       <Pencil size={15} color="#0ea5e9" />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#f5f3ff", alignItems: "center", justifyContent: "center" }}>
+                    <TouchableOpacity onPress={() => toggleBanner(b)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#EFF6FF", alignItems: "center", justifyContent: "center" }}>
                       {b.is_active ? <ToggleRight size={20} color={P} /> : <ToggleLeft size={20} color="#9ca3af" />}
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => deleteBanner(b.id)} style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: "#fef2f2", alignItems: "center", justifyContent: "center" }}>

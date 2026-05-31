@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+﻿import { useEffect, useState, useCallback, useRef } from "react";
 import { View, Text, TouchableOpacity, ScrollView, Alert, Switch } from "react-native";
 import { Image } from "expo-image";
 import { useFocusEffect } from "expo-router";
@@ -6,7 +6,7 @@ import { useRouter } from "expo-router";
 import {
   User as UserIcon, Package, Heart, LogOut, LogIn,
   Clock, ChevronRight, Store, Shield, ClipboardList, TrendingUp,
-  Bell, Wallet, MessageSquare, CreditCard, Pencil, Moon,
+  Bell, Wallet, MessageSquare, CreditCard, Pencil, Moon, Lightbulb,
 } from "lucide-react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuthStore } from "@/store/auth";
@@ -16,9 +16,9 @@ import { useThemeColors, useIsDark } from "@/lib/theme";
 import { useThemeStore } from "@/store/theme";
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; label: string }> = {
-  buyer:  { bg: "#eff6ff", text: "#8B5CF6", label: "Покупатель" },
+  buyer:  { bg: "#eff6ff", text: "#2563EB", label: "Покупатель" },
   seller: { bg: "#f0fdf4", text: "#16a34a", label: "Продавец" },
-  admin:  { bg: "#faf5ff", text: "#7c3aed", label: "Администратор" },
+  admin:  { bg: "#faf5ff", text: "#1D4ED8", label: "Администратор" },
 };
 
 function Section({ children }: { children: React.ReactNode }) {
@@ -111,13 +111,13 @@ export default function ProfileScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: c.card }}>
         <ScrollView contentContainerStyle={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
           <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-            <UserIcon size={40} color="#C4B5FD" />
+            <UserIcon size={40} color="#93C5FD" />
           </View>
           <Text style={{ fontSize: 24, fontWeight: "900", color: c.text, marginBottom: 8 }}>Войдите в аккаунт</Text>
           <Text style={{ fontSize: 14, color: c.textMuted, marginBottom: 32, textAlign: "center", lineHeight: 22 }}>Отслеживайте заказы, сохраняйте избранное и управляйте покупками</Text>
           <TouchableOpacity
             onPress={() => router.push("/(auth)/login")}
-            style={{ backgroundColor: "#8B5CF6", paddingHorizontal: 48, paddingVertical: 14, borderRadius: 16, flexDirection: "row", alignItems: "center", gap: 8 }}
+            style={{ backgroundColor: "#2563EB", paddingHorizontal: 48, paddingVertical: 14, borderRadius: 16, flexDirection: "row", alignItems: "center", gap: 8 }}
           >
             <LogIn size={18} color="white" />
             <Text style={{ color: "#fff", fontWeight: "700", fontSize: 16 }}>Войти</Text>
@@ -130,7 +130,7 @@ export default function ProfileScreen() {
 
   const roleStyle = ROLE_COLORS[user.role] || ROLE_COLORS.buyer;
   const initials = (user.full_name || user.username || "?")[0].toUpperCase();
-  const avatarColor = user.role === "admin" ? "#7c3aed" : user.role === "seller" ? "#16a34a" : "#8B5CF6";
+  const avatarColor = user.role === "admin" ? "#1D4ED8" : user.role === "seller" ? "#16a34a" : "#2563EB";
   const divColor = c.border;
 
   return (
@@ -194,14 +194,14 @@ export default function ProfileScreen() {
           {user.role === "buyer" && (
             <>
               <Section>
-                <Row label="Мои заказы" sub="История покупок" icon={Package} color="#8B5CF6" onPress={() => router.push("/orders" as any)} />
+                <Row label="Мои заказы" sub="История покупок" icon={Package} color="#2563EB" onPress={() => router.push("/orders" as any)} />
                 <Row label="Избранное" sub="Сохранённые товары" icon={Heart} color="#ef4444" onPress={() => router.push("/favorites" as any)} />
                 <Row label="Мои отзывы" sub="Оценить купленные товары" icon={MessageSquare} color="#f59e0b" onPress={() => router.push("/my-reviews" as any)} />
-                <Row label="Сообщения" sub="Чат с продавцами" icon={MessageSquare} color="#8b5cf6" onPress={() => router.push("/chats" as any)} />
+                <Row label="Сообщения" sub="Чат с продавцами" icon={MessageSquare} color="#2563EB" onPress={() => router.push("/chats" as any)} />
                 <Row label="Лист ожидания" sub="Уведомим о наличии" icon={Clock} color="#9ca3af" onPress={() => router.push("/waitlist" as any)} />
               </Section>
               <Section>
-                <Row label="Способы оплаты" sub="Карты и платёжные методы" icon={CreditCard} color="#8B5CF6" onPress={() => router.push("/payment-cards" as any)} />
+                <Row label="Способы оплаты" sub="Карты и платёжные методы" icon={CreditCard} color="#2563EB" onPress={() => router.push("/payment-cards" as any)} />
               </Section>
               <Section>
                 <Row label="Стать продавцом" sub="Открыть свой магазин" icon={Store} color="#16a34a" onPress={() => router.push("/become-seller" as any)} />
@@ -213,12 +213,13 @@ export default function ProfileScreen() {
           {user.role === "seller" && (
             <>
               <Section>
-                <Row label="Мои товары" sub="Управление каталогом" icon={Package} color="#8B5CF6" onPress={() => router.push("/(tabs)/seller-products" as any)} />
-                <Row label="Заказы покупателей" sub="Обработка заказов" icon={ClipboardList} color="#7c3aed" onPress={() => router.push("/(tabs)/seller-orders" as any)} />
+                <Row label="Мои товары" sub="Управление каталогом" icon={Package} color="#2563EB" onPress={() => router.push("/(tabs)/seller-products" as any)} />
+                <Row label="Заказы покупателей" sub="Обработка заказов" icon={ClipboardList} color="#1D4ED8" onPress={() => router.push("/(tabs)/seller-orders" as any)} />
                 <Row label="Аналитика и доходы" sub="Статистика продаж" icon={TrendingUp} color="#16a34a" onPress={() => router.push("/(tabs)/seller-analytics" as any)} />
               </Section>
               <Section>
-                <Row label="Сообщения" sub="Чат с покупателями" icon={MessageSquare} color="#8b5cf6" onPress={() => router.push("/chats" as any)} />
+                <Row label="Сообщения" sub="Чат с покупателями" icon={MessageSquare} color="#2563EB" onPress={() => router.push("/chats" as any)} />
+                <Row label="Предложения и обратная связь" sub="Идеи, ошибки, вопросы" icon={Lightbulb} color="#ca8a04" onPress={() => router.push("/seller/feedback" as any)} />
               </Section>
               <Section>
                 <Row label="Оформление магазина" sub="Баннер, логотип, описание" icon={Store} color="#f59e0b" onPress={() => router.push("/(tabs)/seller-shop" as any)} />
@@ -230,8 +231,8 @@ export default function ProfileScreen() {
           {/* Admin menu */}
           {user.role === "admin" && (
             <Section>
-              <Row label="Панель администратора" sub="Управление платформой" icon={Shield} color="#7c3aed" onPress={() => router.push("/(tabs)/admin-tab" as any)} />
-              <Row label="Все товары" icon={Package} color="#8B5CF6" onPress={() => router.push("/(tabs)/catalog" as any)} />
+              <Row label="Панель администратора" sub="Управление платформой" icon={Shield} color="#1D4ED8" onPress={() => router.push("/(tabs)/admin-tab" as any)} />
+              <Row label="Все товары" icon={Package} color="#2563EB" onPress={() => router.push("/(tabs)/catalog" as any)} />
             </Section>
           )}
 
@@ -241,13 +242,13 @@ export default function ProfileScreen() {
             <Row label="Политика конфиденциальности" icon={Shield} color="#6b7280" onPress={() => router.push("/privacy" as any)} />
             <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 14, gap: 14 }}>
               <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.iconBg, alignItems: "center", justifyContent: "center" }}>
-                <Moon size={18} color="#8B5CF6" strokeWidth={1.8} />
+                <Moon size={18} color="#2563EB" strokeWidth={1.8} />
               </View>
               <Text style={{ flex: 1, fontSize: 14, fontWeight: "600", color: c.text }}>Тёмная тема</Text>
               <Switch
                 value={isDark}
                 onValueChange={toggle}
-                trackColor={{ false: "#e5e7eb", true: "#8B5CF6" }}
+                trackColor={{ false: "#e5e7eb", true: "#2563EB" }}
                 thumbColor="#fff"
               />
             </View>
