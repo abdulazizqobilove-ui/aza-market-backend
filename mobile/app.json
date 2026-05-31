@@ -7,10 +7,23 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "azamarket",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
     "plugins": [
       "expo-router",
       "expo-image-picker",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f172a"
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": false,

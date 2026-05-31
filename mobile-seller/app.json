@@ -1,23 +1,36 @@
 {
   "expo": {
-    "name": "AZA Market Seller",
+    "name": "AZA Partners",
     "slug": "aza-market-seller",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "azamarket",
+    "scheme": "azapartners",
+    "splash": {
+      "image": "./assets/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
     "plugins": [
       "expo-router",
       "expo-image-picker",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0f172a"
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "tj.azamarket.app"
     },
     "android": {
-      "package": "tj.azamarket.seller",
+      "package": "tj.azamarket.partners",
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
