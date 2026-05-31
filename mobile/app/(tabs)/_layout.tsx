@@ -1,15 +1,19 @@
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { Home, Menu, ShoppingCart, User, Heart } from "lucide-react-native";
-import { View, Text, Platform, Pressable } from "react-native";
+import { View, Text, Platform, Pressable, Dimensions } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { runOnJS } from "react-native-reanimated";
+import Animated, {
+  useSharedValue, useAnimatedStyle, withSpring, runOnJS,
+} from "react-native-reanimated";
+import { useRef, useCallback } from "react";
 import { useAuthStore } from "@/store/auth";
 import { useCartStore } from "@/store/cart";
 import { useThemeColors, useIsDark } from "@/lib/theme";
 
+const { width } = Dimensions.get("window");
 const PRIMARY = "#2563EB";
 
-// Порядок табов для свайпа
+// Tab order for swipe
 const TAB_ROUTES = ["/", "/catalog", "/cart", "/favorites", "/profile"] as const;
 
 function Badge({ count }: { count: number }) {
@@ -37,34 +41,77 @@ function TabIcon({ icon, focused, count }: { icon: (color: string) => React.Reac
 function SwipeTabsWrapper({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const translateX = useSharedValue(0);
+  const navigated = useSharedValue(false);
+  const idxRef = useRef(0);
 
   const currentIndex = TAB_ROUTES.findIndex(
     (r) => r === pathname || (r !== "/" && pathname.startsWith(r))
   );
+  idxRef.current = currentIndex < 0 ? 0 : currentIndex;
 
-  const navigate = (route: string) => {
+  // Called on JS thread: animate incoming screen in from the correct side
+  const doNavigate = useCallback((route: string, fromRight: boolean) => {
     router.navigate(route as any);
-  };
+    // New screen renders with current translateX; reposition to incoming side then spring in
+    translateX.value = fromRight ? width : -width;
+    translateX.value = withSpring(0, { damping: 22, stiffness: 230, mass: 0.85 });
+  }, []);
 
-  const swipe = Gesture.Pan()
-    .activeOffsetX([-30, 30])   // нужно 30px горизонтально чтобы активировать
-    .failOffsetY([-20, 20])     // если двигается вертикально — не перехватывать
+  const gesture = Gesture.Pan()
+    .activeOffsetX([-25, 25])
+    .failOffsetY([-20, 20])
+    .onUpdate((e) => {
+      if (navigated.value) return;
+      const idx = idxRef.current;
+      const tx = e.translationX;
+      const isFirst = idx === 0;
+      const isLast  = idx === TAB_ROUTES.length - 1;
+
+      // Rubber-band resistance at first/last tab
+      if ((isFirst && tx > 0) || (isLast && tx < 0)) {
+        translateX.value = tx * 0.12;
+        return;
+      }
+      translateX.value = tx;
+    })
     .onEnd((e) => {
-      const isSwipeLeft  = e.translationX < -60 || e.velocityX < -500;
-      const isSwipeRight = e.translationX >  60 || e.velocityX >  500;
+      const idx = idxRef.current;
+      const tx  = e.translationX;
+      const vx  = e.velocityX;
 
-      if (isSwipeLeft && currentIndex < TAB_ROUTES.length - 1) {
-        runOnJS(navigate)(TAB_ROUTES[currentIndex + 1]);
-      } else if (isSwipeRight && currentIndex > 0) {
-        runOnJS(navigate)(TAB_ROUTES[currentIndex - 1]);
+      const goNext = (tx < -60 || vx < -600) && idx < TAB_ROUTES.length - 1;
+      const goPrev = (tx >  60 || vx >  600) && idx > 0;
+
+      if (goNext) {
+        navigated.value = true;
+        // Slide current screen out to the left, then navigate + slide new screen in from right
+        translateX.value = withSpring(-width, { damping: 28, stiffness: 380, mass: 0.8 }, () => {
+          runOnJS(doNavigate)(TAB_ROUTES[idx + 1], true);
+          navigated.value = false;
+        });
+      } else if (goPrev) {
+        navigated.value = true;
+        // Slide current screen out to the right, then navigate + slide new screen in from left
+        translateX.value = withSpring(width, { damping: 28, stiffness: 380, mass: 0.8 }, () => {
+          runOnJS(doNavigate)(TAB_ROUTES[idx - 1], false);
+          navigated.value = false;
+        });
+      } else {
+        // Bounce back
+        translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
       }
     });
 
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
   return (
-    <GestureDetector gesture={swipe}>
-      <View style={{ flex: 1 }}>
+    <GestureDetector gesture={gesture}>
+      <Animated.View style={[{ flex: 1 }, animStyle]}>
         {children}
-      </View>
+      </Animated.View>
     </GestureDetector>
   );
 }
